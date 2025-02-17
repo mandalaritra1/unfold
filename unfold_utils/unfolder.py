@@ -154,10 +154,11 @@ class Unfolder:
             self.h_np = np.where(self.h_np< 0, 0, self.h_np)
 
         # Miss and fake corrections
-        self.miss_values = self.misses.project('ptgen', 'mgen').values().reshape(self.M_np.shape[0])
-        self.fake_values = self.fakes.project('ptreco', 'mreco').values().reshape(self.M_np.shape[1])
-
-        self.miss_frac = self.miss_values/ ( self.M_np.sum(axis = 1))
+        if self.fakes != None:
+            self.miss_values = self.misses.project('ptgen', 'mgen').values().reshape(self.M_np.shape[0])
+            self.fake_values = self.fakes.project('ptreco', 'mreco').values().reshape(self.M_np.shape[1])
+    
+            self.miss_frac = self.miss_values/ ( self.M_np.sum(axis = 1))
         
         if self.do_norm:
             for i in range(4):
@@ -176,8 +177,8 @@ class Unfolder:
                 for sys in self.systematics:
                     sum_i = self.systematics[sys].sum(axis = 0)[i*self.nmbinsDet:(i+1)*self.nmbinsDet].sum()
                     self.systematics[sys][:, i*self.nmbinsDet:(i+1)*self.nmbinsDet ]  = self.systematics[sys][:, i*self.nmbinsDet:(i+1)*self.nmbinsDet ]/sum_i
-                            
-                self.fake_values[ i*self.nmbinsDet:(i+1)*self.nmbinsDet ] /= (sum_i + self.fake_values[ i*self.nmbinsDet:(i+1)*self.nmbinsDet ])
+                if self.fakes != None:            
+                    self.fake_values[ i*self.nmbinsDet:(i+1)*self.nmbinsDet ] /= (sum_i + self.fake_values[ i*self.nmbinsDet:(i+1)*self.nmbinsDet ])
 
         
             
@@ -225,16 +226,17 @@ class Unfolder:
             self.htrue.SetBinContent(i, self.htrue_np[i-1])
 
         # Create and fill the fake histogram
-        self.fake_hist = self.h.Clone('fakes')
-        self.fake_hist.Reset()
-        if not self.closure:
-            for i in range(1, self.M.GetNbinsX()):
-                self.M.SetBinContent(i, 0, self.miss_values[i-1])
-                if self.systematics is not None:
-                    for sys_name in self.M_sys_dic:
-                        self.M_sys_dic[sys_name].SetBinContent(i, 0, self.miss_values[i-1])
-        for i in range(1, self.M.GetNbinsY()):
-            self.fake_hist.SetBinContent(i, self.fake_values[i-1])
+        if self.fakes != None:
+            self.fake_hist = self.h.Clone('fakes')
+            self.fake_hist.Reset()
+            if not self.closure:
+                for i in range(1, self.M.GetNbinsX()):
+                    self.M.SetBinContent(i, 0, self.miss_values[i-1])
+                    if self.systematics is not None:
+                        for sys_name in self.M_sys_dic:
+                            self.M_sys_dic[sys_name].SetBinContent(i, 0, self.miss_values[i-1])
+            for i in range(1, self.M.GetNbinsY()):
+                self.fake_hist.SetBinContent(i, self.fake_values[i-1])
 
 
 
@@ -259,10 +261,10 @@ class Unfolder:
                 self.u.AddSysError(self.M_sys_dic[sys], sys, orientation,
                                    ROOT.TUnfoldDensity.kSysErrModeMatrix)
         self.u.SetInput(self.h)
-
-        print("Working until background subtractions")
-        if not self.closure:
-            self.u.SubtractBackground(self.fake_hist, 'fakes')
+        if self.fakes != None:
+            print("Working until background subtractions")
+            if not self.closure:
+                self.u.SubtractBackground(self.fake_hist, 'fakes')
 
         if not self.closure and self.backgrounds is not None:
             for bg in self.backgrounds.keys():
@@ -558,6 +560,7 @@ class Unfolder:
                 for i in range(len(self.o_np)):
                     total_sys_jes[i] += self.delta_sys_dic[sys][i]**2
         total_sys_jes = total_sys_jes**0.5
+        self.total_sys_jes = total_sys_jes
         for i in range(4):
             for sys in self.delta_sys_dic.keys():
                 if sys[:3] != "JES":
