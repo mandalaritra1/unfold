@@ -41,11 +41,16 @@ class binning():
         print(mbinsDet)
 
 
-        mbinsDet[-2] = 250
-        mbinsDet[-1] = 300.0
-        mbinsGen[-1] = 300.0
-        # ptbinsGen[-1] = 10000
-        # ptbinsDet[-1] = 10000
+        #mbinsDet[-2] = 250
+        #mbinsDet[-1] = 300.0
+        #mbinsGen[-1] = 300.0
+
+
+        
+        
+        #ptbinsGen[-1] = 600
+        #ptbinsDet[-1] = 600
+        #ptbinsDet[-1] = 10000
 
         # mbinsGen = array.array('d', [0.0e+00, 1.0e+01, 2.0e+01, 4.0e+01, 6.0e+01, 8.0e+01, 1.0e+02, 1.5e+02, 2.0e+02, 3.0e+02])
         # mbinsDet = array.array('d', [0.00e+00, 5.00e+00, 1.00e+01, 1.50e+01, 2.00e+01, 3.00e+01,

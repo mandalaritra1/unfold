@@ -238,8 +238,10 @@ class AsymmetricErrorPlot:
         
         ax1.set_xticks(bin_edges)  # Set tick positions
         xtick_labels = [f"{edge:.0f}" if i % 2 == 0 else "" for i, edge in enumerate(bin_edges)]
-        print('xtick labels', xtick_labels)
+        
         xtick_labels[-1] = r'$\infty$'
+        xtick_labels[-2] = int(bin_edges[-2])
+        print('xtick labels', xtick_labels)
         ax1.set_xticklabels(xtick_labels)
         ax1.xaxis.set_minor_locator(plt.NullLocator())
         ax2.xaxis.set_minor_locator(plt.NullLocator())
@@ -260,8 +262,8 @@ class AsymmetricErrorPlot:
         leg.get_texts()[-2].set_fontweight('bold')
         # Set labels and text
         ax1.set_ylabel(ylabel)
-        ax1.set_xlabel(xlabel)
-        ax1.set_xlim(0,200)
+        #ax1.set_xlabel(xlabel)
+        ax1.set_xlim(0,bin_edges[-2]+widths[-1])
 
         #ax1.text(0.50, 0.50, custom_text, ha='center', va='center', transform=ax1.transAxes, fontsize=22)
         closure = False
