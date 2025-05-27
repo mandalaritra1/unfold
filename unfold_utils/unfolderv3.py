@@ -259,7 +259,7 @@ class Unfolder:
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
         regMode = ROOT.TUnfold.kRegModeCurvature
         con = ROOT.TUnfold.kEConstraintArea
-        mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
+        mode = ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
         axisSteering = "*[UOB]"
         nScan = 50
         tauMin = 1e-8
@@ -329,7 +329,7 @@ class Unfolder:
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
         regMode = ROOT.TUnfold.kRegModeCurvature
         con = ROOT.TUnfold.kEConstraintArea
-        mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
+        mode = ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
         axisSteering = "*[UOB]"
         nScan = 50
         tauMin = 1e-8
@@ -440,6 +440,7 @@ class Unfolder:
 
         # Bin results per pT bin (here assumed to be 4)
         self.output_pt_binned = []
+        self.output_pt_binned_no_norm = []
         self.stat_pt_binned = []
         self.stat_mat_pt_binned = []
         self.total_error_pt_binned = []
@@ -447,8 +448,9 @@ class Unfolder:
         
         self.o_sys_dic_pt_binned = {}
 
-
+        
         for i in range(0, self.nptbinsGen):
+            self.output_pt_binned_no_norm.append(self.o_np[i*self.nmbinsGen:(i+1)*self.nmbinsGen])
             if self.normalized_syst:
                 self.output_pt_binned.append(self.o_np[i*self.nmbinsGen:(i+1)*self.nmbinsGen]/self.o_np[i*self.nmbinsGen:(i+1)*self.nmbinsGen].sum())
             else:
@@ -500,9 +502,12 @@ class Unfolder:
 
         self.total_sys = np.sqrt(total_sys)
         self.total_sys_jes = np.sqrt(total_sys_jes)
+
+    def get_u(self):
+        return self.u
     def plot_output_sys(self):
         """Plot the unfolded output with systematic variations."""
-        title_list = [r"$p_T$ 200-290 GeV", r"$p_T$ 290-400 GeV", r"$p_T$ 400-480 GeV", "a", "b", "c"]
+        
         npt = len(title_list)
         print(self.o_sys_dic_pt_binned.keys())
 
@@ -712,9 +717,10 @@ class Unfolder:
     def plot_unfolded(self):
         #title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV",  r"$p_T$ 480-$\infty$ GeV"]
         title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV", "a", "b", "c", "d"]#,  r"$p_T$ 480-$\infty$ GeV"]
-        npt = 6
+        npt = 3
         """Plot the unfolded result compared to the truth for each pT bin."""
         plt.stairs(self.o_np, label = "unfolded")
+        #plt.stairs(self.M_np.sum(axis = 1) + self.miss_values, label = "matrix projection +miss")
         plt.stairs(self.M_np.sum(axis = 1) + self.miss_values, label = "matrix projection +miss")
         plt.legend()
         plt.show()
@@ -724,7 +730,7 @@ class Unfolder:
         plt.legend()
         plt.show()
         
-        plt.figure(figsize = (19, 15))
+        plt.figure(figsize = (19, 18))
         for i in range(0, npt):
             plt.subplot(3,2, i+1)
             if self.reweighted_pythia is not None:
@@ -738,6 +744,8 @@ class Unfolder:
             # Modify the last bin edge if desired
             mgen_edge_mod = self.mgen_edge.copy()
             mgen_edge_mod[-1] = 300
+
+            
             if self.reweighted_pythia is not None:
                 plt.stairs(self.herwig_gen[i,:].values()/
                        self.mgen_width / self.herwig_gen[i,:].values().sum(),
@@ -754,8 +762,10 @@ class Unfolder:
             #            self.mgen_edge[1:], label='TRUE Pythia', color='r', linestyle='--')
             mgen_center_mod = self.mgen_center.copy()
             mgen_center_mod[-1] = 250
-            # plt.errorbar(mgen_center_mod, self.output_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), 
-            #              self.stat_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), ls= "", color = 'k')
+            
+            plt.errorbar(mgen_center_mod, self.output_pt_binned_no_norm[i] / self.mgen_width / np.sum(self.output_pt_binned_no_norm[i]), 
+                         self.stat_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned_no_norm[i]), ls= "", color = 'k')
+            
             plt.xlabel("GEN Mass (GeV)")
             plt.legend(title = title_list[i])
             plt.xlim(0,250)
@@ -845,28 +855,48 @@ class Unfolder:
                 plt.show()
 
     def plot_systematic_frac(self, sys_list = None):
-        
+        title_list = [r"$p_T$ 200-290 GeV", r"$p_T$ 290-400 GeV", r"$p_T$ 400-$\infty$ GeV", "a", "b", "c"]
+        self.title_list = title_list
         total_sys_jes = np.zeros(self.o_np.shape)
+        total_sys_ele = np.zeros(self.o_np.shape)
+        total_sys_mu = np.zeros(self.o_np.shape)
         for sys in self.delta_sys_dic.keys():
             if sys[:3] == "JES":
                 for i in range(len(self.o_np)):
                     total_sys_jes[i] += self.delta_sys_dic[sys][i]**2
+            if sys[:3] == "ele":
+                for i in range(len(self.o_np)):
+                    total_sys_ele[i] += self.delta_sys_dic[sys][i]**2
+            if sys[:2] == "mu":
+                for i in range(len(self.o_np)):
+                    total_sys_mu[i] += self.delta_sys_dic[sys][i]**2
         total_sys_jes = total_sys_jes**0.5
         self.total_sys_jes = total_sys_jes
+        style_list = ['--', '-', 'dotted']
 
         if sys_list is None:
             for i in range(self.nptbinsGen):
+                plt.figure(dpi = 60)
                 for sys in self.delta_sys_dic.keys():
-                    if sys[:3] != "JES":
-                        
-                        plt.stairs(np.abs(self.delta_sys_dic[sys][i*self.nmbinsGen  :(i+1)*self.nmbinsGen])/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = sys )
+                    bad_unc = (sys[:3] == "JES") or (sys[:3] == "ele") or (sys[:2] == "mu")
+                    if not bad_unc:
+                        plt.stairs(np.abs(self.delta_sys_dic[sys][i*self.nmbinsGen  :(i+1)*self.nmbinsGen])/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = sys[:-2], lw= 2, ls = np.random.choice(style_list))  
+                    
+
+                plt.stairs(total_sys_ele[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "Electron", lw = 2 , ls = 'dotted' )
+                    #elif sys[:2] == "mu":
+                plt.stairs(total_sys_mu[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "Muon", lw = 2, ls = '--' )
+                    
     
-                plt.stairs(total_sys_jes[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "JESUp" )
-                plt.stairs(self.total_sys[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "Total" )
-                #plt.legend(loc="upper left", bbox_to_anchor=(1, 1))
+                plt.stairs(total_sys_jes[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "JES", lw = 2,  ls = '--' )
+                plt.stairs(self.total_sys[i*self.nmbinsGen  :(i+1)*self.nmbinsGen]/np.abs(self.output_pt_binned[i]), self.mgen_edge , label = "Total", lw = 3, color = 'k',)
+                plt.legend(loc="upper left", bbox_to_anchor=(1, 1), title = self.title_list[i])
                 plt.xlim(0,250)
-                plt.ylim(0.00001,0.5)
-                #plt.yscale('log')
+                #plt.xlabel("Groomed Jet Mass (GeV)")
+                plt.ylabel("Relative Uncertainty")
+                plt.xlabel("Ungroomed Jet Mass (GeV)")
+                plt.ylim(0.001,0.5)
+                plt.yscale('log')
                 plt.show()
         else:
             return_obj = []
@@ -1103,7 +1133,7 @@ class Unfolder_mpt:
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
         regMode = ROOT.TUnfold.kRegModeCurvature
         con = ROOT.TUnfold.kEConstraintArea
-        mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
+        mode = ROOT.TUnfoldDensity.kDensityModeBinWidthandUser
         axisSteering = "*[UOB]"
         nScan = 50
         tauMin = 1e-8
@@ -1328,6 +1358,10 @@ class Unfolder_mpt:
             
         self.total_sys = total_sys**0.5
 
+    def get_u(self):
+        """Return the TUnfoldDensity object."""
+        return self.u
+
     def plot_input(self):
         "plot the input vs the projection of response matrix"
         for i in range(4):
@@ -1424,7 +1458,7 @@ class Unfolder_mpt:
         
 
     def plot_unfolded(self):
-        title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV",  r"$p_T$ 480-$\infty$ GeV", "a", "b", "c", "d"]
+        title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-$\infty$ GeV",  r"$p_T$ 480-$\infty$ GeV", "a", "b", "c", "d"]
         """Plot the unfolded result compared to the truth for each pT bin."""
         plt.stairs(self.o_np, label = "unfolded")
         if self.misses is not None:
@@ -1439,8 +1473,8 @@ class Unfolder_mpt:
         plt.legend()
         plt.show()
         
-        plt.figure(figsize = (19, 15))
-        for i in range(0, 4):
+        plt.figure(figsize = (19, 18))
+        for i in range(0, 3):
             plt.subplot(2,2, i+1)
             if self.reweighted_pythia is not None:
                 print("Plot of unfolding reweigted pythia")
@@ -1469,9 +1503,9 @@ class Unfolder_mpt:
             #            self.mgen_edge[1:], label='TRUE Pythia', color='r', linestyle='--')
             mgen_center_mod = self.mgen_center.copy()
             #mgen_center_mod[-1] = 250
-            plt.errorbar(mgen_center_mod, self.output_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), 
-                         self.stat_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), ls= "", color = 'k')
-            plt.xlabel(r"$m/p_T R$")
+            # plt.errorbar(mgen_center_mod, self.output_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), 
+            #              self.stat_pt_binned[i] / self.mgen_width / np.sum(self.output_pt_binned[i]), ls= "", color = 'k')
+            plt.xlabel(r"$-2 \cdot \log(m/p_T R)$")
             plt.legend(title = title_list[i])
             #plt.xlim(0,250)
         plt.show()
@@ -1846,7 +1880,7 @@ def unfold_using_matrix(data_2d, resp_matrix_4d, fakes, misses,
     # if regularisation == "None":
     #     regMode = ROOT.TUnfold.kRegModeNone
     con = ROOT.TUnfold.kEConstraintArea #ROOT.TUnfold.kEConstraintArea
-    mode =  ROOT.TUnfoldDensity.kDensityModeBinWidth
+    mode =  ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
     axisSteering =  "*[UOB]"
     
     nScan=50
