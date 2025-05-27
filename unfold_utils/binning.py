@@ -4,6 +4,7 @@ import numpy as np
 import array as array
 import math
 import matplotlib.pyplot as plt
+import bisect
 
 #import statistics as st
 ROOT.gStyle.SetOptStat(000000)
@@ -34,6 +35,8 @@ class binning():
         self.nptbinsGen = nptbinsGen
         self.nptbinsDet = nptbinsDet
 
+        
+
         print(nmbinsGen)
         print(mbinsGen)
 
@@ -61,6 +64,8 @@ class binning():
         #ptbinsGen = array.array('d', [  200.,   260.,   350.,   460., 10000])
         #ptbinsDet = array.array('d', [  200.,   260.,   350.,   460.,10000])
 
+        ptbinsGen[-1] = 1000
+        mbinsGen[-1] = 300
         
         generatorBinning = ROOT.TUnfoldBinning("generator")
         ### Need coarser binning for signal
@@ -74,9 +79,34 @@ class binning():
                                 False# overflow bin
                                 )
 
-        # X axis : generator binning is Signal : mgen * ptgen and Background : mrec * ptrec
 
-        print("Signal Binning created")
+        pt_factors = [1.        , 3.22558071, 7.93939854]     ## 1/N_mc_truth
+        
+        # build a piecewise formula in x only
+        pieces = []
+        for i, f in enumerate(pt_factors):
+            low, high = ptbinsGen[i], ptbinsGen[i+1]
+            # note: x = pt, y = mass (we ignore y here)
+            pieces.append(f"{f}*(y>={low} && y<{high})")
+        formula = "+".join(pieces)
+        
+        # define TF2 over the full pt range (x) and full mass range (y)
+        func2 = ROOT.TF2(
+            "ptOnlyFunc",     # name
+            formula,          # piecewise in x
+            ptbinsGen[0],     # x-min = lowest pt
+            ptbinsGen[-1],    # x-max = highest pt
+            mbinsGen[0],      # y-min = lowest mass
+            mbinsGen[-1]      # y-max = highest mass
+        )
+        
+        # attach to your node—ROOT will evaluate func2(x(pt), y(m)) but return only your pt-based piece
+        signalDistribution.SetBinFactorFunction(1.0, func2)
+        
+        for i in range(1,30):
+            print(signalDistribution.GetBinFactor(i))
+        
+
 
         genBin = generatorBinning
 

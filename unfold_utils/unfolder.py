@@ -256,7 +256,7 @@ class Unfolder:
 
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
         axisSteering = "*[UOB]"
@@ -374,9 +374,10 @@ class Unfolder:
         self.create_root_objects()
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
-        mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
+        #mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
+        mode = ROOT.TUnfoldDensity.kDensityModeNone
         axisSteering = "*[UOB]"
         nScan = 50
         tauMin = 1e-8
@@ -579,10 +580,12 @@ class Unfolder:
         
 
     def plot_unfolded(self):
-        title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV",  r"$p_T$ 480-$\infty$ GeV"]
+        #title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV",  r"$p_T$ 480-$\infty$ GeV"]
+        title_list = [ r"$p_T$ 200-290 GeV",  r"$p_T$ 290-400 GeV",  r"$p_T$ 400-480 GeV"]#,  r"$p_T$ 480-$\infty$ GeV"]
+        npt = 4
         """Plot the unfolded result compared to the truth for each pT bin."""
         plt.stairs(self.o_np, label = "unfolded")
-        plt.stairs(self.M_np.sum(axis = 1) + self.miss_values, label = "matrix projection +miss")
+        plt.stairs(self.M_np.sum(axis = 1))# + self.miss_values, label = "matrix projection +miss")
         plt.legend()
         plt.show()
 
@@ -592,13 +595,15 @@ class Unfolder:
         plt.show()
         
         plt.figure(figsize = (19, 15))
-        for i in range(0, 4):
+        for i in range( npt):
             plt.subplot(2,2, i+1)
             if self.reweighted_pythia is not None:
                 print("Plot of unfolding reweigted pythia")
                 unfold_label = "Unf. reweigted Pythia"
             else:
                 unfold_label = "Unfolded DATA"
+            print('i',i)
+            print(self.output_pt_binned[i])
             plt.stairs(self.output_pt_binned[i] / self.mgen_width /
                        np.sum(self.output_pt_binned[i]),
                        self.mgen_edge, label=unfold_label, color='k')
@@ -962,7 +967,7 @@ class Unfolder_mpt:
 
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
         axisSteering = "*[UOB]"
@@ -1080,7 +1085,7 @@ class Unfolder_mpt:
         self.create_root_objects()
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
         axisSteering = "*[UOB]"
@@ -1700,7 +1705,7 @@ def unfold_using_matrix(data_2d, resp_matrix_4d, fakes, misses,
     ## Unfold
 
     orientation = ROOT.TUnfold.kHistMapOutputHoriz
-    regMode = ROOT.TUnfold.kRegModeCurvature
+    regMode = ROOT.TUnfold.kRegModeDerivative
 
     # if regularisation == "None":
     #     regMode = ROOT.TUnfold.kRegModeNone

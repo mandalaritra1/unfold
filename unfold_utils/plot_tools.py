@@ -268,9 +268,9 @@ class AsymmetricErrorPlot:
         #ax1.text(0.50, 0.50, custom_text, ha='center', va='center', transform=ax1.transAxes, fontsize=22)
         closure = False
         if closure:
-            hep.cms.label("Preliminary", ax = ax1, data = 0)
+            hep.cms.label("Preliminary", ax = ax1, data = 0, rlabel = r"$138 fb^{-1}$ (2018)")
         else:
-            hep.cms.label("Preliminary", ax = ax1, data = 1)
+            hep.cms.label("Preliminary", ax = ax1, data = 1, rlabel = r"$138 fb^{-1}$ (2018)")
         # if lumi_text!=None:
         #     hep.cms.lumitext(str(lumi_text), ax = ax1)
         # else:
