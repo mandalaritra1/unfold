@@ -79,8 +79,8 @@ class binning():
                                 False# overflow bin
                                 )
 
-
-        pt_factors = [1.        , 3.22558071, 7.93939854]     ## 1/N_mc_truth
+        # ################# pt factors ###########################
+        pt_factors = [1.        , 3.22558071, 100]     ## 1/N_mc_truth
         
         # build a piecewise formula in x only
         pieces = []
@@ -102,12 +102,50 @@ class binning():
         
         # attach to your node—ROOT will evaluate func2(x(pt), y(m)) but return only your pt-based piece
         signalDistribution.SetBinFactorFunction(1.0, func2)
+
+        # #############################################################
+
+        # node = signalDistribution
+
+        # m_pt_factors = np.array([[1.00000000e+00, 4.43960233e+00, 3.96006094e+00, 4.91562583e+00,
+        #                         5.96291810e+00, 1.09242219e+01, 3.59080083e+01, 2.24050740e+02,
+        #                         3.03434626e+03, 1.86257010e+04, 3.25241044e+05],
+        #                        [3.60898295e+00, 1.56030193e+01, 1.33252650e+01, 1.79504050e+01,
+        #                         2.10243958e+01, 2.53092300e+01, 3.51254342e+01, 6.29033193e+01,
+        #                         1.57107448e+02, 5.50001232e+02, 1.82067644e+04],
+        #                        [9.94255738e+00, 4.23724609e+01, 3.48858221e+01, 4.75986364e+01,
+        #                         6.10242658e+01, 7.35455616e+01, 8.43982258e+01, 1.00128802e+02,
+        #                         1.25559957e+02, 1.07197832e+02, 1.83120491e+02]])
+        # pieces = []
+        # for i_pt, row in enumerate(m_pt_factors):
+        #     pt_lo, pt_hi = ptbinsGen[i_pt],   ptbinsGen[i_pt+1]
+        #     for j_m, factor in enumerate(row):
+        #         m_lo, m_hi = mbinsGen[j_m], mbinsGen[j_m+1]
+        #         pieces.append(
+        #             f"{factor}*(y>={pt_lo} && y<{pt_hi})*(x>={m_lo} && x<{m_hi})"
+        #         )
+        # formula = "+".join(pieces)
         
-        for i in range(1,30):
-            print(signalDistribution.GetBinFactor(i))
+        # # define TF2 over full pt (x) and mass (y) ranges
+        # f2 = ROOT.TF2(
+        #     "binFactor2D", formula,
+        #     ptbinsGen[0], ptbinsGen[-1],
+        #     mbinsGen[0],  mbinsGen[-1]
+        # )
+        
+        # # attach via the public method
+        # signalDistribution.SetBinFactorFunction(1.0, f2)
+        # print("Done: attached m–pt lookup via TF2")
+
+        
+        
+        # for i in range(1,30):
+        #     print(signalDistribution.GetBinFactor(i))
         
 
 
+
+        
         genBin = generatorBinning
 
 

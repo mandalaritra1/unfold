@@ -117,6 +117,22 @@ class Unfolder:
         self.M_np = proj.values(flow=False)
         self.M_np = self.M_np.reshape(self.M_np.shape[0]*self.M_np.shape[1],
                                         self.M_np.shape[2]*self.M_np.shape[3])
+        
+        ## Column zeroing for ungroomed
+        if self.groomed!= True:
+            for i in [0, 10, 20]:
+                for j in range(self.M_np.shape[1]):
+                    self.M_np[i][j] = 0
+    
+            for i in [0, 10, 20]:
+                for j in range(60):
+                    self.M_np[i][j] = 0
+                
+                for j in [0,1, 20, 21, 40, 41]:
+                    
+                    self.M_np[0][0:2] = 1
+                    self.M_np[10][20:22] = 1
+                    self.M_np[20][40:42] = 1
 
         # Underflow bins in pT gen (and discarding under/overflow in reco)
         h_np_underflow = self.resp_matrix_4d.project('ptgen', 'mgen', 'ptreco', 'mreco') \
@@ -257,7 +273,7 @@ class Unfolder:
 
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
         axisSteering = "*[UOB]"
@@ -327,13 +343,13 @@ class Unfolder:
         self.create_root_objects()
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
         axisSteering = "*[UOB]"
         nScan = 50
-        tauMin = 1e-8
-        tauMax = 0.01
+        tauMin = 1e-6
+        tauMax = 0.1
         logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
         logTauY = ROOT.MakeNullPointer(ROOT.TSpline)
         lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
@@ -363,13 +379,15 @@ class Unfolder:
             logSURE = ROOT.MakeNullPointer(ROOT.TGraph)
             chi2 = ROOT.MakeNullPointer(ROOT.TGraph)
             lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
-            self.u.ScanSURE(nScan, tauMin, tauMax, logSURE, chi2, lCurve)
+            iBest = self.u.ScanSURE(nScan, tauMin, tauMax, logSURE, chi2, lCurve)
+            print("iBest ", iBest)
             if self.do_syst:
                 for _, u_sys in self.u_dic.items():
                     logSURE_sys = ROOT.MakeNullPointer(ROOT.TGraph)
                     chi2_sys = ROOT.MakeNullPointer(ROOT.TGraph)
                     lCurve_sys = ROOT.MakeNullPointer(ROOT.TGraph)
                     u_sys.ScanSURE(nScan, tauMin, tauMax, logSURE_sys, chi2_sys, lCurve_sys)
+            self.logSURE = logSURE
         else:
             raise Exception("Specify correct regularisation")
             
@@ -613,12 +631,17 @@ class Unfolder:
         if self.groomed:
             hep.cms.label("Preliminary", rlabel = rf"Groomed, Cond. = {condition_number:.2f} ", fontsize = 20)
         else:
-            hep.cms.label("Preliminary", rlabel = rf"Ungroomed, Cond. = {condition_number:.2f} ", fontsize = 20)
+            hep.cms.label("Preliminary", rlabel = rf"Ungroomed, Cond. = {condition_number:.1e} ", fontsize = 20)
         ax.set_xlabel(r"GEN p$_{T}$ (GeV)")
         ax.set_ylabel(r"RECO $p_T$ (GeV)")
 
         self.matrix_fig = plt.gcf()
+        if self.groomed:
+            plt.savefig("plots/unfold/response_groomed.pdf")
+        else:
+            plt.savefig("plots/unfold/response_ungroomed.pdf")
         plt.show()
+        
     def plot_input(self):
         "plot the input vs the projection of response matrix"
         for i in range(4):
@@ -855,6 +878,16 @@ class Unfolder:
                 plt.show()
 
     def plot_systematic_frac(self, sys_list = None):
+
+        # if self.groomed:
+        #     with open("total_stat_groomed.pkl", "rb") as f:
+        #         stat_mat = pkl.load(f)
+        # else:
+        #     with open("total_stat_ungroomed.pkl", "rb") as f:
+        #         stat_mat = pkl.load(f)
+        
+        # self.total_sys = np.sqrt(np.array(list(stat_mat.values())).flatten()**2 + self.total_sys**2)
+                
         title_list = [r"$p_T$ 200-290 GeV", r"$p_T$ 290-400 GeV", r"$p_T$ 400-$\infty$ GeV", "a", "b", "c"]
         self.title_list = title_list
         total_sys_jes = np.zeros(self.o_np.shape)
@@ -1131,7 +1164,7 @@ class Unfolder_mpt:
 
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidthandUser
         axisSteering = "*[UOB]"
@@ -1226,9 +1259,9 @@ class Unfolder_mpt:
         ax.set_yticklabels(x_labels[:-1])
         ax.tick_params(axis='both', which='both', length=0)
         if self.groomed:
-            hep.cms.label("Preliminary", rlabel = rf"Groomed, Cond. = {condition_number:.2f} ", fontsize = 20)
+            hep.cms.label("Preliminary", rlabel = rf"Groomed, Cond. = {condition_number:.1f} ", fontsize = 20)
         else:
-            hep.cms.label("Preliminary", rlabel = rf"Ungroomed, Cond. = {condition_number:.2f} ", fontsize = 20)
+            hep.cms.label("Preliminary", rlabel = f"Ungroomed, Cond. = {condition_number:.1e} ", fontsize = 20) #print(f"{large_number:e}") 
         ax.set_xlabel(r"GEN p$_{T}$ (GeV)")
         ax.set_ylabel(r"RECO $p_T$ (GeV)")
 
@@ -1249,7 +1282,7 @@ class Unfolder_mpt:
         self.create_root_objects()
 
         orientation = ROOT.TUnfold.kHistMapOutputHoriz
-        regMode = ROOT.TUnfold.kRegModeCurvature
+        regMode = ROOT.TUnfold.kRegModeDerivative
         con = ROOT.TUnfold.kEConstraintArea
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidth
         axisSteering = "*[UOB]"
@@ -1875,7 +1908,7 @@ def unfold_using_matrix(data_2d, resp_matrix_4d, fakes, misses,
     ## Unfold
 
     orientation = ROOT.TUnfold.kHistMapOutputHoriz
-    regMode = ROOT.TUnfold.kRegModeCurvature
+    regMode = ROOT.TUnfold.kRegModeDerivative
 
     # if regularisation == "None":
     #     regMode = ROOT.TUnfold.kRegModeNone

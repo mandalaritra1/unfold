@@ -48,6 +48,16 @@ class binning():
                                 True # overflow bin
                                 )
 
+        nBinsGlobal = signalDistribution.GetTH2D().GetNcells() - 1  # ROOT TH2 bin count includes overflow/underflow
+        binFactors = ROOT.TVectorD(nBinsGlobal)
+
+        print("Number of global bins ", nBinsGlobal)
+        
+        for i in range(nBinsGlobal):
+            binFactors[i] = 1  # or some custom value per bin
+        signalDistribution.SetBinFactor(1, binFactors)
+        
+
         # X axis : generator binning is Signal : mgen * ptgen and Background : mrec * ptrec
 
         xaxis =  array.array('d',[a for a in range(nmbinsGen *nptbinsGen + 1 )])
