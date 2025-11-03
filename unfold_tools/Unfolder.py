@@ -12,9 +12,10 @@ import ROOT
 import numpy as np
 import matplotlib.colors as mcolors
 class Unfolder:
-    def __init__(self, groomed, closure = False):
+    def __init__(self, groomed, closure = False, herwig_closure = False):
         self.groomed = groomed
         self.closure = closure
+        self.herwig_closure = herwig_closure
         self.bins = binning.bin_edges(self.groomed)
         edges, edges_gen, pt_edges = self.bins.edges, self.bins.edges_gen, self.bins.pt_edges
 
@@ -34,20 +35,19 @@ class Unfolder:
                             'eleidUp', 'eleidDown', 'eletrigUp', 'eletrigDown', 'murecoUp',
                             'murecoDown', 'muidUp', 'muidDown', 'mutrigUp', 'muisoUp', 'muisoDown','mutrigDown', 'pdfUp',
                             'pdfDown', 'q2Up', 'q2Down', 'prefiringUp', 'prefiringDown', 
-                            'JERUp', 'JERDown', 'JMRUp', 'JMRDown', 'JMSUp', 'JMSDown']
+                            'JERUp', 'JERDown', 'JMRUp', 'JMRDown', 'JMSUp', 'JMSDown', 'herwigUp', 'herwigDown']
 
 
         self.systematics = jes_sys_list + non_jes_sys_list
 
-        #self.systematics = ['nominal', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
+        #self.systematics = ['nominal', 'herwigUp', 'herwigDown']#, 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
         self.pt_edges = pt_edges
         self.edges = edges
         self.edges_gen = edges_gen
-        self._load_data(filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl")
-        self.y_unf_dict = {}
-        self._perform_unfold(closure = self.closure)
+        self._load_data(filename_mc = 'ROOT_files/pythia_ht_LO_output_no_syst.pkl', filename_data = "ROOT_files/data_all.pkl")
+        self._perform_unfold(closure = self.closure, herwig_closure = self.herwig_closure)
         for syst in self.systematics:
-            self._perform_unfold(systematic = syst, closure = self.closure)
+            self._perform_unfold(systematic = syst, closure = self.closure, herwig_closure = self.herwig_closure)
         self._normalize_result()
         self._compute_total_systematic()
 
@@ -68,7 +68,8 @@ class Unfolder:
                 "unfolded_err": error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(),
                 "measured": measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(),
                 "reco_mc": reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(),
-                "pt_bin": (self.pt_edges[i], self.pt_edges[i+1] if i+1 < len(self.pt_edges)-1 else float('inf'))
+                "pt_bin": (self.pt_edges[i], self.pt_edges[i+1] if i+1 < len(self.pt_edges)-1 else float('inf')),
+                "mgen_edges": self.gen_mass_edges_by_pt[i]
             }
             self.normalized_results.append(result)
         
@@ -98,15 +99,27 @@ class Unfolder:
             syst_down_total = np.zeros_like(nominal)
             for syst in self.systematics:
                 if syst.endswith('Up'):
-                    syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                    diff_up = syst_up - nominal
-                    print("Systematic Up:", syst, "Diff Up:", diff_up)
-                    syst_up_total += diff_up**2
+                    if syst.startswith('herwig'):
+                        syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_up = (syst_up - nominal)
+                        print("Systematic Up:", syst, "Diff Up:", diff_up)
+                        syst_up_total += diff_up**2
+                    else:    
+                        syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_up = np.abs(syst_up - nominal)
+                        print("Systematic Up:", syst, "Diff Up:", diff_up)
+                        syst_up_total += diff_up**2
                 elif syst.endswith('Down'):
-                    syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                    diff_down = syst_down - nominal
-                    print("Systematic Down:", syst, "Diff Up:", diff_down)
-                    syst_down_total += diff_down**2
+                    if syst.startswith('herwig'):
+                        syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_down = (syst_down - nominal)
+                        print("Systematic Up:", syst, "Diff Up:", diff_up)
+                        syst_down_total += diff_up**2
+                    else:    
+                        syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_down = syst_down - nominal
+                        print("Systematic down:", syst, "Diff down:", diff_down)
+                        syst_down_total += diff_down**2
             # Take sqrt of sum of squares for total uncertainty
             total_up_unc = np.sqrt(syst_up_total)
             total_down_unc = np.sqrt(syst_down_total)
@@ -115,11 +128,13 @@ class Unfolder:
             'down': total_down_unc
             }
 
-    def plot_systematic_fraction(self):
+    def plot_systematic_fraction(self, syst_name = 'all'):
         # Plot the systematic uncertainties as a fraction of the nominal unfolded result
-        plt.figure(figsize=(10, 8))
+        
         for i, result in enumerate(self.normalized_results):
-
+            if not hasattr(self, 'syst_fraction_dicts'):
+                self.syst_fraction_dicts = []
+            plt.figure(figsize=(12, 8))
             pt_bin = result['pt_bin']
             nominal = result['unfolded']
             total_syst_up = result['syst_unc']['up']
@@ -151,26 +166,45 @@ class Unfolder:
                         mu_down.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
 
             # Combine grouped uncertainties in quadrature
+            # Dictionary to store fractional systematic uncertainties by name
+            # Store the systematic fraction dict as a class attribute for each pt bin
+            
+            syst_fraction_dict = {}
+
+            # JES group
             if jes_up:
                 jes_up_total = np.sqrt(np.sum([diff**2 for diff in jes_up], axis=0))
-                hep.histplot(np.abs(jes_up_total / nominal), self.gen_mass_edges_by_pt[i], label="JES Up")
-            # if jes_down:
-            #     jes_down_total = np.sqrt(np.sum([diff**2 for diff in jes_down], axis=0))
-            #     hep.histplot(np.abs(jes_down_total / nominal), self.gen_mass_edges_by_pt[i], label="JES Down")
+                jes_up_frac = np.abs(jes_up_total / nominal)
+                hep.histplot(jes_up_frac, self.gen_mass_edges_by_pt[i], label="JES ")
+                syst_fraction_dict['JESUp'] = jes_up_frac
+            if jes_down:
+                jes_down_total = np.sqrt(np.sum([diff**2 for diff in jes_down], axis=0))
+                jes_down_frac = np.abs(jes_down_total / nominal)
+                syst_fraction_dict['JESDown'] = jes_down_frac
+
+            # Electron SFs group
             if ele_up:
                 ele_up_total = np.sqrt(np.sum([diff**2 for diff in ele_up], axis=0))
-                hep.histplot(np.abs(ele_up_total / nominal), self.gen_mass_edges_by_pt[i], label="ele Up")
-            # if ele_down:
-            #     ele_down_total = np.sqrt(np.sum([diff**2 for diff in ele_down], axis=0))
-            #     hep.histplot(np.abs(ele_down_total / nominal), self.gen_mass_edges_by_pt[i], label="ele Down")
+                ele_up_frac = np.abs(ele_up_total / nominal)
+                hep.histplot(ele_up_frac, self.gen_mass_edges_by_pt[i], label="Electron SFs")
+                syst_fraction_dict['ElectronSFUp'] = ele_up_frac
+            if ele_down:
+                ele_down_total = np.sqrt(np.sum([diff**2 for diff in ele_down], axis=0))
+                ele_down_frac = np.abs(ele_down_total / nominal)
+                syst_fraction_dict['ElectronSFDown'] = ele_down_frac
+
+            # Muon SFs group
             if mu_up:
                 mu_up_total = np.sqrt(np.sum([diff**2 for diff in mu_up], axis=0))
-                hep.histplot(np.abs(mu_up_total / nominal), self.gen_mass_edges_by_pt[i], label="mu Up")
-            # if mu_down:
-            #     mu_down_total = np.sqrt(np.sum([diff**2 for diff in mu_down], axis=0))
-            #     hep.histplot(np.abs(mu_down_total / nominal), self.gen_mass_edges_by_pt[i], label="mu Down")
+                mu_up_frac = np.abs(mu_up_total / nominal)
+                hep.histplot(mu_up_frac, self.gen_mass_edges_by_pt[i], label="Muon SFs")
+                syst_fraction_dict['MuonSFUp'] = mu_up_frac
+            if mu_down:
+                mu_down_total = np.sqrt(np.sum([diff**2 for diff in mu_down], axis=0))
+                mu_down_frac = np.abs(mu_down_total / nominal)
+                syst_fraction_dict['MuonSFDown'] = mu_down_frac
 
-            # Plot individual non-grouped systematics
+            # Individual non-grouped systematics
             for syst in self.systematics:
                 if syst == 'nominal':
                     continue
@@ -178,33 +212,57 @@ class Unfolder:
                     continue  # Already handled above
                 if syst.endswith('Up'):
                     syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                    diff_up = syst_up - nominal
+                    if syst.startswith('herwig'):
+                        diff_up = (syst_up - nominal)
+                    else:
+                        diff_up = syst_up - nominal
                     syst_fraction_up = np.abs(diff_up / nominal)
-                    hep.histplot(syst_fraction_up, self.gen_mass_edges_by_pt[i], label=f"{syst}")
-                # if syst.endswith('Down'):
-                #     syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                #     diff_down = syst_down - nominal
-                #     syst_fraction_down = np.abs(diff_down / nominal)
-                #     hep.histplot(syst_fraction_down, self.gen_mass_edges_by_pt[i], label=f"{syst}")
-                    
-                #syst_fraction_down = syst_down / nominal
+                    syst_fraction_dict[f"{syst}"] = syst_fraction_up
+                    if syst.startswith('herwig'):
+                        hep.histplot(syst_fraction_up, self.gen_mass_edges_by_pt[i], label=f"Model Uncertainty")
+                if syst.endswith('Down'):
+                    syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                    if syst.startswith('herwig'):
+                        diff_down = (syst_down - nominal)
+                    else:
+                        diff_down = syst_down - nominal
+                    syst_fraction_down = np.abs(diff_down / nominal)
+                    syst_fraction_dict[f"{syst}"] = syst_fraction_down
 
-                # Plot the systematic fraction
-                
-                # hep.histplot(syst_fraction_down, 
-                #             self.gen_mass_edges_by_pt[i], 
-                #             label=f"{syst} Down")
             # Calculate systematic fraction
             total_syst_fraction_up = total_syst_up / nominal
             total_syst_fraction_down = total_syst_down / nominal
 
+            # Store total up/down uncertainties as well
+            syst_fraction_dict['Total_Up'] = total_syst_fraction_up
+            syst_fraction_dict['Total_Down'] = total_syst_fraction_down
+
+            # Save the dictionary for this pt bin as a class attribute
+            self.syst_fraction_dicts.append(syst_fraction_dict)
+            result['syst_fraction_dict'] = syst_fraction_dict
+
+            # Calculate systematic fraction
+            total_syst_fraction_up = total_syst_up / nominal
+            total_syst_fraction_down = total_syst_down / nominal
+
+            # Store total up/down uncertainties as well
+            syst_fraction_dict['Total_Up'] = total_syst_fraction_up
+            syst_fraction_dict['Total_Down'] = total_syst_fraction_down
+
+            # Save the dictionary for this pt bin
+            result['syst_fraction_dict'] = syst_fraction_dict
+
             # Plot the systematic fraction
             hep.histplot(total_syst_fraction_up, 
                         self.gen_mass_edges_by_pt[i], 
-                        label=f"Total ")
+                        label=f"Total ", color = 'k', lw = 3)
             plt.yscale('log')
-            plt.legend(title=rf"$p_T$  {pt_bin[0]}-{pt_bin[1]} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
-            hep.cms.label("Preliminary", data=True)
+            if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
+                pt_bin_label = f"{pt_bin[0]}–∞"
+            else:
+                pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
+            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
+            hep.cms.label("Preliminary", data=True, rlabel = r"138 fb$^{-1}$")
             if self.groomed:
                 plt.xlim(20,250)
                 
@@ -214,8 +272,96 @@ class Unfolder:
             plt.tight_layout()
             plt.savefig(f'plots/uncertainties/summary_groomed_{i}.pdf' if self.groomed else f'plots/uncertainties/summary_ungroomed_{i}.pdf')
             plt.show()
+
+    
+    def plot_systematic_frac_indiv(self, syst_names = ['JES' , 'JER']):
+
+        # First, collect all values to determine global y-range
+        all_values = []
+        for i, result in enumerate(self.normalized_results):
+            syst_fraction_dict = result.get('syst_fraction_dict', {})
+            for syst in syst_names:
+                up_key = f"{syst}Up"
+                down_key = f"{syst}Down"
+                if up_key in syst_fraction_dict:
+                    all_values.append(np.abs(syst_fraction_dict[up_key]))
+                if down_key in syst_fraction_dict:
+                    all_values.append(np.abs(syst_fraction_dict[down_key]))
+        # Flatten and get min/max (ignore zeros)
+        if all_values:
+            all_values_flat = np.concatenate(all_values)
+            ymin = -np.nanmax(all_values_flat)
+            ymax = np.nanmax(all_values_flat)
+        else:
+            ymin, ymax = 0, 1
+
+        # Now plot with fixed y-range
+        for i, result in enumerate(self.normalized_results):
+            syst_fraction_dict = result.get('syst_fraction_dict', {})
+            plt.figure(figsize=(12, 8))
+            pt_bin = result['pt_bin']
+            for syst in syst_names:
+                up_key = f"{syst}Up"
+                down_key = f"{syst}Down"
+                color_map = ['red', 'blue', 'green']
+                color = color_map[syst_names.index(syst)] if syst in syst_names and syst_names.index(syst) < len(color_map) else None
+
+                # Plot Up uncertainty (solid)
+                if up_key in syst_fraction_dict:
+                    hep.histplot(syst_fraction_dict[up_key], self.gen_mass_edges_by_pt[i], label=f"{syst} Up", color=color, ls='-')
+                # Plot Down uncertainty (dashed)
+                if down_key in syst_fraction_dict:
+                    hep.histplot(-syst_fraction_dict[down_key], self.gen_mass_edges_by_pt[i], label=f"{syst} Down", color=color, ls='--')
+            if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
+                pt_bin_label = f"{pt_bin[0]}–∞"
+            else:
+                pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
+            plt.ylim(ymin* 1.05, ymax * 1.05)
+            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
+            hep.cms.label("Preliminary", data=True, rlabel = r"138 fb$^{-1}$")
+            plt.tight_layout()
+            if self.groomed:
+                plt.xlim(20,250)
+                plt.xlabel("Groomed Jet Mass (GeV)")
+                plt.savefig(f'plots/uncertainties/{syst_names[0]}_groomed_{i}.pdf', dpi=300)
+            else:
+                plt.xlim(10,250)
+                plt.xlabel("Ungroomed Jet Mass (GeV)")
+                plt.savefig(f'plots/uncertainties/{syst_names[0]}_ungroomed_{i}.pdf', dpi=300)
             
+            plt.show()
+
+
+            
+    def plot_purity_stability(self):
+        hep.style.use("CMS")
+        purity = np.diag(self.mosaic_gen) / self.mosaic_gen.sum(axis=0)
+        stability = np.diag(self.mosaic_gen) / self.mosaic_gen.sum(axis=1)
+
+        purity_unflattened = unflatten_gen_by_pt(purity, self.gen_mass_edges_by_pt)
+        stability_unflattened = unflatten_gen_by_pt(stability, self.gen_mass_edges_by_pt)
+
+        hep.histplot(purity_unflattened[0], self.gen_mass_edges_by_pt[0], label = "Purity")
+        hep.histplot(stability_unflattened[0], self.gen_mass_edges_by_pt[0], label = "Stability")
+        plt.ylabel("Purity/Stability")
+        plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
+        plt.legend()
+        plt.xlim(10,150)
+        plt.show()
         
+        
+        plt.stairs(purity, label = "Purity")
+        plt.xlabel("Global Bin Number")
+        plt.ylabel("Purity")
+        hep.cms.label("Preliminary", data=False)
+        plt.stairs(stability, label = "Stability")
+        plt.xlabel("Global Bin Number")
+        plt.ylabel("Stability")
+        hep.cms.label("Preliminary", data=False)
+        plt.legend()
+        plt.show()
+
+
     def plot_correlation(self):
         cov_matrix = self.cov_uncorr_np + self.cov_data_np
         std_devs = np.sqrt(np.diag(cov_matrix))
@@ -293,33 +439,39 @@ class Unfolder:
         with open(filename_mc, "rb") as f:
             output_pythia= pkl.load( f )
 
+        filename_herwig = 'ROOT_files/herwig_ht_LO_output_no_syst.pkl'
+        with open(filename_herwig, "rb") as f:
+            output_herwig= pkl.load( f )
+
     
         with open(filename_data, "rb") as f:
             output_data = pkl.load( f )
 
         if not self.groomed:
             resp_matrix_4d = output_pythia['response_matrix_u']
+            resp_matrix_4d_herwig = output_herwig['response_matrix_u']
 
             input_data = output_data['ptjet_mjet_u_reco']
-            # fakes = output_pythia['fakes_u']
-            # misses = output_miss['misses_u']
+            #fakes = output_pythia['fakes_u']
+            #misses = output_pythia['misses_u']
             # hist_bg = output_bg['response_matrix_u'].project('dataset','ptreco','mreco')
             # resp_matrix_pythia = resp_matrix_4d
             # resp_matrix_4d_herwig  = output_herwig['response_matrix_u'][{'systematic':['herwig']}]
-            # fakes_herwig = output_herwig['fakes_u']
-            # misses_herwig = output_herwig['misses_u']
+            #fakes_herwig = output_herwig['fakes_u']
+            #misses_herwig = output_herwig['misses_u']
         else:
             resp_matrix_4d = output_pythia['response_matrix_g']
+            resp_matrix_4d_herwig = output_herwig['response_matrix_g']
 
             input_data = output_data['ptjet_mjet_g_reco']
-            # fakes = output_pythia['fakes_g']
-            # misses = output_miss['misses_g']
+            #fakes = output_pythia['fakes_g']
+            #misses = output_pythia['misses_g']
             # hist_bg = output_bg['response_matrix_u'].project('dataset','ptreco','mreco')
             # resp_matrix_pythia = resp_matrix_4d
             # resp_matrix_4d_herwig = output_herwig['response_matrix_g'][{'systematic':['herwig']}]
         
-            # fakes_herwig = output_herwig['fakes_g']
-            # misses_herwig = output_herwig['misses_g']
+            #fakes_herwig = output_herwig['fakes_g']
+            #misses_herwig = output_herwig['misses_g']
 
             
 
@@ -328,12 +480,33 @@ class Unfolder:
         resp_matrix_4d = rebin_hist(resp_matrix_4d, 'ptreco', self.pt_edges)
         resp_matrix_4d = rebin_hist(resp_matrix_4d, 'ptgen', self.pt_edges)
 
+        resp_matrix_4d = rebin_hist(resp_matrix_4d, 'mgen',self.edges_gen )
+        resp_matrix_4d_gen = rebin_hist(resp_matrix_4d.copy(), 'mreco',self.edges_gen )
+
         resp_matrix_4d = rebin_hist(resp_matrix_4d, 'mreco',self.edges )
 
-        resp_matrix_4d = rebin_hist(resp_matrix_4d, 'mgen',self.edges_gen )
+        
+
+        resp_matrix_4d_herwig = rebin_hist(resp_matrix_4d_herwig, 'ptreco', self.pt_edges)
+        resp_matrix_4d_herwig = rebin_hist(resp_matrix_4d_herwig, 'ptgen', self.pt_edges)
+
+        resp_matrix_4d_herwig = rebin_hist(resp_matrix_4d_herwig, 'mreco',self.edges )
+
+        resp_matrix_4d_herwig = rebin_hist(resp_matrix_4d_herwig, 'mgen',self.edges_gen )
+        
+        # misses = rebin_hist(misses, 'mgen', self.edges_gen)
+        # misses = rebin_hist(misses, 'ptgen', self.pt_edges)
+        # misses_herwig = rebin_hist(misses_herwig, 'mgen', self.edges_gen)
+        # misses_herwig = rebin_hist(misses_herwig, 'ptgen', self.pt_edges)
 
         input_data = rebin_hist(input_data, 'mreco', self.edges)
         input_data = rebin_hist(input_data, 'ptreco', self.pt_edges)
+        
+        # fakes = rebin_hist(fakes, 'mreco', self.edges)
+        # fakes = rebin_hist(fakes, 'ptreco', self.pt_edges)
+        # fakes_herwig = rebin_hist(fakes_herwig, 'mreco', self.edges)
+        # fakes_herwig = rebin_hist(fakes_herwig, 'ptreco', self.pt_edges)
+
 
         
         
@@ -361,17 +534,70 @@ class Unfolder:
         self.M_np_2d_dict = {}
         self.mosaic_dict = {}
         for syst in self.systematics:
-            print(resp_matrix_4d.axes)
-            resp_matrix_4d_syst = resp_matrix_4d[{'systematic':syst}]
+            
+            if (syst == "herwigUp") or (syst == "herwigDown"):
+                resp_matrix_4d_syst = resp_matrix_4d_herwig[{'systematic':'herwig'}]
+                proj = resp_matrix_4d_syst.project('ptreco', 'mreco', 'ptgen', 'mgen')
+                M_np = proj.values(flow=False)
+                # Reweight Herwig ptreco projection to match nominal h2d
+                # Compute projection on ptreco axis for Herwig and nominal
+                herwig_ptreco_proj = M_np.sum(axis=(1,2,3))  # sum over mreco, ptgen, mgen
+                nominal_ptreco_proj = self.h2d.sum(axis=1)    # sum over mreco
 
 
-            proj = resp_matrix_4d_syst.project('ptreco', 'mreco', 'ptgen', 'mgen')
-            M_np = proj.values(flow=False)
+
+                h2d_herwig = resp_matrix_4d_syst.project('ptreco', 'mreco').values(flow=False)
+                self.h2d_herwig, perm_used = reorder_to_expected_2d(h2d_herwig, mass_edges_reco, pt_edges)
+
+                reco_proj_fakes = fakes_herwig.project('ptreco', 'mreco')
+                h2d_fakes = reco_proj_fakes.values()
+                self.h2d_fakes_herwig, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
+
+
+                reco_proj_misses = misses_herwig.project('ptgen', 'mgen')
+                h2d_misses = reco_proj_misses.values()
+                self.h2d_misses_herwig, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
+                self.fakes_2d_herwig = merge_mass_flat(self.h2d_fakes_herwig,
+                                    mass_edges_reco,
+                                    reco_mass_edges_by_pt)
+                self.misses_2d_herwig = merge_mass_flat(self.h2d_misses_herwig,
+                                            mass_edges_gen,
+                                            gen_mass_edges_by_pt)
+                #Avoid division by zero
+                # with np.errstate(divide='ignore', invalid='ignore'):
+                #     scale_factors = np.where(herwig_ptreco_proj != 0, nominal_ptreco_proj / herwig_ptreco_proj, 1.0)
+                # # Reshape for broadcasting
+                # for i in range(M_np.shape[0]):
+                #     M_np[i, :, :, :] *= scale_factors[i]
+            else:
+                resp_matrix_4d_syst = resp_matrix_4d[{'systematic':syst}]
+                proj = resp_matrix_4d_syst.project('ptreco', 'mreco', 'ptgen', 'mgen')
+                M_np = proj.values(flow=False)
 
             if syst == 'nominal':
                 reco_proj = input_data.project('ptreco', 'mreco')
                 h2d = reco_proj.values()
                 self.h2d, perm_used = reorder_to_expected_2d(h2d, mass_edges_reco, pt_edges)
+
+                reco_proj_fakes = fakes.project('ptreco', 'mreco')
+                h2d_fakes = reco_proj_fakes.values()
+                self.h2d_fakes, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
+
+                reco_proj_misses = misses.project('ptgen', 'mgen')
+                h2d_misses = reco_proj_misses.values()
+                self.h2d_misses, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
+                
+                resp_matrix_4d_syst_gen = resp_matrix_4d_gen[{'systematic':syst}]
+                proj_gen = resp_matrix_4d_syst_gen.project('ptreco', 'mreco', 'ptgen', 'mgen')
+                M_np_gen = proj_gen.values(flow=False)
+                self.M_np_2d_gen, perm_used = reorder_to_expected(M_np_gen, mass_edges_gen, pt_edges, mass_edges_gen)
+                self.mosaic_gen, blocks_gen = mosaic_no_padding(
+                                                self.M_np_2d_gen, mass_edges_gen, mass_edges_gen,
+                                                gen_mass_edges_by_pt, gen_mass_edges_by_pt
+                                            )
+            
+                
+            
             
             # Ensure correct axis order first:
             self.M_np_2d_dict[syst], perm_used = reorder_to_expected(M_np, mass_edges_reco, pt_edges, mass_edges_gen)
@@ -383,16 +609,37 @@ class Unfolder:
             )
 
             
+                
+
+        
+
+            
         self.M_np_2d = self.M_np_2d_dict['nominal']
         self.mosaic = self.mosaic_dict['nominal']
             
         self.mosaic_2d = merge_mass_flat(self.h2d,
                                     mass_edges_reco,
                                     reco_mass_edges_by_pt)
+        
+        self.fakes_2d = merge_mass_flat(self.h2d_fakes,
+                                    mass_edges_reco,
+                                    reco_mass_edges_by_pt)
+        self.misses_2d = merge_mass_flat(self.h2d_misses,
+                                    mass_edges_gen,
+                                    gen_mass_edges_by_pt)
+
+
+
+
+        self.mosaic_herwig_2d = merge_mass_flat(self.h2d_herwig,
+                                    mass_edges_reco,
+                                    reco_mass_edges_by_pt)
+
+
 
 
         del output_pythia, resp_matrix_4d, resp_matrix_4d_syst
-    def _perform_unfold(self, systematic = 'nominal', closure = False):
+    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False):
         # ------------------------------------------------------------------
         # 1.  Provide your numpy inputs
         # ------------------------------------------------------------------
@@ -400,35 +647,100 @@ class Unfolder:
         # meas_flat : 1-D numpy array – reco distribution ( *same* row order as resp_np )
 
         # example placeholders – replace with your real arrays
+        from array import array
+        print(f"Closure is {closure}")
         resp_np   = self.mosaic_dict[systematic]  # 2D numpy array (reco x true)
+
         if closure:
             meas_flat = self.mosaic.sum(axis = 1)
+        
         else:
             meas_flat = self.mosaic_2d
 
-        true_flat = self.mosaic.sum(axis = 0)
+        if herwig_closure:
+            meas_flat = self.mosaic_herwig_2d
+
+        true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
         n_reco, n_true = resp_np.shape
         assert len(meas_flat) == n_reco, "measured spectrum must have n_reco bins"
+
+
 
         # ------------------------------------------------------------------
         # 2.  Build ROOT histograms
         # ------------------------------------------------------------------
         # Response matrix:  x = truth  (columns),  y = reco  (rows)
-        h_resp = ROOT.TH2D("resp", "response;truth bin;reco bin",
-                        n_true,  0, n_true,
-                        n_reco,  0, n_reco)
+
+        truth_root = ROOT.TUnfoldBinning("truth")
+        reco_root  = ROOT.TUnfoldBinning("reco")
+
+        truth_signal = truth_root.AddBinning("signal")
+        reco_primary = reco_root .AddBinning("primary")
+
+        truth_nodes, reco_nodes = [], []
+
+
+        for i,edges in enumerate(self.gen_mass_edges_by_pt):
+            a = array('d', edges)
+            tnode = truth_signal.AddBinning(f"pt{i}")
+            # 1D mass axis inside each slice; exclude under/overflow bins here
+            tnode.AddAxis("mass", len(edges)-1, a, False, False)
+            
+            truth_nodes.append(tnode)
+            
+        for i,edges in enumerate(self.reco_mass_edges_by_pt):
+            a = array('d', edges)
+            rnode = reco_primary.AddBinning(f"pt{i}")
+            
+            # 1D mass axis inside each slice; exclude under/overflow bins here
+            
+            rnode.AddAxis("mass", len(edges)-1, a, False, False)
+            
+            reco_nodes .append(rnode)
+
+        # Book histograms
+        h_meas   = reco_root .CreateHistogram("hRecoData")    # TH1D over global reco bins
+        h_true = truth_root.CreateHistogram("hTruthPrior")  # TH1D over global truth bins
+        h_resp  = ROOT.TUnfoldBinning.CreateHistogramOfMigrations(truth_root, reco_root, "hResponse") 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        #
+        # h_resp = ROOT.TH2D("resp", "response;truth bin;reco bin",
+        #                 n_true,  0, n_true,
+        #                 n_reco,  0, n_reco)
         for i_reco in range(n_reco):
             for j_true in range(n_true):
                 h_resp.SetBinContent(j_true + 1, i_reco + 1, resp_np[i_reco, j_true])
 
+        # Filling underflow bins to take care of misses
+        if systematic == 'herwigUp' or systematic == 'herwigDown':
+            for j_true in range(n_true):
+                h_resp.SetBinContent(j_true + 1, 0, self.misses_2d_herwig[j_true])
+        else:
+            for j_true in range(n_true):
+                h_resp.SetBinContent(j_true + 1, 0, self.misses_2d[j_true])
+
         # Measured (reco) spectrum
-        h_meas = ROOT.TH1D("meas", "measured;reco bin;entries", n_reco, 0, n_reco)
+        #h_meas = ROOT.TH1D("meas", "measured;reco bin;entries", n_reco, 0, n_reco)
         for i_reco, val in enumerate(meas_flat, 1):
             h_meas.SetBinContent(i_reco, float(val))
 
 
         # True spectrum
-        h_true = ROOT.TH1D("true", "sim;true bin;entries", n_true, 0, n_true)
+        #h_true = ROOT.TH1D("true", "sim;true bin;entries", n_true, 0, n_true)
         for i_true, val in enumerate(true_flat, 1):
             h_true.SetBinContent(i_true, float(val))
 
@@ -437,7 +749,14 @@ class Unfolder:
         # ------------------------------------------------------------------
         unfold = ROOT.TUnfoldDensity(
             h_resp,
-            ROOT.TUnfold.kHistMapOutputHoriz  # orientation matches (truth x, reco y)
+            ROOT.TUnfold.kHistMapOutputHoriz,          # mapping of TH2 axes
+            ROOT.TUnfold.kRegModeDerivative,            # curvature regularisation
+            ROOT.TUnfold.kEConstraintArea,             # one global area constraint
+            ROOT.TUnfoldDensity.kDensityModeBinWidth,  # bin-width aware scaling
+            truth_root,                              # output (truth) binning tree
+            reco_root,                               # input  (reco)  binning tree
+            "signal",                                # regularisationDistributionName
+            "*[UOB]"                                 # regularisationAxisSteering
         )
 
         # feed measured spectrum
@@ -445,23 +764,23 @@ class Unfolder:
         if status >= 10000:
             raise RuntimeError("TUnfold input had overflow/underflow – check your hist.")
 
-        # Optional: scan L-curve to choose tau.  Quick-n-dirty: 20 points, auto range
+        #Optional: scan L-curve to choose tau.  Quick-n-dirty: 20 points, auto range
         #unfold.ScanSURE(50, 0.000000001, 0.1, )
         #print("Chosen tau =", tau_best)
-        # nPoint, tauMin, tauMax = 30, 1e-6, 1e+0   # coarse example range
-        # g_logTauSURE = ROOT.TGraph()
-        # g_df_chi2A   = ROOT.TGraph()
-        # g_lCurve     = ROOT.TGraph()
+        nPoint, tauMin, tauMax = 30, 1e-6, 1e+0   # coarse example range
+        g_logTauSURE = ROOT.TGraph()
+        g_df_chi2A   = ROOT.TGraph()
+        g_lCurve     = ROOT.TGraph()
 
-        # tau_sure = unfold.ScanSURE(
-        #     nPoint,
-        #     tauMin,
-        #     tauMax,
-        #     g_logTauSURE,
-        #     g_df_chi2A,
-        #     g_lCurve,
-        # )
-        unfold.DoUnfold(0.0)
+        tau_sure = unfold.ScanSURE(
+            nPoint,
+            tauMin,
+            tauMax,
+            g_logTauSURE,
+            g_df_chi2A,
+            g_lCurve,
+        )
+        unfold.DoUnfold(0)
         if systematic == 'nominal':
             self.cov = unfold.GetEmatrixTotal("cov", "Covariance Matrix")
             self.cov_uncorr = unfold.GetEmatrixSysUncorr("cov_uncorr",
@@ -494,7 +813,13 @@ class Unfolder:
         #h_unfold.Print("all")
         y_meas, ye_meas = self._th1_to_arrays(h_meas)
         y_true, ye_true = self._th1_to_arrays(h_true)
+        if systematic == 'herwigUp':
+            y_true_herwig, ye_true_herwig = self._th1_to_arrays(h_true)
         y_unf , ye_unf  = self._th1_to_arrays(h_unfold)
+        
+        if systematic == 'herwigUp':
+            self.y_true_herwig = self.mosaic_dict['herwigUp'].sum(axis = 0)
+
         
         if systematic == 'nominal':
             self.y_meas = y_meas
@@ -502,8 +827,10 @@ class Unfolder:
             self.y_unf = y_unf
             self.ye_unf = ye_unf
             self.y_true = y_true
+            self.h_resp = h_resp
         else:
             self.y_unf_dict[systematic] = y_unf
+        
 
 
 
@@ -520,15 +847,20 @@ class Unfolder:
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.reco_mass_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.reco_mass_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.gen_mass_edges_by_pt)
+        true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.gen_mass_edges_by_pt) 
         error_pt_binned = unflatten_gen_by_pt(self.ye_unf, self.gen_mass_edges_by_pt)
+        self.normalized_herwig = []
+        print("Herwig pt Binned", true_herwig_pt_binned)
         for i in range(len(self.pt_edges)-1):
+            
             bin_widths = np.diff(self.gen_mass_edges_by_pt[i])
             bin_widths_reco = np.diff(self.reco_mass_edges_by_pt[i])
-            
-            hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.gen_mass_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.5)
-            hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.gen_mass_edges_by_pt[i], yerr = error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), label = 'Unfolded', color = 'k' )
-            hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.reco_mass_edges_by_pt[i], color = 'k', ls= '--', alpha= 0.5, label = 'Meas' )
-            hep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.reco_mass_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
+            self.normalized_herwig.append(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum())
+            hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.gen_mass_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
+            hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.gen_mass_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
+            hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.gen_mass_edges_by_pt[i], yerr = error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
+            #hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.reco_mass_edges_by_pt[i], color = 'k', ls= '--', alpha= 0.5, label = 'Meas' )
+            #dhep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.reco_mass_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
             
@@ -539,7 +871,25 @@ class Unfolder:
             if not self.groomed:
                 plt.xlim(20,250)
                 plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
-            plt.show()    
+            plt.show() 
+            # Plot relative difference: (true - unfolded) / true after normalization
+            # true_norm = true_pt_binned[i] / np.diff(self.gen_mass_edges_by_pt[i]) / true_pt_binned[i].sum()
+            # true_norm = true_herwig_pt_binned[i] / np.diff(self.gen_mass_edges_by_pt[i]) / true_herwig_pt_binned[i].sum()
+            # unfolded_norm = unfolded_pt_binned[i] / np.diff(self.gen_mass_edges_by_pt[i]) / unfolded_pt_binned[i].sum()
+            
+            # rel_diff = np.abs(true_norm - unfolded_norm) / true_norm
+            # hep.histplot(rel_diff, self.gen_mass_edges_by_pt[i], label="(Herwig - Unfolded) / Herwig", color="r")
+            # title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
+            # plt.legend(title = title) 
+            
+            # if self.groomed:
+            #     plt.xlim(0,250)
+            #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
+            # #plt.ylim(0,0.02)
+            # if not self.groomed:
+            #     plt.xlim(20,250)
+            #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
+            # plt.show() 
     def plot_response_matrix(self, probability = True, log = False):
         fig, ax = self._plot_response_mosaic_cms(
             self.mosaic,
