@@ -4,11 +4,26 @@ import mplhep as hep
 #hep.style.use("CMS")
 from matplotlib import colors, ticker
 import pickle as pkl
-from unfold_utils.integrate_and_rebin import *
+from unfold.utils.integrate_and_rebin import *
 import itertools
+import ipywidgets as widgets
+from IPython.display import display
 
+def create_true_false_dropdown(description, default=False):
+    """Creates and returns a True/False dropdown."""
+    return widgets.Dropdown(
+        options=[('True', True), ('False', False)],
+        value=default,
+        description=description
+    )
 
-
+def show_groomed_closure_dropdowns(default_groomed=False, default_closure=True, default_herwig = False):
+    """Creates, displays, and returns groomed & closure dropdowns."""
+    groomed_dropdown = create_true_false_dropdown("Groomed:", default_groomed)
+    closure_dropdown = create_true_false_dropdown("Closure:", default_closure)
+    closure_herwig = create_true_false_dropdown("Closure Herwig:", default_herwig)
+    display(groomed_dropdown, closure_dropdown, closure_herwig)
+    return groomed_dropdown, closure_dropdown, closure_herwig
 # ------------------------------------------------------------------
 # helpers
 def _subset_positions(old, new, atol=1e-9):

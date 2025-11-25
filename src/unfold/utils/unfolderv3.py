@@ -278,8 +278,8 @@ class Unfolder:
         mode = ROOT.TUnfoldDensity.kDensityModeBinWidthAndUser
         axisSteering = "*[UOB]"
         nScan = 50
-        tauMin = 1e-8
-        tauMax = 0.01
+        tauMin = 1e-4
+        tauMax = 1.0
         logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
         logTauY = ROOT.MakeNullPointer(ROOT.TSpline)
         lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
