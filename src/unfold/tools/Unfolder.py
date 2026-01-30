@@ -59,6 +59,7 @@ class Unfolder:
         self.pt_edges = pt_edges
         self.edges = edges
         self.edges_gen = edges_gen
+        #filename MC is redundant here, using sys_matrix_dic.pkl to get all systematics including nominal
         self._load_data(filename_mc = './inputs/pythia_2018_syst.pkl', filename_data = "./inputs/data_all.pkl", filename_herwig='./inputs/pythia_output_no_syst.pkl') #pythia in herwig as dummy, replace with actual herwig file
         self._perform_unfold(closure = self.closure, herwig_closure = self.herwig_closure)
         for syst in self.systematics:
@@ -546,7 +547,7 @@ class Unfolder:
             bin_widths_reco = np.diff(self.bins.reco_mass_edges_by_pt[i])
             result = {
                 "true": true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(),
-                "unfolded": unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(),
+                "unfolded": unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), # Taking absolute values to avoid negative bins
                 "unfolded_err": error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(),
                 "measured": measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(),
                 "reco_mc": reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(),
@@ -567,10 +568,10 @@ class Unfolder:
                 if syst == 'nominal':
                     continue
                 unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf_dict[syst], self.bins.gen_mass_edges_by_pt)
-                unfolded[syst] = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()
+                unfolded[syst] = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum() # Taking absolute values to avoid negative bins
             self.normalized_systematics.append({
             "pt_bin": pt_bin,
-            "unfolded": unfolded
+            "unfolded": unfolded # Taking absolute values to avoid negative bins
             })
     def _compute_total_systematic(self):
         print("Computing total systematic uncertainty...")
@@ -876,14 +877,14 @@ class Unfolder:
         purity_unflattened = unflatten_gen_by_pt(purity, self.bins.gen_mass_edges_by_pt)
         stability_unflattened = unflatten_gen_by_pt(stability, self.bins.gen_mass_edges_by_pt)
 
-        hep.histplot(purity_unflattened[1], self.bins.gen_mass_edges_by_pt[1], label = "Purity")
-        hep.histplot(stability_unflattened[1], self.bins.gen_mass_edges_by_pt[1], label = "Stability")
+        hep.histplot(purity_unflattened[2], self.bins.gen_mass_edges_by_pt[2], label = "Purity")
+        hep.histplot(stability_unflattened[2], self.bins.gen_mass_edges_by_pt[2], label = "Stability")
         plt.axhline(0.5, color='k', linestyle='--', linewidth=1)
         hep.cms.label(self.cms_label, data=False)
         plt.ylabel("Purity/Stability")
         plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
         plt.legend()
-        plt.xlim(10,200)
+        plt.xlim(0,200)
         plt.show()
         
         
