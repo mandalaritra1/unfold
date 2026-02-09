@@ -44,7 +44,12 @@ class Unfolder:
                             'JERUp', 'JERDown',  'JMSUp', 'JMSDown', 'herwigUp', 'herwigDown']
                             #
         filename_mc = './inputs/sys_matrix_dic.pkl'
-        with open( filename_mc, "rb") as f:
+
+        if self.groomed:
+            filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
+        else:
+            filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
+        with open( filename_sys, "rb") as f:
             sys_matrix_dic = pkl.load( f )
         
 
@@ -61,16 +66,17 @@ class Unfolder:
         self.edges_gen = edges_gen
         #filename MC is redundant here, using sys_matrix_dic.pkl to get all systematics including nominal
         print("List of systematics:", self.systematics)
-        self._load_data(filename_mc = './inputs/rho/jms_pythiaV2_all_syst.pkl', filename_data = "./inputs/rho/rho_dataV2_all.pkl", filename_herwig='./inputs/pythia_output_no_syst.pkl') #pythia in herwig as dummy, replace with actual herwig file
+        self._load_data(filename_mc = './inputs/rho/jms_pythiaV2_all_syst.pkl', filename_data = "./inputs/rho/rho_dataV2_all.pkl", filename_herwig='./inputs/rho/herwig_all.pkl') #pythia in herwig as dummy, replace with actual herwig file
         
         self._perform_unfold(closure = self.closure, herwig_closure = self.herwig_closure)
         
         for syst in self.systematics:
             self._perform_unfold(systematic = syst, closure = self.closure, herwig_closure = self.herwig_closure)
+        self._compute_stat_unc()
         self._normalize_result()
-        #self._compute_total_systematic()
+        self._compute_total_systematic()
 
-    def _load_data(self, filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl", filename_herwig = 'latest_pkl/0508/herwig_0508_full.pkl'):
+    def _load_data(self, filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl", filename_herwig = 'latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data = './inputs/rho/jk_data.pkl'):
         print(filename_mc)
         with open(filename_mc, "rb") as f:
             output_pythia= pkl.load( f )
@@ -83,9 +89,14 @@ class Unfolder:
     
         with open(filename_data, "rb") as f:
             output_data = pkl.load( f )
+        
+        with open(filename_jk_data, "rb") as f:
+            output_jk_data = pkl.load( f )
+            print("Keys in jk data file:", output_jk_data.keys())
 
         if self.groomed:
             filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
+            
         else:
             filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
         with open( filename_sys, "rb") as f:
@@ -93,23 +104,25 @@ class Unfolder:
 
         if self.groomed:
             pythia4d = output_pythia['response_matrix_rho_g']
-            #herwig4d = output_herwig['response_matrix_rho_g']
+            herwig4d = output_herwig['response_matrix_rho_g']
             pythia2d = output_pythia['ptjet_rhojet_g_reco']
-            #herwig2d = output_herwig['ptjet_mjet_g_reco']
+            herwig2d = output_herwig['ptjet_rhojet_g_reco']
             data2d = output_data['ptjet_rhojet_g_reco']
+            data2d_jk = output_jk_data['ptjet_rhojet_g_reco']
             pythia_gen2d = output_pythia['ptjet_rhojet_g_gen']
-            #herwig_gen2d = output_herwig['ptjet_mjet_g_gen']
+            herwig_gen2d = output_herwig['ptjet_rhojet_g_gen']
         else:
             pythia4d = output_pythia['response_matrix_rho_u']
-            #herwig4d = output_herwig['response_matrix_rho_u']
+            herwig4d = output_herwig['response_matrix_rho_u']
             pythia2d = output_pythia['ptjet_rhojet_u_reco']   
-            #herwig2d = output_herwig['ptjet_mjet_u_reco']
+            herwig2d = output_herwig['ptjet_rhojet_u_reco']
             data2d = output_data['ptjet_rhojet_u_reco']
+            data2d_jk = output_jk_data['ptjet_rhojet_u_reco']
             pythia_gen2d = output_pythia['ptjet_rhojet_u_gen']
-            #herwig_gen2d = output_herwig['ptjet_mjet_u_gen']
+            herwig_gen2d = output_herwig['ptjet_rhojet_u_gen']
 
         pythia4d_gen = rebin_hist(pythia4d.copy(), 'mpt_reco',self.edges_gen )
-        #herwig4d_gen = rebin_hist(herwig4d.copy(), 'mreco',self.edges_gen )
+        herwig4d_gen = rebin_hist(herwig4d.copy(), 'mpt_reco',self.edges_gen )
 
         resp_matrix_4d_gen = pythia4d_gen
 
@@ -117,35 +130,72 @@ class Unfolder:
         gen_mass_edges_by_pt = self.bins.gen_rho_edges_by_pt
 
         fakes = pythia2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*pythia4d.project('ptreco', 'mpt_reco', 'systematic')
-        #fakes_herwig = herwig2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*herwig4d.project('ptreco', 'mpt_reco', 'systematic')
+        fakes_herwig = herwig2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*herwig4d.project('ptreco', 'mpt_reco', 'systematic')
         self.fakes = fakes
-        #self.fakes_herwig = fakes_herwig
+        self.fakes_herwig = fakes_herwig
 
         misses = pythia_gen2d.project('ptgen', 'mpt_gen', 'systematic') + (-1)*pythia4d.project('ptgen', 'mpt_gen', 'systematic')
-        #misses_herwig = herwig_gen2d.project('ptgen', 'mpt_gen', 'systematic') + (-1)*herwig4d.project('ptgen', 'mpt_gen', 'systematic')
+        misses_herwig = herwig_gen2d.project('ptgen', 'mpt_gen', 'systematic') + (-1)*herwig4d.project('ptgen', 'mpt_gen', 'systematic')
         self.misses = misses
-        #self.misses_herwig = misses_herwig
+        self.misses_herwig = misses_herwig
 
         self.mosaic_dict = {}
         self.M_np_2d_dict = {}
         resp_matrix_4d = pythia4d
-        #resp_matrix_4d_herwig = herwig4d
+        resp_matrix_4d_herwig = herwig4d
         input_data = data2d
 
 
-        
+        self.input_data = input_data
+        self.pythia_2d = pythia2d
+        self.pythia_4d = pythia4d
         pt_edges        = self.bins.pt_edges
         mass_edges_reco = self.bins.rho_edges
         mass_edges_gen  = self.bins.rho_edges_gen
 
         print("Loaded pkl files and rebinned histograms.")
+
+        print("Processing jk inputs...")
+        self.mosaic_2d_jk_list = []
+        for i in range(10):
+            reco_proj_jk = data2d_jk.project('jk', 'ptreco', 'mpt_reco')[i, ...]
+            h2d_jk = reco_proj_jk.values()
+            h2d_jk_reordered, perm_used = reorder_to_expected_2d(h2d_jk, mass_edges_reco, pt_edges)
+
+            self.mosaic_2d_jk_list.append(merge_mass_flat(h2d_jk_reordered,
+                                    mass_edges_reco,
+                                    reco_mass_edges_by_pt))
+
         for syst in self.systematics:
-            
+            if syst == 'nominal':
+                print("Processing nominal systematic:", syst)
+                reco_proj = input_data.project('ptreco', 'mpt_reco')
+                h2d = reco_proj.values()
+                self.h2d, perm_used = reorder_to_expected_2d(h2d, mass_edges_reco, pt_edges)
+
+                reco_proj_fakes = fakes.project('ptreco', 'mpt_reco')
+                h2d_fakes = reco_proj_fakes.values()
+                
+                self.h2d_fakes, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
+
+                reco_proj_misses = misses.project('ptgen', 'mpt_gen')
+                h2d_misses = reco_proj_misses.values()
+                self.h2d_misses, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
+                
+                resp_matrix_4d_syst_gen = resp_matrix_4d_gen[{'systematic':syst}]
+                proj_gen = resp_matrix_4d_syst_gen.project('ptreco', 'mpt_reco', 'ptgen', 'mpt_gen')
+                M_np_gen = proj_gen.values(flow=False)
+                self.M_np_2d_gen, perm_used = reorder_to_expected(M_np_gen, mass_edges_gen, pt_edges, mass_edges_gen)
+
+                self.mosaic_gen, blocks_gen = mosaic_no_padding(
+                                                self.M_np_2d_gen, mass_edges_gen, mass_edges_gen,
+                                                gen_mass_edges_by_pt, gen_mass_edges_by_pt
+                                            )
             if (syst == "herwigUp") or (syst == "herwigDown"):
                 print("Processing Herwig systematic:", syst)
                 resp_matrix_4d_syst = resp_matrix_4d_herwig[{'systematic':'nominal'}]
                 proj = resp_matrix_4d_syst.project('ptreco', 'mpt_reco', 'ptgen', 'mpt_gen')
-                M_np = proj.values(flow=False)
+                M_np = sys_matrix_dic[syst]
                 M_np_vars = proj.variances(flow=False)
 
 
@@ -210,36 +260,19 @@ class Unfolder:
                 # M_np = normalized_vals
                 # M_np_vars = normalized_vars
 
-            if syst == 'nominal':
-                print("Processing nominal systematic:", syst)
-                reco_proj = input_data.project('ptreco', 'mpt_reco')
-                h2d = reco_proj.values()
-                self.h2d, perm_used = reorder_to_expected_2d(h2d, mass_edges_reco, pt_edges)
-
-                reco_proj_fakes = fakes.project('ptreco', 'mpt_reco')
-                h2d_fakes = reco_proj_fakes.values()
-                
-                self.h2d_fakes, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
-
-                reco_proj_misses = misses.project('ptgen', 'mpt_gen')
-                h2d_misses = reco_proj_misses.values()
-                self.h2d_misses, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
-                
-                resp_matrix_4d_syst_gen = resp_matrix_4d_gen[{'systematic':syst}]
-                proj_gen = resp_matrix_4d_syst_gen.project('ptreco', 'mpt_reco', 'ptgen', 'mpt_gen')
-                M_np_gen = proj_gen.values(flow=False)
-                self.M_np_2d_gen, perm_used = reorder_to_expected(M_np_gen, mass_edges_gen, pt_edges, mass_edges_gen)
-                print("reco_mass_edges_by_pt:", reco_mass_edges_by_pt)
-                self.mosaic_gen, blocks_gen = mosaic_no_padding(
-                                                self.M_np_2d_gen, mass_edges_gen, mass_edges_gen,
-                                                gen_mass_edges_by_pt, gen_mass_edges_by_pt
-                                            )
+            
             
                 
             
             
             # Ensure correct axis order first:
+            self.M_np_orig = M_np
             self.M_np_2d_dict[syst], perm_used = reorder_to_expected(M_np, mass_edges_reco, pt_edges, mass_edges_gen)
+            # if syst == "herwigUp" or syst == "nominal":
+            #     #plt.imshow(M_np.reshape(96, 48))
+            #     plt.show()
+            #     #plt.imshow(self.M_np_2d_dict[syst].reshape(48, 96), norm = 'log')
+            #     plt.show()
 
             # Build the unpadded mosaic (no NaNs):
             
@@ -247,11 +280,15 @@ class Unfolder:
                 self.M_np_2d_dict[syst], mass_edges_reco, mass_edges_gen,
                 reco_mass_edges_by_pt, gen_mass_edges_by_pt
             )
+            # if syst == "herwigUp" or syst == "nominal":
+            #     #plt.imshow(self.mosaic_dict[syst], norm = 'log')
+            #     plt.show()
+                
         print("Loaded data and prepared response matrices.")
 
             
                 
-
+        self.y_unf_jk_list = []
         
 
             
@@ -281,8 +318,41 @@ class Unfolder:
 
 
         #del output_pythia, resp_matrix_4d, resp_matrix_4d_syst
+    def plot_fakes_misses(self):
+        title_list = ["",r"200 $<$ $p_T$ $<$ 290 GeV", r"290 $<$ $p_T$ $<$ 400 GeV", r"400 $<$ $p_T$ $< \, \infty$  GeV"]
 
-    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False):
+        fakerate = self.fakes_2d/self.mosaic_2d
+        fakerate = np.nan_to_num(fakerate, nan=0.0)# posinf=0.0, neginf=0.0)
+        efficiency = 1 - (self.misses_2d/(self.misses_2d + self.mosaic.sum(axis=0)))
+        efficiency_pt_binned = unflatten_gen_by_pt(efficiency, self.bins.gen_rho_edges_by_pt)
+        fakerate_pt_binned = unflatten_gen_by_pt(fakerate, self.bins.reco_rho_edges_by_pt)
+        for i in range(4):
+            plt.stairs(1-fakerate_pt_binned[i], self.bins.reco_rho_edges_by_pt[i], label = f"Fake rate", lw = 1.5)
+            plt.stairs(efficiency_pt_binned[i],self.bins.gen_rho_edges_by_pt[i], label = f"Efficiency", lw = 1.5)
+            plt.legend(title = title_list[i])
+            plt.xlabel(r"log($\rho^2$)")
+            if self.groomed:
+                plt.xlim(-4.5 , 0)
+            else:
+                plt.xlim(-2.5 , 0)
+            plt.ylim(0,1.05)
+            hep.cms.label("Internal", data = False, lumi = 138)
+            plt.show()
+
+    def _compute_stat_unc(self):
+        for i in range(10):
+            meas_flat = self.mosaic_2d_jk_list[i]
+            self._perform_unfold(systematic = 'nominal', closure = self.closure, herwig_closure = self.herwig_closure, meas_flat = meas_flat, do_jk = True)
+        
+        std = np.std(self.y_unf_jk_list, axis = 0)
+        self.stat_unc_frac = np.abs(std/self.y_unf)
+
+        self.stat_unc_pt_binned = unflatten_gen_by_pt(self.stat_unc_frac, self.bins.gen_rho_edges_by_pt)
+
+        plt.stairs(self.stat_unc_frac)
+        plt.show()
+
+    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False):
         # ------------------------------------------------------------------
         # 1.  Provide your numpy inputs
         # ------------------------------------------------------------------
@@ -293,18 +363,18 @@ class Unfolder:
         from array import array
 
         #print(f"Closure is {closure}")
-
-        print("Entered function _perform_unfold")
+        print(f"Performing unfolding for systematic: {systematic}")
+        #print("Entered function _perform_unfold")
         resp_np   = self.mosaic_dict[systematic]  # 2D numpy array (reco x true)
+        if meas_flat is None:
+            if closure:
+                meas_flat = self.mosaic.sum(axis = 1)
+            
+            else:
+                meas_flat = self.mosaic_2d
 
-        if closure:
-            meas_flat = self.mosaic.sum(axis = 1)
-        
-        else:
-            meas_flat = self.mosaic_2d
-
-        if herwig_closure:
-            meas_flat = self.mosaic_herwig_2d
+            if herwig_closure:
+                meas_flat = self.mosaic_herwig_2d
 
         true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
         n_reco, n_true = resp_np.shape
@@ -377,6 +447,8 @@ class Unfolder:
         for i_true, val in enumerate(true_flat, 1):
             h_true.SetBinContent(i_true, float(val))
 
+        # if systematic == "herwigUp":
+        #     plt.imshow(resp_np)
         # ------------------------------------------------------------------
         # 3.  Run TUnfold
         # ------------------------------------------------------------------
@@ -479,13 +551,17 @@ class Unfolder:
             y_true_herwig, ye_true_herwig = self._th1_to_arrays(h_true)
         y_unf , ye_unf  = self._th1_to_arrays(h_unfold)
 
+        if do_jk and systematic == 'nominal':
+            self.y_unf_jk_list.append(y_unf)
+            
+            
 
         
         if systematic == 'herwigUp':
             self.y_true_herwig = self.mosaic_dict['herwigUp'].sum(axis = 0)
 
         
-        if systematic == 'nominal':
+        if systematic == 'nominal' and not do_jk:
             self.y_meas = y_meas
             self.ye_meas = ye_meas
             self.y_unf = y_unf
@@ -583,6 +659,30 @@ class Unfolder:
             hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
             plt.show()
 
+    def plot_unfolded_fancy(self, log  = False):
+        npt = len(self.pt_edges)-1
+        title_list = ["",r"200 $<$ $p_T$ $<$ 290 GeV", r"290 $<$ $p_T$ $<$ 400 GeV", r"400 $<$ $p_T$ $< \, \infty$  GeV"]
+        for i in range(npt):
+            plt.stairs( self.normalized_results[i]['unfolded'] + self.normalized_results[i]['syst_unc']['up'],
+            self.bins.gen_rho_edges_by_pt[i],
+            baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['syst_unc']['down'],
+            fill = True, color = "yellowgreen" , label = r"Syst. $\oplus$ Stat. Unc.")
+            plt.stairs( self.normalized_results[i]['unfolded'] + self.normalized_results[i]['stat_unc'],
+            self.bins.gen_rho_edges_by_pt[i],
+            baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['stat_unc'],
+            
+            fill = True, color = "darkgreen" , label = "Stat. Unc.")
+            
+            plt.legend(title = title_list[i])
+            hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
+            plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
+            if self.groomed:
+                plt.xlim(-4.5 , 0)
+            else:
+                plt.xlim(-2.5 , 0)
+            plt.show()
+
+
 
     def plot_unfolded(self, log = False):
 
@@ -590,18 +690,24 @@ class Unfolder:
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.bins.reco_rho_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.bins.reco_rho_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.bins.gen_rho_edges_by_pt)
-        #true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.bins.gen_mass_edges_by_pt) 
+        true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.bins.gen_rho_edges_by_pt) 
         error_pt_binned = unflatten_gen_by_pt(self.ye_unf, self.bins.gen_rho_edges_by_pt)
         self.normalized_herwig = []
         #print("Herwig pt Binned", true_herwig_pt_binned)
+        self.herwig_closure_unc = []
         for i in range(len(self.pt_edges)-1):
             
             bin_widths = np.diff(self.bins.gen_rho_edges_by_pt[i])
             bin_widths_reco = np.diff(self.bins.reco_rho_edges_by_pt[i])
             #self.normalized_herwig.append(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum())
-            #hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_mass_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
-            hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
+            if self.herwig_closure:
+                hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
+            else:
+                hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
             hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], yerr = np.abs(error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()), label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
+
+            
+
             #hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'k', ls= '--', alpha= 0.5, label = 'Meas' )
             #dhep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
@@ -624,7 +730,25 @@ class Unfolder:
             # hep.histplot(rel_diff, self.bins.gen_mass_edges_by_pt[i], label="(Herwig - Unfolded) / Herwig", color="r")
             # title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             # plt.legend(title = title) 
-            
+            if self.herwig_closure:
+                true_herwig = true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum()
+                unfolded = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()
+                herwig_closure_unc = np.abs(true_herwig - unfolded) / true_herwig
+                self.herwig_closure_unc.append(herwig_closure_unc)
+                plt.stairs(herwig_closure_unc, self.bins.gen_rho_edges_by_pt[i], label = 'Closure Unc (|Herwig - Unfolded| / Herwig)', color = 'magenta', ls = 'dashdot')
+                if not self.groomed:
+                    plt.xlim(-2.5, 0)
+                else:
+                    plt.xlim(-4.5, 0)
+                plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
+                plt.legend()
+                plt.show()
+        # Save uncertainty in a file for later use
+        if self.herwig_closure:
+            if self.groomed:
+                np.save("./inputs/rho/herwig_closure_unc_groomed.npy", self.herwig_closure_unc)
+            else:
+                np.save("./inputs/rho/herwig_closure_unc_ungroomed.npy", self.herwig_closure_unc)
             # if self.groomed:
             #     plt.xlim(0,250)
             #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
@@ -662,15 +786,16 @@ class Unfolder:
         # Storing normalized results for systematics
         self.normalized_systematics = []
         # Prepare normalized_systematics as a list of dicts, one per pt bin
-        self.normalized_systematics = []
+
         for i in range(len(self.pt_edges)-1):
             pt_bin = (self.pt_edges[i], self.pt_edges[i+1] if i+1 < len(self.pt_edges)-1 else float('inf'))
             unfolded = {}
-            bin_widths = np.diff(self.bins.gen_mass_edges_by_pt[i])
+            bin_widths = np.diff(gen_mass_bin_edges_by_pt[i])
+            bin_widths_reco = np.diff(reco_mass_bin_edges_by_pt[i])
             for syst in self.systematics:
                 if syst == 'nominal':
                     continue
-                unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf_dict[syst], self.bins.gen_mass_edges_by_pt)
+                unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf_dict[syst], gen_mass_bin_edges_by_pt)
                 unfolded[syst] = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum() # Taking absolute values to avoid negative bins
             self.normalized_systematics.append({
             "pt_bin": pt_bin,
@@ -679,6 +804,9 @@ class Unfolder:
     def _compute_total_systematic(self):
         print("Computing total systematic uncertainty...")
         # Compute total systematic uncertainty for each pt bin
+        # load from file
+        herwig_unc = np.load("./inputs/rho/herwig_closure_unc_groomed.npy") if self.groomed else np.load("./inputs/rho/herwig_closure_unc_ungroomed.npy")
+        self.herwig_unc = herwig_unc
         for i in range(len(self.normalized_results)):
             nominal = self.normalized_results[i]['unfolded']
             syst_up_total = np.zeros_like(nominal)
@@ -687,9 +815,12 @@ class Unfolder:
             for syst in self.systematics:
                 if 'Down' in syst:
                     if syst.startswith('herwig'):
-                        syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                        diff_down = np.abs(syst_down - nominal)
-                        print("Systematic Down:", syst, "Diff Down:", diff_down)
+                        print("New Herwig adopted")
+                        # syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        # diff_down = np.abs(syst_down - nominal)
+                        # print("Systematic Down:", syst, "Diff Down:", diff_down)
+                        # syst_down_total += diff_down**2
+                        diff_down = herwig_unc[i] * nominal
                         syst_down_total += diff_down**2
                     else:    
                         syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
@@ -700,15 +831,22 @@ class Unfolder:
                     if syst=='nominal':
                         continue
                     if syst.startswith('herwig'):
-                        syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                        diff_up = np.abs(syst_up - nominal)
-                        print("Systematic Up:", syst, "Diff Up:", diff_up)
+                        print("New Herwig adopted")
+                        # syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        # diff_up = np.abs(syst_up - nominal)
+                        # print("Systematic Up:", syst, "Diff Up:", diff_up)
+                        # syst_up_total += diff_up**2
+                        diff_up = herwig_unc[i] * nominal
                         syst_up_total += diff_up**2
                     else:    
                         syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                         diff_up = np.abs(syst_up - nominal)
                         print("Systematic up:", syst, "Diff up:", diff_up)
                         syst_up_total += diff_up**2
+            stat_unc = self.stat_unc_pt_binned[i] * nominal
+                
+            syst_up_total += stat_unc**2
+            syst_down_total += stat_unc**2
             # Take sqrt of sum of squares for total uncertainty
             total_up_unc = np.sqrt(syst_up_total)
             total_down_unc = np.sqrt(syst_down_total)
@@ -716,6 +854,7 @@ class Unfolder:
             'up': total_up_unc,
             'down': total_down_unc
             }
+            self.normalized_results[i]['stat_unc'] = stat_unc
 
     def plot_systematic_fraction(self, syst_name = 'all'):
         # Plot the systematic uncertainties as a fraction of the nominal unfolded result
@@ -778,7 +917,7 @@ class Unfolder:
                 print("Plotting JES group")
                 jes_up_total = np.sqrt(np.sum([diff**2 for diff in jes_up], axis=0))
                 jes_up_frac = np.abs(jes_up_total / nominal)
-                hep.histplot(jes_up_frac, self.bins.gen_mass_edges_by_pt[i], label="JES ", ls = '--')
+                hep.histplot(jes_up_frac, self.bins.gen_rho_edges_by_pt[i], label="JES ", ls = '--')
                 syst_fraction_dict['JESUp'] = jes_up_frac
             if jes_down:
                 jes_down_total = np.sqrt(np.sum([diff**2 for diff in jes_down], axis=0))
@@ -789,7 +928,7 @@ class Unfolder:
             if jer_up:
                 jer_up_total = np.sqrt(np.sum([diff**2 for diff in jer_up], axis=0))
                 jer_up_frac = np.abs(jer_up_total / nominal)
-                hep.histplot(jer_up_frac, self.bins.gen_mass_edges_by_pt[i], label="JER ", ls = '--')
+                hep.histplot(jer_up_frac, self.bins.gen_rho_edges_by_pt[i], label="JER ", ls = '--')
                 syst_fraction_dict['JERUp'] = jer_up_frac
                 print("Plotting JER group")
             if jer_down:
@@ -801,7 +940,7 @@ class Unfolder:
             if ele_up:
                 ele_up_total = np.sqrt(np.sum([diff**2 for diff in ele_up], axis=0))
                 ele_up_frac = np.abs(ele_up_total / nominal)
-                hep.histplot(ele_up_frac, self.bins.gen_mass_edges_by_pt[i], label="Electron SFs", ls = '--')
+                hep.histplot(ele_up_frac, self.bins.gen_rho_edges_by_pt[i], label="Electron SFs", ls = '--')
                 syst_fraction_dict['ElectronSFUp'] = ele_up_frac
             if ele_down:
                 ele_down_total = np.sqrt(np.sum([diff**2 for diff in ele_down], axis=0))
@@ -812,7 +951,7 @@ class Unfolder:
             if mu_up:
                 mu_up_total = np.sqrt(np.sum([diff**2 for diff in mu_up], axis=0))
                 mu_up_frac = np.abs(mu_up_total / nominal)
-                hep.histplot(mu_up_frac, self.bins.gen_mass_edges_by_pt[i], label="Muon SFs", ls = '--')
+                hep.histplot(mu_up_frac, self.bins.gen_rho_edges_by_pt[i], label="Muon SFs", ls = '--')
                 syst_fraction_dict['MuonSFUp'] = mu_up_frac
             if mu_down:
                 mu_down_total = np.sqrt(np.sum([diff**2 for diff in mu_down], axis=0))
@@ -828,29 +967,31 @@ class Unfolder:
                 if syst.endswith('Up'):
                     syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                     if syst.startswith('herwig'):
-                        diff_up = (syst_up - nominal)
+                        diff_up = nominal*self.herwig_unc[i] # Using the closure uncertainty as the systematic variation for Herwig
                     else:
                         diff_up = syst_up - nominal
                     syst_fraction_up = np.abs(diff_up / nominal)
                     syst_fraction_dict[f"{syst}"] = syst_fraction_up
                     
                     if syst.startswith('herwig'):
-                        hep.histplot(syst_fraction_up, self.bins.gen_mass_edges_by_pt[i], label=f"Model Uncertainty")
+                        hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"Model Uncertainty", ls = '-.')
                     else:
                         label = f"{syst[:-2]}"
                         label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF'}
                         if label in label_dic:
                             label = label_dic[label]
 
-                        hep.histplot(syst_fraction_up, self.bins.gen_mass_edges_by_pt[i], label=f"{label}")
+                        hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"{label}")
                 if syst.endswith('Down'):
                     syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                     if syst.startswith('herwig'):
-                        diff_down = (syst_down - nominal)
+                        diff_down = nominal*self.herwig_unc[i]
                     else:
                         diff_down = syst_down - nominal
                     syst_fraction_down = np.abs(diff_down / nominal)
                     syst_fraction_dict[f"{syst}"] = syst_fraction_down
+            stat_fraction = self.stat_unc_pt_binned[i]  
+            hep.histplot(stat_fraction, self.bins.gen_rho_edges_by_pt[i], label="Stat Unc", ls='--')
 
             # Calculate systematic fraction
             total_syst_fraction_up = np.abs(total_syst_up / np.abs(nominal))
@@ -877,7 +1018,7 @@ class Unfolder:
 
             # Plot the systematic fraction
             hep.histplot(total_syst_fraction_up, 
-                        self.bins.gen_mass_edges_by_pt[i], 
+                        self.bins.gen_rho_edges_by_pt[i], 
                         label=f"Total ", color = 'k', lw = 3)
             plt.yscale('log')
             if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
@@ -886,25 +1027,29 @@ class Unfolder:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
             hep.cms.label(self.cms_label, data=True, rlabel = r"138 fb$^{-1}$")
-            if self.groomed:
-                plt.xlim(20,250)
+            # if self.groomed:
+            #     plt.xlim(20,250)
                 
+            # else:
+            #     plt.xlim(10,250)
+            # # place the last x-tick at 250 and label it with infinity
+            # edges = np.array(self.bins.gen_mass_edges_by_pt[i], dtype=float)
+            # ticks = edges.copy()
+            # ticks[-1] = 250.0
+            # # remove the third tick to reduce clutter (index 2) if it exists
+            # if ticks.size > 2:
+            #     ticks = np.delete(ticks, 2)
+            # # disable minor ticks on the x-axis
+            # plt.gca().tick_params(axis='x', which='minor', bottom=False, top=False)
+            # # create human-readable labels for ticks and replace the last one with infinity
+            # labels = [str(int(x)) if float(x).is_integer() else f"{x}" for x in ticks]
+            # labels[-1] = r"$\infty$"
+            # plt.xticks(ticks, labels)
+            if self.groomed:
+                plt.xlim(-4.5,0)
             else:
-                plt.xlim(10,250)
-            # place the last x-tick at 250 and label it with infinity
-            edges = np.array(self.bins.gen_mass_edges_by_pt[i], dtype=float)
-            ticks = edges.copy()
-            ticks[-1] = 250.0
-            # remove the third tick to reduce clutter (index 2) if it exists
-            if ticks.size > 2:
-                ticks = np.delete(ticks, 2)
-            # disable minor ticks on the x-axis
-            plt.gca().tick_params(axis='x', which='minor', bottom=False, top=False)
-            # create human-readable labels for ticks and replace the last one with infinity
-            labels = [str(int(x)) if float(x).is_integer() else f"{x}" for x in ticks]
-            labels[-1] = r"$\infty$"
-            plt.xticks(ticks, labels)
-            plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
+                plt.xlim(-2.5, 0)
+            plt.xlabel(r"Groomed Jet $\rho$" if self.groomed else r"Ungroomed Jet $\rho$")
             plt.tight_layout()
             plt.savefig(f'./outputs/plots/uncertainties/summary_groomed_{i}.pdf' if self.groomed else f'outputs/plots/uncertainties/summary_ungroomed_{i}.pdf')
             plt.show()

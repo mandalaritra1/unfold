@@ -174,11 +174,8 @@ def reorder_to_expected(H, mass_edges_reco, pt_edges, mass_edges_gen):
         len(mass_edges_gen) - 1,   # gen_mass
         len(pt_edges)       - 1,   # gen_pt
     ]
-    return np.transpose(H, (3, 2, 1, 0)), [3,2,1,0]  # TEMPORARY FIX
-    raise ValueError(
-        f"Could not match H.shape={H.shape} to expected {expected}. "
-        "Check that you're passing the correct edges and that flow bins are excluded."
-    )
+    return np.transpose(H, (3, 2, 1, 0)), [3,2,1,0]  # Given order is  always (gen_pt, gen_mass, reco_pt, reco_mass), so just flipping the entire order
+
     
 def reorder_to_expected_2d(H2, mass_edges_reco, pt_edges):
     """
