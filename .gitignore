@@ -72,3 +72,4 @@ Thumbs.db
 *.pkl
 *.root
 test_output/
+outputs/*.pdf

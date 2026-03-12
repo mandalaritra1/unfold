@@ -337,6 +337,10 @@ class Unfolder:
                 plt.xlim(-2.5 , 0)
             plt.ylim(0,1.05)
             hep.cms.label("Internal", data = False, lumi = 138)
+            if self.groomed:
+                plt.savefig(f"./outputs/rho/fakerates_groomed_{i-1}.png")
+            else:
+                plt.savefig(f"./outputs/rho/fakerates_ungroomed_{i-1}.png")
             plt.show()
 
     def _compute_stat_unc(self):
@@ -349,7 +353,7 @@ class Unfolder:
 
         self.stat_unc_pt_binned = unflatten_gen_by_pt(self.stat_unc_frac, self.bins.gen_rho_edges_by_pt)
 
-        plt.stairs(self.stat_unc_frac)
+        #plt.stairs(self.stat_unc_frac)
         plt.show()
 
     def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False):
@@ -588,7 +592,7 @@ class Unfolder:
         for i in range(len(self.pt_edges)-1):
             bin_widths_reco = np.diff(self.bins.reco_rho_edges_by_pt[i])
             # two-panel plot: main + ratio
-            fig, (ax_top, ax_bot) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]}, figsize=(16, 12))
+            fig, (ax_top, ax_bot) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             plt.sca(ax_top)
             hep.histplot(folded_pt_binned[i]/bin_widths_reco/folded_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], label='Folded', color='r', alpha=0.8, ls='dotted', lw=3, ax=ax_top)
             hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], color='k', ls='--', alpha=1, label='Measured Data', ax=ax_top)
@@ -610,17 +614,17 @@ class Unfolder:
 
             # switch back to top axes so subsequent plotting (reco_mc, legend, labels) goes to the main panel
             plt.sca(ax_top)
-            hep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
+            #hep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
             
             if self.groomed:
                 #plt.xlim(0,250)
-                
+                plt.xlim(-4.5, 0)
                 hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
             #plt.ylim(0,0.02)
             if not self.groomed:
-                plt.xlim(-5, 0)
+                plt.xlim(-2.5, 0)
                 #plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
                 hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
             plt.show()
@@ -628,12 +632,14 @@ class Unfolder:
     def plot_bottom_line(self):
         unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.bins.gen_rho_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.bins.gen_rho_edges_by_pt)
+
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.bins.reco_rho_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.bins.reco_rho_edges_by_pt)
         
         #now plot the ratio of unfolded to true and measured to reco mc in the same axis, just the ratio plot (no main panel)
         for i in range(len(self.pt_edges)-1):
             # two-panel plot: main + ratio
+            error = self.normalized_results[i]['stat_unc']/self.normalized_results[i]['unfolded']
             fig, ax = plt.subplots(figsize=(12, 9))
             bin_widths = np.diff(self.bins.gen_rho_edges_by_pt[i])
             unfolded = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()
@@ -647,40 +653,134 @@ class Unfolder:
             ratio_meas_reco = np.divide(measured, reco_mc, out=np.full_like(measured, np.nan), where=reco_mc != 0)
             
             ax.axhline(1.0, color='gray', ls='--')
-            hep.histplot(ratio_unf_true, self.bins.gen_rho_edges_by_pt[i], label='Unfolded / True', color='k', ls='--')
-            hep.histplot(ratio_meas_reco, self.bins.reco_rho_edges_by_pt[i], label='Measured / Reco_MC', color='r', ls=':')
+            hep.histplot(ratio_unf_true, self.bins.gen_rho_edges_by_pt[i], yerr = np.abs(error),label='Unfolded / True', color='k', ls='--')
+            hep.histplot(ratio_meas_reco, self.bins.reco_rho_edges_by_pt[i],  label='Measured / Reco_MC', color='r', ls=':')
             ax.set_ylabel('Ratio')
             ax.set_xlim(self.bins.gen_rho_edges_by_pt[i][0], self.bins.gen_rho_edges_by_pt[i][-1])
             ax.set_ylim(0.5, 1.5)
-            
+            if self.groomed:
+                plt.xlim(-4.5, 0)
+            else:
+                plt.xlim(-2.5, 0)
             plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
             hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
+            plt.savefig(f"./outputs/rho/bottom_line_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/bottom_line_ungroomed_{i-1}.pdf")
             plt.show()
 
     def plot_unfolded_fancy(self, log  = False):
+        markers = ['o', 's', '^', 'D', 'v', '*', 'x', '+']
         npt = len(self.pt_edges)-1
-        title_list = ["",r"200 $<$ $p_T$ $<$ 290 GeV", r"290 $<$ $p_T$ $<$ 400 GeV", r"400 $<$ $p_T$ $< \, \infty$  GeV"]
+        title_list = ["",r"200$<$$p_T$$<$290 GeV", r"290 $<$$p_T$$<$400 GeV", r"400 $<$$p_T$$< \, \infty$  GeV"]
         for i in range(npt):
+            fig, (ax_main, ax_ratio) = plt.subplots(
+                2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=(12, 10)
+            )
+            plt.sca(ax_main)
             plt.stairs( self.normalized_results[i]['unfolded'] + self.normalized_results[i]['syst_unc']['up'],
-            self.bins.gen_rho_edges_by_pt[i],
-            baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['syst_unc']['down'],
-            fill = True, color = "yellowgreen" , label = r"Syst. $\oplus$ Stat. Unc.")
+                self.bins.gen_rho_edges_by_pt[i],
+                baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['syst_unc']['down'],
+                fill = True, color = "yellowgreen" , label = r"Syst. $\oplus$ Stat. Unc.")
             plt.stairs( self.normalized_results[i]['unfolded'] + self.normalized_results[i]['stat_unc'],
-            self.bins.gen_rho_edges_by_pt[i],
-            baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['stat_unc'],
-            
-            fill = True, color = "darkgreen" , label = "Stat. Unc.")
-            
+                self.bins.gen_rho_edges_by_pt[i],
+                baseline = self.normalized_results[i]['unfolded'] - self.normalized_results[i]['stat_unc'],
+                fill = True, color = "darkgreen" , label = "Stat. Unc.")
+            plt.stairs(self.normalized_results[i]['true'], self.bins.gen_rho_edges_by_pt[i], label = 'PYTHIA7', color = 'b', ls = 'dotted', lw = 3)
+
             plt.legend(title = title_list[i])
-            hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
-            plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
+            hep.cms.label(self.cms_label, data = True, rlabel = r"138 fb$^{-1}$")
+            plt.ylabel(r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d(\log{\rho^2})dp_T} (GeV^{-1})$")
+
+            # Ratio Plot
+            plt.sca(ax_ratio)
+            plt.axhline(1.0, color='gray', ls='--')
+            ratio = np.divide(self.normalized_results[i]['unfolded'], self.normalized_results[i]['true'])
+            ratio_syst_up = np.divide(self.normalized_results[i]['unfolded'] + self.normalized_results[i]['syst_unc']['up'], self.normalized_results[i]['true'])
+            ratio_syst_down = np.divide(self.normalized_results[i]['unfolded'] - self.normalized_results[i]['syst_unc']['down'], self.normalized_results[i]['true'])
+
+            ratio_stat_up = np.divide(self.normalized_results[i]['unfolded'] + self.normalized_results[i]['stat_unc'], self.normalized_results[i]['true'])
+            ratio_stat_down = np.divide(self.normalized_results[i]['unfolded'] - self.normalized_results[i]['stat_unc'], self.normalized_results[i]['true'])
+
+            plt.stairs(ratio_syst_up, self.bins.gen_rho_edges_by_pt[i], baseline=ratio_syst_down, fill=True, color="yellowgreen", label=r"Syst. $\oplus$ Stat. Unc.")
+            plt.stairs(ratio_stat_up, self.bins.gen_rho_edges_by_pt[i], baseline=ratio_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
+            plt.ylim(0, 2)
+            plt.xlabel(r"Groomed Jet  $\log_{10}{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log_{10}{\rho^2}$")
+            plt.ylabel(r"$\frac{Data}{Simulation}$")
             if self.groomed:
                 plt.xlim(-4.5 , 0)
             else:
                 plt.xlim(-2.5 , 0)
+            if self.closure:
+                plt.savefig(f"./outputs/rho/closure_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/closure_ungroomed_{i-1}.pdf")
+            else:
+                plt.savefig(f"./outputs/rho/unfold/groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/ungroomed_{i-1}.pdf")
+
             plt.show()
+        
+        # Now also plot a summary plot, with all of them together, but shifted on y axis for visibility
+
+        min_floor = None
+        for i in range(1, npt):
+            j = i 
+            scale = 10 ** j
+            unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
+            syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
+            syst_down = np.array(self.normalized_results[i]['syst_unc']['down'], dtype=float)
+            stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
+
+            y_syst_up = scale * (unfolded + syst_up)
+            y_syst_down = scale * (unfolded - syst_down)
+            y_stat_up = scale * (unfolded + stat_unc)
+            y_stat_down = scale * (unfolded - stat_unc)
+
+            # User requested floor = 10**(i-1) for plotting the i-th overlay
+            floor = 10 ** (j - 2)
+            if min_floor is None or floor < min_floor:
+                min_floor = floor
+            plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.bins.gen_rho_edges_by_pt[i], label='PYTHIA7', color='b', ls='dotted', lw=3)
+            y_syst_down_clipped = np.where(y_syst_down <= floor, floor, y_syst_down)
+            y_stat_down_clipped = np.where(y_stat_down <= floor, floor, y_stat_down)
+
+            plt.stairs(y_syst_up, self.bins.gen_rho_edges_by_pt[i], baseline=y_syst_down_clipped, fill=True, color="yellowgreen", label=r"Syst. $\oplus$ Stat. Unc.", alpha = 0.8)
+            plt.stairs(y_stat_up, self.bins.gen_rho_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
+            rho_edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
+            centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
+            plt.plot(centers, scale * unfolded, label=rf'$10^{j}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
+            
+
+        plt.yscale('log')
+        plt.yscale('log')
+        # Group duplicate legend entries: keep first occurrence, hide subsequent ones
+        ax = plt.gca()
+        handles, labels = ax.get_legend_handles_labels()
+        seen = set()
+        for h, l in zip(handles, labels):
+            if l == "" or l in seen:
+                try:
+                    h.set_label('_nolegend_')  # matplotlib ignores labels starting with '_'
+                except Exception:
+                    pass
+            else:
+                seen.add(l)
+        plt.legend(fontsize  = 15)
+        plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
+        plt.ylabel(r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d(\log{\rho^2})dp_T} (GeV^{-1})$")
+        hep.cms.label(self.cms_label, data = True, rlabel = r"138 fb$^{-1}$")
+        # set a reasonable lower y-limit based on the smallest floor used
+        # try:
+        #     if min_floor is not None:
+        #         plt.ylim(min_floor * 1e-3, None)
+        # except Exception:
+        #     pass
+
+        if self.groomed:
+            plt.xlim(-4.5 , 0)
+        else:
+            plt.xlim(-2.5 , 0)
+
+        plt.savefig(f"./outputs/rho/groomed_summary.pdf" if self.groomed else f"./outputs/rho/ungroomed_summary.pdf")
+
 
 
 
@@ -691,12 +791,12 @@ class Unfolder:
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.bins.reco_rho_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.bins.gen_rho_edges_by_pt)
         true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.bins.gen_rho_edges_by_pt) 
-        error_pt_binned = unflatten_gen_by_pt(self.ye_unf, self.bins.gen_rho_edges_by_pt)
+        #error_pt_binned = unflatten_gen_by_pt(self.ye_unf, self.bins.gen_rho_edges_by_pt)
         self.normalized_herwig = []
         #print("Herwig pt Binned", true_herwig_pt_binned)
         self.herwig_closure_unc = []
         for i in range(len(self.pt_edges)-1):
-            
+            yerr = self.normalized_results[i]['syst_unc']['up']
             bin_widths = np.diff(self.bins.gen_rho_edges_by_pt[i])
             bin_widths_reco = np.diff(self.bins.reco_rho_edges_by_pt[i])
             #self.normalized_herwig.append(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum())
@@ -704,20 +804,22 @@ class Unfolder:
                 hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
             else:
                 hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
-            hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], yerr = np.abs(error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()), label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
+            hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
 
             
 
             #hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'k', ls= '--', alpha= 0.5, label = 'Meas' )
             #dhep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )
-            title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
-            plt.legend(title = title) 
+            title = f" {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
+            plt.legend(title = title, fontsize = 18) 
             
             if self.groomed:
                 #plt.xlim(0,250)
+                plt.xlim(-4.5, 0)
                 plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
             #plt.ylim(0,0.02)
             if not self.groomed:
+                plt.xlim(-2.5, 0)
                 #plt.xlim(20,250)
                 plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
             plt.show() 
@@ -731,17 +833,19 @@ class Unfolder:
             # title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             # plt.legend(title = title) 
             if self.herwig_closure:
+                plt.figure(figsize=(10, 3))
                 true_herwig = true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum()
                 unfolded = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()
                 herwig_closure_unc = np.abs(true_herwig - unfolded) / true_herwig
                 self.herwig_closure_unc.append(herwig_closure_unc)
-                plt.stairs(herwig_closure_unc, self.bins.gen_rho_edges_by_pt[i], label = 'Closure Unc (|Herwig - Unfolded| / Herwig)', color = 'magenta', ls = 'dashdot')
+                plt.stairs(herwig_closure_unc, self.bins.gen_rho_edges_by_pt[i], label = 'Closure Unc (|Herwig - Unfolded| / Herwig)', color = 'g', ls = 'dotted')
                 if not self.groomed:
                     plt.xlim(-2.5, 0)
                 else:
                     plt.xlim(-4.5, 0)
+                plt.ylim(0, 1)
                 plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
-                plt.legend()
+                #plt.legend()
                 plt.show()
         # Save uncertainty in a file for later use
         if self.herwig_closure:
@@ -815,13 +919,15 @@ class Unfolder:
             for syst in self.systematics:
                 if 'Down' in syst:
                     if syst.startswith('herwig'):
-                        print("New Herwig adopted")
-                        # syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                        # diff_down = np.abs(syst_down - nominal)
-                        # print("Systematic Down:", syst, "Diff Down:", diff_down)
-                        # syst_down_total += diff_down**2
-                        diff_down = herwig_unc[i] * nominal
+                        ## This is for taking just the difference
+                        syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_down = np.abs(syst_down - nominal)
+                        print("Systematic Down:", syst, "Diff Down:", diff_down)
                         syst_down_total += diff_down**2
+
+                        ## This is for fethcing uncertainty from non-closure of herwig
+                        # diff_down = herwig_unc[i] * nominal
+                        # syst_down_total += diff_down**2
                     else:    
                         syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                         diff_down = np.abs(syst_down - nominal)
@@ -832,12 +938,15 @@ class Unfolder:
                         continue
                     if syst.startswith('herwig'):
                         print("New Herwig adopted")
-                        # syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                        # diff_up = np.abs(syst_up - nominal)
-                        # print("Systematic Up:", syst, "Diff Up:", diff_up)
-                        # syst_up_total += diff_up**2
-                        diff_up = herwig_unc[i] * nominal
+                        ## Difference way
+                        syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
+                        diff_up = np.abs(syst_up - nominal)
+                        print("Systematic Up:", syst, "Diff Up:", diff_up)
                         syst_up_total += diff_up**2
+
+                        ## Fetching uncertainty from non-closure of herwig
+                        # diff_up = herwig_unc[i] * nominal
+                        # syst_up_total += diff_up**2
                     else:    
                         syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                         diff_up = np.abs(syst_up - nominal)
@@ -967,7 +1076,10 @@ class Unfolder:
                 if syst.endswith('Up'):
                     syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                     if syst.startswith('herwig'):
-                        diff_up = nominal*self.herwig_unc[i] # Using the closure uncertainty as the systematic variation for Herwig
+                        ## case when fetching uncertainty from non-closure of herwig
+                        # diff_up = nominal*self.herwig_unc[i]  Using the closure uncertainty as the systematic variation for Herwig
+                        ## regular
+                        diff_up = syst_up - nominal
                     else:
                         diff_up = syst_up - nominal
                     syst_fraction_up = np.abs(diff_up / nominal)
@@ -977,7 +1089,7 @@ class Unfolder:
                         hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"Model Uncertainty", ls = '-.')
                     else:
                         label = f"{syst[:-2]}"
-                        label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF'}
+                        label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.'}
                         if label in label_dic:
                             label = label_dic[label]
 
@@ -985,7 +1097,10 @@ class Unfolder:
                 if syst.endswith('Down'):
                     syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                     if syst.startswith('herwig'):
-                        diff_down = nominal*self.herwig_unc[i]
+                        ## case when fetching uncertainty from non-closure of herwig
+                        # diff_down = nominal*self.herwig_unc[i]
+                        ## regular
+                        diff_down = syst_down - nominal
                     else:
                         diff_down = syst_down - nominal
                     syst_fraction_down = np.abs(diff_down / nominal)
@@ -1045,13 +1160,14 @@ class Unfolder:
             # labels = [str(int(x)) if float(x).is_integer() else f"{x}" for x in ticks]
             # labels[-1] = r"$\infty$"
             # plt.xticks(ticks, labels)
+            plt.ylim(10e-5, 1)
             if self.groomed:
                 plt.xlim(-4.5,0)
             else:
                 plt.xlim(-2.5, 0)
-            plt.xlabel(r"Groomed Jet $\rho$" if self.groomed else r"Ungroomed Jet $\rho$")
-            plt.tight_layout()
-            plt.savefig(f'./outputs/plots/uncertainties/summary_groomed_{i}.pdf' if self.groomed else f'outputs/plots/uncertainties/summary_ungroomed_{i}.pdf')
+            plt.xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
+            plt.ylabel("Fractional Uncertainty")
+            plt.savefig(f'./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf' if self.groomed else f'./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf')
             plt.show()
 
     
@@ -1068,18 +1184,12 @@ class Unfolder:
                     all_values.append(np.abs(syst_fraction_dict[up_key]))
                 if down_key in syst_fraction_dict:
                     all_values.append(np.abs(syst_fraction_dict[down_key]))
-        # Flatten and get min/max (ignore zeros)
-        if all_values:
-            all_values_flat = np.concatenate(all_values)
-            ymin = -np.nanmax(all_values_flat)
-            ymax = np.nanmax(all_values_flat)
-        else:
-            ymin, ymax = 0, 1
+
 
         # Now plot with fixed y-range
         for i, result in enumerate(self.normalized_results):
             syst_fraction_dict = result.get('syst_fraction_dict', {})
-            plt.figure(figsize=(12, 8))
+            #plt.figure(figsize=(12, 8))
             pt_bin = result['pt_bin']
             for syst in syst_names:
                 up_key = f"{syst}Up"
@@ -1088,27 +1198,32 @@ class Unfolder:
                 color = color_map[syst_names.index(syst)] if syst in syst_names and syst_names.index(syst) < len(color_map) else None
 
                 # Plot Up uncertainty (solid)
+                label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.'}
                 if up_key in syst_fraction_dict:
-                    hep.histplot(syst_fraction_dict[up_key], self.bins.gen_mass_edges_by_pt[i], label=f"{syst} Up", color=color, ls='-')
+                    hep.histplot(syst_fraction_dict[up_key], self.bins.gen_rho_edges_by_pt[i], label=f"{label_dic.get(syst, syst)} Up", color=color, ls='-')
                 # Plot Down uncertainty (dashed)
                 if down_key in syst_fraction_dict:
-                    hep.histplot(-syst_fraction_dict[down_key], self.bins.gen_mass_edges_by_pt[i], label=f"{syst} Down", color=color, ls='--')
+                    hep.histplot(-syst_fraction_dict[down_key], self.bins.gen_rho_edges_by_pt[i], label=f"{label_dic.get(syst, syst)} Down", color=color, ls='--')
+
+
+                
             if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
                 pt_bin_label = f"{pt_bin[0]}–∞"
             else:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
-            plt.ylim(ymin* 1.05, ymax * 1.05)
-            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
+            
+            plt.ylim(0.8, 1.2)
+            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", fontsize = 15)#loc='center left', bbox_to_anchor=(1, 0.5))
             hep.cms.label(self.cms_label, data=True, rlabel = r"138 fb$^{-1}$")
-            plt.tight_layout()
+
             if self.groomed:
-                plt.xlim(20,250)
-                plt.xlabel("Groomed Jet Mass (GeV)")
-                plt.savefig(f'outputs/plots/uncertainties/{syst_names[0]}_groomed_{i}.pdf', dpi=300)
+                plt.xlim(-4.5,0)
+                plt.xlabel(r"$\log_{10}(\rho^2)$, Groomed")
+                plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_groomed_{i-1}.pdf')
             else:
-                plt.xlim(10,250)
-                plt.xlabel("Ungroomed Jet Mass (GeV)")
-                plt.savefig(f'outputs/plots/uncertainties/{syst_names[0]}_ungroomed_{i}.pdf', dpi=300)
+                plt.xlim(-2.5, 0)
+                plt.xlabel(r"$\log_{10}(\rho^2)$, Ungroomed")
+                plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_ungroomed_{i-1}.pdf')
             
             plt.show()
 
@@ -1208,10 +1323,9 @@ class Unfolder:
         plt.ylabel(r"GEN $p_T$ (GeV)")
 
         cbar = plt.colorbar(img, ticks=bounds, boundaries=bounds, fraction=0.046, pad=0.04)
-        cbar.set_label("Correlation")
-        hep.cms.label(self.cms_label, data=True)
-        plt.tight_layout()
-        plt.savefig(f'outputs/plots/unfold/correlation_groomed.pdf' if self.groomed else f'outputs/plots/unfold/correlation_ungroomed.pdf')
+        cbar.set_label("Correlation (Groomed)" if self.groomed else "Correlation (Ungroomed)")
+        hep.cms.label(self.cms_label, data=True, lumi = 138)
+        plt.savefig(f'outputs/rho/unfold/correlation_groomed.pdf' if self.groomed else f'outputs/rho/unfold/correlation_ungroomed.pdf')
 
         plt.show()
     def plot_response_matrix(self, probability = True, log = False):
