@@ -40,24 +40,25 @@ class Unfolder:
         non_jes_sys_list = ['nominal', 'puUp', 'puDown', 'elerecoUp', 'elerecoDown',
                             'eleidUp', 'eleidDown', 'eletrigUp', 'eletrigDown', 'murecoUp',
                             'murecoDown', 'muidUp', 'muidDown', 'mutrigUp', 'muisoUp', 'muisoDown','mutrigDown', 'pdfUp',
-                            'pdfDown', 'q2Up', 'q2Down', 'l1prefiringUp', 'l1prefiringDown', 
+                            'pdfDown', 'q2Up', 'q2Down', 'l1prefiringUp', 'l1prefiringDown', "ISRUp", "ISRDown", "FSRUp", "FSRDown",
                             'JERUp', 'JERDown',  'JMSUp', 'JMSDown', 'herwigUp', 'herwigDown']
                             #
-        filename_mc = './inputs/sys_matrix_dic.pkl'
 
-        if self.groomed:
-            filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
-        else:
-            filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
-        with open( filename_sys, "rb") as f:
-            sys_matrix_dic = pkl.load( f )
+
+        # if self.groomed:
+        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
+        # else:
+        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
+        # with open( filename_sys, "rb") as f:
+        #     sys_matrix_dic = pkl.load( f )
+        
         
 
-        if do_syst:
-            #self.systematics = jes_sys_list + non_jes_sys_list
-            self.systematics = list(sys_matrix_dic.keys())
-        else:
-            self.systematics = ['nominal']#, 'herwigUp', 'herwigDown', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
+        # if do_syst:
+        #     #self.systematics = jes_sys_list + non_jes_sys_list
+        #     self.systematics = list(sys_matrix_dic.keys())
+        # else:
+        #     self.systematics = ['nominal']#, 'herwigUp', 'herwigDown', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
 
         #self.systematics = ['nominal', 'herwigUp', 'herwigDown']#, 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
         self.y_unf_dict = {}
@@ -65,8 +66,21 @@ class Unfolder:
         self.edges = edges
         self.edges_gen = edges_gen
         #filename MC is redundant here, using sys_matrix_dic.pkl to get all systematics including nominal
-        print("List of systematics:", self.systematics)
-        self._load_data(filename_mc = './inputs/rho/jms_pythiaV2_all_syst.pkl', filename_data = "./inputs/rho/rho_dataV2_all.pkl", filename_herwig='./inputs/rho/herwig_all.pkl') #pythia in herwig as dummy, replace with actual herwig file
+        self._make_inputs_numpy()
+        sys_matrix_dic = self.sys_matrix_dic
+        if do_syst:
+            #self.systematics = jes_sys_list + non_jes_sys_list
+            self.systematics = list(sys_matrix_dic.keys())
+        else:
+            self.systematics = ['nominal']#, 'herwigUp', 'herwigDown', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
+
+
+
+        #print("List of systematics:", self.systematics)
+        self._load_data(
+            filename_mc = './inputs/rhoInputs/jms_pythiaV2_all_syst.pkl',
+            filename_data = "./inputs/rhoInputs/data_all.pkl",
+            filename_herwig='./inputs/rhoInputs/herwig_all.pkl') 
         
         self._perform_unfold(closure = self.closure, herwig_closure = self.herwig_closure)
         
@@ -76,16 +90,15 @@ class Unfolder:
         self._normalize_result()
         self._compute_total_systematic()
 
-    def _load_data(self, filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl", filename_herwig = 'latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data = './inputs/rho/jk_data.pkl'):
-        print(filename_mc)
-        with open(filename_mc, "rb") as f:
-            output_pythia= pkl.load( f )
+    def _load_data(self, filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl", filename_herwig = 'latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data = './inputs/rhoInputs/jk_data_all.pkl'):
+        print("------------- Adding inputs to unfolder -----------------")
+        self._merge_eras()
+        output_pythia = self.pythia_hists
         print("Keys in pythia file:", output_pythia.keys())
 
         #filename_herwig = 'ROOT_files/herwig_ht_LO_output_no_syst.pkl'
         with open(filename_herwig, "rb") as f:
             output_herwig= pkl.load( f )
-
     
         with open(filename_data, "rb") as f:
             output_data = pkl.load( f )
@@ -94,13 +107,14 @@ class Unfolder:
             output_jk_data = pkl.load( f )
             print("Keys in jk data file:", output_jk_data.keys())
 
-        if self.groomed:
-            filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
+        # if self.groomed:
+        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
             
-        else:
-            filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
-        with open( filename_sys, "rb") as f:
-            sys_matrix_dic = pkl.load( f )
+        # else:
+        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
+        # with open( filename_sys, "rb") as f:
+        #     sys_matrix_dic = pkl.load( f )
+        sys_matrix_dic = self.sys_matrix_dic
 
         if self.groomed:
             pythia4d = output_pythia['response_matrix_rho_g']
@@ -165,6 +179,10 @@ class Unfolder:
             self.mosaic_2d_jk_list.append(merge_mass_flat(h2d_jk_reordered,
                                     mass_edges_reco,
                                     reco_mass_edges_by_pt))
+        
+        self.mosaic_jk_list = []
+
+            
 
         for syst in self.systematics:
             if syst == 'nominal':
@@ -336,7 +354,7 @@ class Unfolder:
             else:
                 plt.xlim(-2.5 , 0)
             plt.ylim(0,1.05)
-            hep.cms.label("Internal", data = False, lumi = 138)
+            hep.cms.label("Internal", data = False, lumi = 138, fontsize = 20)
             if self.groomed:
                 plt.savefig(f"./outputs/rho/fakerates_groomed_{i-1}.png")
             else:
@@ -367,7 +385,7 @@ class Unfolder:
         from array import array
 
         #print(f"Closure is {closure}")
-        print(f"Performing unfolding for systematic: {systematic}")
+        #print(f"Performing unfolding for systematic: {systematic}")
         #print("Entered function _perform_unfold")
         resp_np   = self.mosaic_dict[systematic]  # 2D numpy array (reco x true)
         if meas_flat is None:
@@ -472,10 +490,12 @@ class Unfolder:
         status = unfold.SetInput(h_meas)
         if status >= 10000:
             raise RuntimeError("TUnfold input had overflow/underflow – check your hist.")
-
+        nPoint = 50
+        tauMin = 1e-6
+        tauMax = 0.1
         #Optional: scan L-curve to choose tau.  Quick-n-dirty: 20 points, auto range
-        #unfold.ScanSURE(50, 0.000000001, 0.1, )
-        #print("Chosen tau =", tau_best)
+        # unfold.ScanSURE(50, 0.000000001, 0.1, )
+        # #print("Chosen tau =", tau_best)
         # nPoint, tauMin, tauMax = 50, 1e-4, 1.0   # coarse example range
         # g_logTauSURE = ROOT.TGraph()
         # g_df_chi2A   = ROOT.TGraph()
@@ -489,20 +509,23 @@ class Unfolder:
         #     g_df_chi2A,
         #     g_lCurve,
         # )
-        # # logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
-        # # logTauY = ROOT.MakeNullPointer(ROOT.TSpline)
-        # # lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
-        # # logTauCurvature = ROOT.MakeNullPointer(ROOT.TSpline)
-        # # tau_lcurve = unfold.ScanLcurve(
-        # #     nPoint,
-        # #     tauMin,
-        # #     tauMax,
-        # #     lCurve,
-        # #     logTauX,
-        # #     logTauY
-        # # )
-        # # print("Chosen tau from ScanLcurve:", tau_lcurve)
-        # print("Chosen tau from ScanSURE:", unfold.GetTau())
+        # nPoint = 50
+        # tauMin = 1e-6
+        # tauMax = 0.1
+        # logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
+        # logTauY = ROOT.MakeNullPointer(ROOT.TSpline)
+        # lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
+        # logTauCurvature = ROOT.MakeNullPointer(ROOT.TSpline)
+        # tau_lcurve = unfold.ScanLcurve(
+        #     nPoint,
+        #     tauMin,
+        #     tauMax,
+        #     lCurve,
+        #     logTauX,
+        #     logTauY
+        # )
+        # print("Chosen tau from ScanLcurve:", tau_lcurve)
+        #print("Chosen tau from ScanSURE:", unfold.GetTau())
         # logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
         # #ScanTau(nScan, tauMin, tauMax, logTauX, ROOT.TUnfoldDensity.kEScanTauRhoAvg, 'signal')
         # tau_best = unfold.ScanTau(
@@ -513,7 +536,7 @@ class Unfolder:
         #     ROOT.TUnfoldDensity.kEScanTauRhoAvg,
         #     "signal"
         # )
-        # print("Chosen tau from ScanTau:", unfold.GetTau())
+        #print("Chosen tau from ScanTau:", unfold.GetTau())
         #unfold.DoUnfold(tau_best)
         unfold.DoUnfold(0.0)
         if systematic == 'nominal':
@@ -537,6 +560,14 @@ class Unfolder:
                     self.cov_np[i-1, j-1] = self.cov.GetBinContent(i, j)
                     self.cov_uncorr_np[i-1, j-1] = self.cov_uncorr.GetBinContent(i, j)
                     self.cov_data_np[i-1, j-1] = self.cov_uncorr_data.GetBinContent(i, j)
+        if systematic == 'herwigUp':
+            self.cov_uncorr_data = unfold.GetEmatrixInput("cov_uncorr_data", "Covariance Matrix from Stat Uncertainties of Input Data")
+            n_reco, n_true = self.mosaic.shape
+            n_bins = n_true  # unfolded bins correspond to truth bins
+            self.cov_data_herwig_np = np.zeros((n_bins, n_bins))
+            for i in range(1, n_bins + 1):
+                for j in range(1, n_bins + 1):
+                    self.cov_data_herwig_np[i-1, j-1] = self.cov_uncorr_data.GetBinContent(i, j)
         # ------------------------------------------------------------------
         # 4.  Grab the unfolded spectrum and covariance
         # ------------------------------------------------------------------
@@ -573,8 +604,30 @@ class Unfolder:
             self.y_true = y_true
             self.h_resp = h_resp
             self.x_folded = x_folded
+            self.L = unfold.GetL("Lmatrix", "Lmatrix")
+            
         else:
             self.y_unf_dict[systematic] = y_unf
+        
+        
+    
+    def plot_L(self):
+        lMatrix = self.L
+        #try plotting the L matrix root way
+        c = ROOT.TCanvas("c", "L-curve Matrix", 800, 600)
+        lMatrix.Draw("colz")
+        c.SaveAs("outputs/rho/unfold/L_matrix_root.png")
+        nx, ny = lMatrix.GetNbinsX(), lMatrix.GetNbinsY() 
+        l_np = np.zeros((nx, ny))
+        for i in range(nx):
+            for j in range(ny):
+                l_np[i, j] = lMatrix.GetBinContent(i + 1, j + 1)
+        #mask zeros for better visualization
+        l_np_masked = np.ma.masked_where(l_np == 0, l_np)
+        plt.imshow(l_np_masked, origin='lower', aspect='auto')
+        plt.colorbar(label='L-curve Matrix Value')
+        hep.cms.label(self.cms_label, data = False, lumi = 138 , com = 13, fontsize = 20)
+        
         
 
 
@@ -621,12 +674,12 @@ class Unfolder:
             if self.groomed:
                 #plt.xlim(0,250)
                 plt.xlim(-4.5, 0)
-                hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
+                hep.cms.label(self.cms_label, data = True,lumi = 138, com = 13, fontsize = 20)
             #plt.ylim(0,0.02)
             if not self.groomed:
                 plt.xlim(-2.5, 0)
                 #plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
-                hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
+                hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
             plt.show()
 
     def plot_bottom_line(self):
@@ -665,7 +718,7 @@ class Unfolder:
             plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
-            hep.cms.label("Internal", data = True, rlabel = r"138 fb$^{-1}$")
+            hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
             plt.savefig(f"./outputs/rho/bottom_line_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/bottom_line_ungroomed_{i-1}.pdf")
             plt.show()
 
@@ -689,7 +742,7 @@ class Unfolder:
             plt.stairs(self.normalized_results[i]['true'], self.bins.gen_rho_edges_by_pt[i], label = 'PYTHIA7', color = 'b', ls = 'dotted', lw = 3)
 
             plt.legend(title = title_list[i])
-            hep.cms.label(self.cms_label, data = True, rlabel = r"138 fb$^{-1}$")
+            hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
             plt.ylabel(r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d(\log{\rho^2})dp_T} (GeV^{-1})$")
 
             # Ratio Plot
@@ -766,7 +819,7 @@ class Unfolder:
         plt.legend(fontsize  = 15)
         plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
         plt.ylabel(r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d(\log{\rho^2})dp_T} (GeV^{-1})$")
-        hep.cms.label(self.cms_label, data = True, rlabel = r"138 fb$^{-1}$")
+        hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
         # set a reasonable lower y-limit based on the smallest floor used
         # try:
         #     if min_floor is not None:
@@ -909,8 +962,8 @@ class Unfolder:
         print("Computing total systematic uncertainty...")
         # Compute total systematic uncertainty for each pt bin
         # load from file
-        herwig_unc = np.load("./inputs/rho/herwig_closure_unc_groomed.npy") if self.groomed else np.load("./inputs/rho/herwig_closure_unc_ungroomed.npy")
-        self.herwig_unc = herwig_unc
+        #herwig_unc = np.load("./inputs/rho/herwig_closure_unc_groomed.npy") if self.groomed else np.load("./inputs/rho/herwig_closure_unc_ungroomed.npy")
+        #self.herwig_unc = herwig_unc
         for i in range(len(self.normalized_results)):
             nominal = self.normalized_results[i]['unfolded']
             syst_up_total = np.zeros_like(nominal)
@@ -1089,7 +1142,7 @@ class Unfolder:
                         hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"Model Uncertainty", ls = '-.')
                     else:
                         label = f"{syst[:-2]}"
-                        label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.'}
+                        label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.', 'isr': 'ISR', 'fsr': 'FSR'}
                         if label in label_dic:
                             label = label_dic[label]
 
@@ -1141,7 +1194,7 @@ class Unfolder:
             else:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
-            hep.cms.label(self.cms_label, data=True, rlabel = r"138 fb$^{-1}$")
+            hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
             # if self.groomed:
             #     plt.xlim(20,250)
                 
@@ -1212,19 +1265,63 @@ class Unfolder:
             else:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
             
-            plt.ylim(0.8, 1.2)
+            #plt.ylim(0.8, 1.2)
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", fontsize = 15)#loc='center left', bbox_to_anchor=(1, 0.5))
-            hep.cms.label(self.cms_label, data=True, rlabel = r"138 fb$^{-1}$")
+            hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
 
             if self.groomed:
-                plt.xlim(-4.5,0)
+                #plt.xlim(-4.5,0)
                 plt.xlabel(r"$\log_{10}(\rho^2)$, Groomed")
                 plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_groomed_{i-1}.pdf')
             else:
-                plt.xlim(-2.5, 0)
+                #plt.xlim(-2.5, 0)
                 plt.xlabel(r"$\log_{10}(\rho^2)$, Ungroomed")
                 plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_ungroomed_{i-1}.pdf')
             
+            plt.show()
+
+    def plot_herwig_systematic(self):
+        flat_uncertainty = np.sqrt(np.diag(self.cov_data_herwig_np))/np.abs(self.y_unf_dict['herwigUp'])
+        uncertainty_pt_binned = unflatten_gen_by_pt(flat_uncertainty, self.bins.gen_rho_edges_by_pt)
+        unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.bins.gen_rho_edges_by_pt)
+        
+        for i, result in enumerate(self.normalized_results):
+            syst_fraction_dict = result.get('syst_fraction_dict', {})
+            error_in_syst = uncertainty_pt_binned[i]*syst_fraction_dict['herwigUp']  # Uncertainty on relative uncertainty
+            pt_bin = result['pt_bin']
+            if 'herwigUp' in syst_fraction_dict:
+                hep.histplot(syst_fraction_dict['herwigUp'], self.bins.gen_rho_edges_by_pt[i], yerr = error_in_syst, label=f"Model Unc.", color='g', ls='-')
+
+
+            # Fit a polynomial to the herwigUp systematic fraction
+            if 'herwigUp' in syst_fraction_dict:
+                edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
+                centers = 0.5 * (edges[:-1] + edges[1:])
+                #centers[0] = -100000000  # Set the first center to a very large negative value to exclude it from the fit
+                y = syst_fraction_dict['herwigUp']
+                mask = np.isfinite(y) & (y > 0)
+                if mask.sum() > 3:
+                    degree = 2
+                    coeffs = np.polyfit(centers[mask], y[mask], degree, w=1.0/np.where(error_in_syst[mask] > 0, error_in_syst[mask], 1e-10))
+                    poly = np.poly1d(coeffs)
+                    x_fit = np.linspace(centers[mask][1], centers[mask][-1], 200)
+                    plt.plot(x_fit, poly(x_fit), 'b--', lw=2, label=f"Poly fit (deg {degree})")
+
+            if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
+                pt_bin_label = f"{pt_bin[0]}–∞"
+            else:
+                pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
+            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV")
+            hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
+            plt.ylim(0,0.5)
+            if self.groomed:
+                plt.xlim(-4.5, 0)
+            else:
+                plt.xlim(-2.5, 0)
+
+            
+            plt.xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
+            plt.ylabel("Relative Uncertainty")
             plt.show()
 
 
@@ -1243,7 +1340,7 @@ class Unfolder:
         hep.histplot(purity_unflattened[2], self.bins.gen_mass_edges_by_pt[2], label = "Purity")
         hep.histplot(stability_unflattened[2], self.bins.gen_mass_edges_by_pt[2], label = "Stability")
         plt.axhline(0.5, color='k', linestyle='--', linewidth=1)
-        hep.cms.label(self.cms_label, data=False)
+        hep.cms.label(self.cms_label, data=False, lumi = 138, com = 13, fontsize = 20)
         plt.ylabel("Purity/Stability")
         plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
         plt.legend()
@@ -1254,11 +1351,11 @@ class Unfolder:
         plt.stairs(purity, label = "Purity")
         plt.xlabel("Global Bin Number")
         plt.ylabel("Purity")
-        hep.cms.label(self.cms_label, data=False)
+        #hep.cms.label(self.cms_label, data=False)
         plt.stairs(stability, label = "Stability")
         plt.xlabel("Global Bin Number")
         plt.ylabel("Stability")
-        hep.cms.label(self.cms_label, data=False)
+        hep.cms.label(self.cms_label, data=False, lumi = 138, com = 13, fontsize = 20)
         plt.legend()
         plt.show()
 
@@ -1324,7 +1421,7 @@ class Unfolder:
 
         cbar = plt.colorbar(img, ticks=bounds, boundaries=bounds, fraction=0.046, pad=0.04)
         cbar.set_label("Correlation (Groomed)" if self.groomed else "Correlation (Ungroomed)")
-        hep.cms.label(self.cms_label, data=True, lumi = 138)
+        hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
         plt.savefig(f'outputs/rho/unfold/correlation_groomed.pdf' if self.groomed else f'outputs/rho/unfold/correlation_ungroomed.pdf')
 
         plt.show()
@@ -1451,5 +1548,353 @@ class Unfolder:
         else:
             plt.savefig("outputs/plots/unfold/response_ungroomed.pdf")
         return fig, ax
+    
+    def _make_inputs_numpy(self,
+        filenames = [
+            "./inputs/rhoInputs/pythia_2016.pkl",
+            "./inputs/rhoInputs/pythia_2016APV.pkl",
+            "./inputs/rhoInputs/pythia_2017.pkl",
+            "./inputs/rhoInputs/pythia_2018.pkl",
+        ]):
+        # Load pickled inputs and save as numpy arrays for faster loading in the future
+        # Define a mapping from era to key in the response dictionary
+        from collections import defaultdict
+        print("------------- Making numpy inputs from pickled files -----------------")
+
+        keymap = {
+            "2016": "pythia_UL16NanoAODv9",
+            "2016APV": "pythia_UL16NanoAODAPVv9",
+            "2017": "pythia_UL17NanoAODv9",
+            "2018": "pythia_UL18NanoAODv9",
+        }
+        response_dict = {}
+        ratio_data_mc = [1.0, 1.0, 1.0, 1.0]  # Placeholder for data/MC ratios per pt bin if needed for scaling
+        for filename in filenames:
+            era = filename.split('_')[1].split('.')[0]
+            print(f"Processing era: {era}")
+            key = keymap[era]
+            response_dict.setdefault('u', {})
+            response_dict.setdefault('g', {})
+
+            
+            with open(filename, "rb") as f:
+                data = pkl.load(f)
+                # ensure top-level 'u' and 'g' keys exist
+                
+                if era == "2016APV" or era == "2016":
+                    response_dict['u'][key] = data['response_matrix_rho_u'].project('ptreco','dataset', 'ptgen', 'mpt_gen',  'mpt_reco', 'systematic')
+                    response_dict['g'][key] = data['response_matrix_rho_g'].project('ptreco','dataset', 'ptgen', 'mpt_gen',  'mpt_reco', 'systematic')
+                    continue
+                h_old = data['response_matrix_rho_u'].project('ptreco','dataset', 'ptgen', 'mpt_gen',  'mpt_reco', 'systematic')
+                #h_new = group(h_old, oldname="dataset", newname="dataset", grouping=dict(grouping))
+                response_dict['u'][key] = h_old
+
+                h_old = data['response_matrix_rho_g'].project('ptreco','dataset', 'ptgen', 'mpt_gen',  'mpt_reco', 'systematic')
+                #h_new = group(h_old, oldname="dataset", newname="dataset", grouping=dict(grouping))
+                response_dict['g'][key] = h_old
+
+                for i in range(4):
+                    response_dict['u'][key].view()[i] *= ratio_data_mc[i]
+                    response_dict['g'][key].view()[i] *= ratio_data_mc[i]
+
+        correlation_dic = {
+            'JES_AbsoluteMPFBias': 1,
+            'JES_AbsoluteScale': 1,
+            'JES_AbsoluteStat': 0,
+            'JES_FlavorQCD': 1,
+            'JES_Fragmentation': 1,
+            'JES_PileUpDataMC': 0.5,
+            'JES_PileUpPtBB': 0.5,
+            'JES_PileUpPtEC1': 0.5,
+            'JES_PileUpPtEC2': 0.5,
+            'JES_PileUpPtHF': 0.5,
+            'JES_PileUpPtRef': 0.5,
+            'JES_RelativeFSR': 0.5,
+            'JES_RelativeJEREC1': 0,
+            'JES_RelativeJEREC2': 0,
+            'JES_RelativeJERHF': 0.5,
+            'JES_RelativePtBB': 0.5,
+            'JES_RelativePtEC1': 0,
+            'JES_RelativePtEC2': 0,
+            'JES_RelativePtHF': 0.5,
+            'JES_RelativeBal': 0.5,
+            'JES_RelativeSample': 0,
+            'JES_RelativeStatEC': 0,
+            'JES_RelativeStatFSR': 0,
+            'JES_RelativeStatHF': 0,
+            'JES_SinglePionECAL': 1,
+            'JES_SinglePionHCAL': 1,
+            'JES_TimePtEta': 0,
+            'JER': 0,
+        }
+
+        jes_sys_list = ['JES_AbsoluteMPFBiasUp', 'JES_AbsoluteMPFBiasDown', 'JES_AbsoluteScaleUp', 'JES_AbsoluteScaleDown',
+                        'JES_AbsoluteStatUp', 'JES_AbsoluteStatDown', 'JES_FlavorQCDUp', 'JES_FlavorQCDDown', 'JES_FragmentationUp',
+                        'JES_FragmentationDown', 'JES_PileUpDataMCUp', 'JES_PileUpDataMCDown', 'JES_PileUpPtBBUp', 'JES_PileUpPtBBDown',
+                        'JES_PileUpPtEC1Up', 'JES_PileUpPtEC1Down', 'JES_PileUpPtEC2Up', 'JES_PileUpPtEC2Down', 'JES_PileUpPtHFUp', 'JES_PileUpPtHFDown', 
+                        'JES_PileUpPtRefUp', 'JES_PileUpPtRefDown', 'JES_RelativeFSRUp', 'JES_RelativeFSRDown', 'JES_RelativeJEREC1Up',
+                        'JES_RelativeJEREC1Down', 'JES_RelativeJEREC2Up', 'JES_RelativeJEREC2Down', 'JES_RelativeJERHFUp', 'JES_RelativeJERHFDown',
+                        'JES_RelativePtBBUp', 'JES_RelativePtBBDown', 'JES_RelativePtEC1Up', 'JES_RelativePtEC1Down', 'JES_RelativePtEC2Up', 'JES_RelativePtEC2Down',
+                        'JES_RelativePtHFUp', 'JES_RelativePtHFDown', 'JES_RelativeBalUp', 'JES_RelativeBalDown', 'JES_RelativeSampleUp', 'JES_RelativeSampleDown', 
+                        'JES_RelativeStatECUp', 'JES_RelativeStatECDown', 'JES_RelativeStatFSRUp', 'JES_RelativeStatFSRDown', 'JES_RelativeStatHFUp', 'JES_RelativeStatHFDown',
+                        'JES_SinglePionECALUp', 'JES_SinglePionECALDown', 'JES_SinglePionHCALUp', 'JES_SinglePionHCALDown', 'JES_TimePtEtaUp', 'JES_TimePtEtaDown', 'JERUp', 'JERDown']
+
+
+        non_jes_sys_list = ['nominal', 'puUp', 'puDown', 'elerecoUp', 'elerecoDown',
+                            'eleidUp', 'eleidDown', 'eletrigUp', 'eletrigDown', 'murecoUp',
+                            'murecoDown', 'muidUp', 'muidDown', 'mutrigUp', 'muisoUp', 'muisoDown','mutrigDown', 'pdfUp',
+                            'pdfDown', 'q2Up', 'q2Down', 'l1prefiringUp', 'l1prefiringDown', 'isrUp', 'isrDown', 'fsrUp', 'fsrDown',
+                            'JMRUp', 'JMRDown', 'JMSUp', 'JMSDown']
+
+
+        non_jes_sys_list_up = [sys for sys in non_jes_sys_list if sys[-2:] == 'Up' ]
+        non_jes_sys_list_down = [sys for sys in non_jes_sys_list if sys[-4:] == 'Down' ]
+
+        jes_sys_list_up = [sys for sys in jes_sys_list if sys[-2:] == 'Up' ]
+        jes_sys_list_down = [sys for sys in jes_sys_list if sys[-4:] == 'Down' ]
+
+        sys_matrix_dic_up = {}
+
+        groomed = self.groomed
+        if not groomed:
+            response = response_dict['u']
+        else:
+            response = response_dict['g']
+
+
+
+
+
+        for sys in jes_sys_list_up:
+            m_nom_2016 = response['pythia_UL16NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() +\
+                response['pythia_UL16NanoAODAPVv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_nom_2017 = response['pythia_UL17NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_nom_2018 = response['pythia_UL18NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+
+            variance = np.array([response[era][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').variances() for era in ['pythia_UL16NanoAODv9', 'pythia_UL16NanoAODAPVv9', 'pythia_UL17NanoAODv9', 'pythia_UL18NanoAODv9']]).sum(axis = 0)
+            
+            m_sys_2016 = response['pythia_UL16NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() + \
+                response['pythia_UL16NanoAODAPVv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_sys_2017 = response['pythia_UL17NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_sys_2018 = response['pythia_UL18NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            
+            
+            m_var_2016 = m_sys_2016 + m_nom_2017 + m_nom_2018
+            m_var_2017 = m_nom_2016 + m_sys_2017 + m_nom_2018
+            m_var_2018 = m_nom_2016 + m_nom_2017 + m_sys_2018
+            
+            
+            rho = correlation_dic[sys[:-2]] ## correlation factor
+            
+            sigma_2016 = m_sys_2016 - m_nom_2016
+            sigma_2017 = m_sys_2017 - m_nom_2017
+            sigma_2018 = m_sys_2018 - m_nom_2018
+            
+            sigma_corr = rho*sigma_2016 + rho*sigma_2017 + rho*sigma_2018
+            
+            sigma_uncorr_2016 = (1-rho)*sigma_2016
+            sigma_uncorr_2017 = (1-rho)*sigma_2017
+            sigma_uncorr_2018 = (1-rho)*sigma_2018
+            
+            m_nom =  m_nom_2016 + m_nom_2017 + m_nom_2018
+            m_corr = m_nom + sigma_corr
+            
+            m_uncorr_2016 = m_nom + sigma_uncorr_2016
+            
+            m_uncorr_2017 = m_nom + sigma_uncorr_2017
+
+            m_uncorr_2018 = m_nom + sigma_uncorr_2018
+
+            
+
+            sys_matrix_dic_up[sys+'_corr'] = m_corr
+            sys_matrix_dic_up[sys+'_uncorr_2016'] = m_uncorr_2016
+            sys_matrix_dic_up[sys+'_uncorr_2017'] = m_uncorr_2017
+            sys_matrix_dic_up[sys+'_uncorr_2018'] = m_uncorr_2018
+            
+        non_jes_sys_matrix_dic_up = {}
+        for sys in non_jes_sys_list_up:
+            sys_matrix_dic_up[sys] = response['pythia_UL16NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL16NanoAODAPVv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL17NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL18NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+
+            non_jes_sys_matrix_dic_up[sys] = response['pythia_UL16NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL16NanoAODAPVv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL17NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL18NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+
+
+
+        sys_matrix_dic_down = {}
+        non_jes_sys_matrix_dic_down = {}
+        for sys in jes_sys_list_down:
+            m_nom_2016 = response['pythia_UL16NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() + \
+                        response['pythia_UL16NanoAODAPVv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_nom_2017 = response['pythia_UL17NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_nom_2018 = response['pythia_UL18NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            
+            m_sys_2016 = response['pythia_UL16NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() + \
+                        response['pythia_UL16NanoAODAPVv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_sys_2017 = response['pythia_UL17NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            m_sys_2018 = response['pythia_UL18NanoAODv9'][..., sys].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+            
+            
+            m_var_2016 = m_sys_2016 + m_nom_2017 + m_nom_2018
+            m_var_2017 = m_nom_2016 + m_sys_2017 + m_nom_2018
+            m_var_2018 = m_nom_2016 + m_nom_2017 + m_sys_2018
+            
+            
+            rho = correlation_dic[sys[:-4]] ## correlation factor
+            
+            sigma_2016 = m_sys_2016 - m_nom_2016
+            sigma_2017 = m_sys_2017 - m_nom_2017
+            sigma_2018 = m_sys_2018 - m_nom_2018
+            
+            sigma_corr = rho*sigma_2016 + rho*sigma_2017 + rho*sigma_2018
+            
+            sigma_uncorr_2016 = (1-rho)*sigma_2016
+            sigma_uncorr_2017 = (1-rho)*sigma_2017
+            sigma_uncorr_2018 = (1-rho)*sigma_2018
+            
+            m_nom =  m_nom_2016 + m_nom_2017 + m_nom_2018
+            m_corr = m_nom + sigma_corr
+            
+            m_uncorr_2016 = m_nom + sigma_uncorr_2016
+            
+            m_uncorr_2017 = m_nom + sigma_uncorr_2017
+
+            m_uncorr_2018 = m_nom + sigma_uncorr_2018
+
+            
+
+            sys_matrix_dic_down[sys+'_corr'] = m_corr
+            sys_matrix_dic_down[sys+'_uncorr_2016'] = m_uncorr_2016
+            sys_matrix_dic_down[sys+'_uncorr_2017'] = m_uncorr_2017
+            sys_matrix_dic_down[sys+'_uncorr_2018'] = m_uncorr_2018
+            
+
+        for sys in non_jes_sys_list_down:
+            sys_matrix_dic_down[sys] = response['pythia_UL16NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL16NanoAODAPVv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL17NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL18NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+        #                            + response['pythia_UL18NanoAODv9'][{'systematic':sys}].project('ptgen','mgen','ptreco','mreco').values
+            non_jes_sys_matrix_dic_down[sys] = response['pythia_UL16NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL16NanoAODAPVv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL17NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()\
+                                    + response['pythia_UL18NanoAODv9'][{'systematic':sys}].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+
+        if not groomed:
+            response = response_dict['u']
+        else:
+            response = response_dict['g']
+
+        sys_matrix_dic_up['nominal'] = response['pythia_UL17NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() +\
+                response['pythia_UL18NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()  +\
+                    response['pythia_UL16NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() +\
+                        response['pythia_UL16NanoAODAPVv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+        sys_matrix_dic_down['nominal'] = response['pythia_UL17NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() +\
+                response['pythia_UL18NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()  +\
+                    response['pythia_UL16NanoAODv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values() +\
+                        response['pythia_UL16NanoAODAPVv9'][..., 'nominal'].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco').values()
+
+        prepend = "./inputs/rhoInputs/"
+        #filename_herwig_1 = prepend + "herwig_all.pkl"
+        filename_herwig_1 = prepend + "pythia_reweighted_all.pkl"
+        with open(filename_herwig_1, "rb") as f:
+            data_herwig = pkl.load(f)
+            if not groomed:
+                sys_matrix_dic_up['herwigUp'] = data_herwig['response_matrix_rho_u'].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+                sys_matrix_dic_down['herwigDown'] = data_herwig['response_matrix_rho_u'].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+            else:
+                sys_matrix_dic_up['herwigUp'] = data_herwig['response_matrix_rho_g'].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+                sys_matrix_dic_down['herwigDown'] = data_herwig['response_matrix_rho_g'].project('ptgen','mpt_gen','ptreco','mpt_reco').values()
+
+        ## Merging the up and down dictionaries
+        merged = dict(sys_matrix_dic_up)  # shallow copy of up
+        for k, v in sys_matrix_dic_down.items():
+            if k == "nominal":
+                continue  # skip duplicate nominal from the down dict
+            if k in merged:
+                # if a key collides, store the down version with a suffix
+                merged_key = f"{k}_down"
+                # ensure uniqueness
+                i = 1
+                unique_key = merged_key
+                while unique_key in merged:
+                    unique_key = f"{merged_key}_{i}"
+                    i += 1
+                merged[unique_key] = v
+            else:
+                merged[k] = v
+        self.sys_matrix_dic = merged
+        print(f"✅ saved {len(merged)} in sys_matrix_dic")
+    def _merge_eras(self, filenames = ["./inputs/rhoInputs/pythia_2016.pkl","./inputs/rhoInputs/pythia_2016APV.pkl","./inputs/rhoInputs/pythia_2017.pkl","./inputs/rhoInputs/pythia_2018.pkl",]):
+
+
+        outputs = []
+        for fname in filenames:
+            with open(fname, "rb") as f:
+                outputs.append(pkl.load(f))
+
+
+        hist_keys = ['ptjet_rhojet_u_reco', 'ptjet_rhojet_g_reco', 'response_matrix_rho_u', 'response_matrix_rho_g', 'ptjet_rhojet_u_gen', 'ptjet_rhojet_g_gen',]
+        out_dict = {}
+        for i, output in enumerate(outputs):
+            for key in hist_keys:
+                if key in ['ptjet_rhojet_u_reco', 'ptjet_rhojet_g_reco']:
+
+                    if i == 0:
+                        out_dict[key] = output[key].project('ptreco', 'mpt_reco', 'systematic')
+                    else:
+                        out_dict[key] += output[key].project('ptreco', 'mpt_reco', 'systematic')
+                    #print(f"Processed {key} for file {i}, with sum {output[key].project('ptreco', 'mpt_reco', 'systematic').sum().value}")
+                    #print("Current total sum:", out_dict[key].sum().value)
+                elif key in ['response_matrix_rho_u', 'response_matrix_rho_g']:
+                    if i == 0:
+                        out_dict[key] = output[key].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco', 'systematic')
+                    else:
+                        out_dict[key] += output[key].project('ptgen', 'mpt_gen', 'ptreco', 'mpt_reco', 'systematic')
+                    #print(f"Processed {key} for file {i}")
+                elif key in ['ptjet_rhojet_u_gen', 'ptjet_rhojet_g_gen']:
+                    if i == 0:
+                        out_dict[key] = output[key].project('ptgen', 'mpt_gen', 'systematic')
+                    else:
+                        out_dict[key] += output[key].project('ptgen', 'mpt_gen', 'systematic')
+                    #print(f"Processed {key} for file {i}")
+            self.pythia_hists = out_dict
+        out_filename = "./inputs/rhoInputs/pythia_all.pkl"
+        with open(out_filename, "wb") as f:
+            pkl.dump(out_dict, f)
+    def _merge_eras_jk(
+        self,
+        filenames = [
+            "./inputs/rhoInputs/jk_pythia_2016.pkl",
+            "./inputs/rhoInputs/jk_pythia_2016APV.pkl",
+            "./inputs/rhoInputs/jk_pythia_2017.pkl",
+            "./inputs/rhoInputs/jk_pythia_2018.pkl",
+        ] 
+        ):
+        outputs = []
+        for fname in filenames:
+            with open(fname, "rb") as f:
+                outputs.append(pkl.load(f))
+        hist_keys = [ 'response_matrix_rho_u', 'response_matrix_rho_g']
+        out_dict = {}
+        for i, output in enumerate(outputs):
+            for key in hist_keys:
+                if key in ['response_matrix_rho_u', 'response_matrix_rho_g']:
+                    if i == 0:
+                        out_dict[key] = output[key].project('jk','ptgen', 'mpt_gen', 'ptreco', 'mpt_reco', 'systematic')
+                    else:
+                        out_dict[key] += output[key].project('jk','ptgen', 'mpt_gen', 'ptreco', 'mpt_reco', 'systematic')
+
+
+
+
+
+# sys_matrix_dic['herwigUp'] = resp_matrix_4d_herwig.project('ptgen','mgen','ptreco','mreco').values()
+# sys_matrix_dic_down['herwigDown'] = resp_matrix_4d_herwig.project('ptgen','mgen','ptreco','mreco').values()
 
 

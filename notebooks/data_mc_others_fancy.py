@@ -42,6 +42,12 @@ ds_data = {
         "EGamma_UL2018",
     ],
 }
+run2_lumi = {
+    "2016": 16.81,
+    "2016APV": 19.52,
+    "2017": 41.53,
+    "2018": 59.74,
+}
 
 with open("inputs/validation/validation_backgrounds_all.pkl", "rb") as f:
     bkg = pkl.load(f)
@@ -118,7 +124,7 @@ def plot_data_mc(bkg, st, hist, field, era, data, file_id="", xmin=None, xmax = 
     scale = np.nan_to_num(scale, nan=1.0, posinf=1.0, neginf=1.0)
     print("scale:", scale)
     ## When not normalizing
-    scale = 1.0
+    #scale = 1.0
 
     ####
     ww = ww * scale
@@ -167,7 +173,7 @@ def plot_data_mc(bkg, st, hist, field, era, data, file_id="", xmin=None, xmax = 
     plt.yscale("log")
     plt.xlabel("")
     plt.ylabel("#Events")
-    hep.cms.label("Internal", data=True, rlabel=str(era))
+    hep.cms.label("Internal", data=True, year = era, lumi = run2_lumi[era], com = 13, fontsize = 20)
 
     plt.sca(rax)
     ratio = data.values() / (pythia.values() + ww.values() + wz.values() + zz.values() + ttjets.values() + st.values())
@@ -207,7 +213,7 @@ def plot_data_mc(bkg, st, hist, field, era, data, file_id="", xmin=None, xmax = 
     plt.close(fig)
 
 def main():
-    for era in ["2016",  "2017", "2018"]:
+    for era in ["2016", "2016APV", "2017", "2018"]:
         plot_data_mc(bkg, st, "ptjet_rhojet_g_reco", "mpt_reco", era, file_id="rho_g", groomed=True)
 
     for era in ["2016", "2016APV", "2017", "2018"]:
@@ -357,6 +363,12 @@ def main():
             "xmax": 3.14,
             "xlabel": r"$\phi$ of Z candidate",
         },
+        # "y_Z": {
+        #     "field": "y",
+        #     "xmin": -2.5,
+        #     "xmax": 2.5,
+        #     "xlabel": r"$y$ of Z candidate",
+        # },
         "ptasym": {
             "field": "frac",
             "xmin": 0,
