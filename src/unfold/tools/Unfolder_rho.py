@@ -1,139 +1,218 @@
-import numpy as np
+from array import array
+from pathlib import Path
+
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import mplhep as hep
-#hep.style.use("CMS")
-from matplotlib import colors, ticker
+import numpy as np
 import pickle as pkl
-from unfold.utils.integrate_and_rebin import *
-from unfold.utils.merge_helpers import *
+import ROOT
+from cycler import cycler
+from matplotlib.colors import LogNorm
+
 from unfold.tools import *
 from unfold.tools import binning
-import ROOT
-import numpy as np
-import matplotlib.colors as mcolors
-from cycler import cycler
+from unfold.utils.integrate_and_rebin import *
+from unfold.utils.merge_helpers import *
+
 plt.rcParams["axes.prop_cycle"] = cycler(color=plt.cm.tab20.colors)
+
+DEFAULT_MC_FILE = "./inputs/rhoInputs/jms_pythiaV2_all_syst.pkl"
+DEFAULT_DATA_FILE = "./inputs/rhoInputs/data_all.pkl"
+DEFAULT_HERWIG_FILE = "./inputs/rhoInputs/herwig_all.pkl"
+DEFAULT_JK_DATA_FILE = "./inputs/rhoInputs/jk_data_all.pkl"
+
+JES_SYSTEMATICS = [
+    "JES_AbsoluteMPFBiasUp", "JES_AbsoluteMPFBiasDown", "JES_AbsoluteScaleUp", "JES_AbsoluteScaleDown",
+    "JES_AbsoluteStatUp", "JES_AbsoluteStatDown", "JES_FlavorQCDUp", "JES_FlavorQCDDown", "JES_FragmentationUp",
+    "JES_FragmentationDown", "JES_PileUpDataMCUp", "JES_PileUpDataMCDown", "JES_PileUpPtBBUp", "JES_PileUpPtBBDown",
+    "JES_PileUpPtEC1Up", "JES_PileUpPtEC1Down", "JES_PileUpPtEC2Up", "JES_PileUpPtEC2Down", "JES_PileUpPtHFUp",
+    "JES_PileUpPtHFDown", "JES_PileUpPtRefUp", "JES_PileUpPtRefDown", "JES_RelativeFSRUp", "JES_RelativeFSRDown",
+    "JES_RelativeJEREC1Up", "JES_RelativeJEREC1Down", "JES_RelativeJEREC2Up", "JES_RelativeJEREC2Down",
+    "JES_RelativeJERHFUp", "JES_RelativeJERHFDown", "JES_RelativePtBBUp", "JES_RelativePtBBDown",
+    "JES_RelativePtEC1Up", "JES_RelativePtEC1Down", "JES_RelativePtEC2Up", "JES_RelativePtEC2Down",
+    "JES_RelativePtHFUp", "JES_RelativePtHFDown", "JES_RelativeBalUp", "JES_RelativeBalDown",
+    "JES_RelativeSampleUp", "JES_RelativeSampleDown", "JES_RelativeStatECUp", "JES_RelativeStatECDown",
+    "JES_RelativeStatFSRUp", "JES_RelativeStatFSRDown", "JES_RelativeStatHFUp", "JES_RelativeStatHFDown",
+    "JES_SinglePionECALUp", "JES_SinglePionECALDown", "JES_SinglePionHCALUp", "JES_SinglePionHCALDown",
+    "JES_TimePtEtaUp", "JES_TimePtEtaDown",
+]
+
+NON_JES_SYSTEMATICS = [
+    "nominal", "puUp", "puDown", "elerecoUp", "elerecoDown", "eleidUp", "eleidDown", "eletrigUp", "eletrigDown",
+    "murecoUp", "murecoDown", "muidUp", "muidDown", "mutrigUp", "muisoUp", "muisoDown", "mutrigDown", "pdfUp",
+    "pdfDown", "q2Up", "q2Down", "l1prefiringUp", "l1prefiringDown", "ISRUp", "ISRDown", "FSRUp", "FSRDown",
+    "JERUp", "JERDown", "JMSUp", "JMSDown", "herwigUp", "herwigDown",
+]
 
 
 
 class Unfolder:
-    def __init__(self, groomed, closure = False, herwig_closure = False, do_syst = False, cms_label = "Internal"):
+    def __init__(self, groomed, closure=False, herwig_closure=False, do_syst=False, cms_label="Internal"):
         self.groomed = groomed
         self.cms_label = cms_label
         self.closure = closure
         self.herwig_closure = herwig_closure
-        self.bins = binning.bin_edges(self.groomed)
-        edges, edges_gen, pt_edges = self.bins.rho_edges, self.bins.rho_edges_gen, self.bins.pt_edges
-
-        jes_sys_list = ['JES_AbsoluteMPFBiasUp', 'JES_AbsoluteMPFBiasDown', 'JES_AbsoluteScaleUp', 'JES_AbsoluteScaleDown',
-                'JES_AbsoluteStatUp', 'JES_AbsoluteStatDown', 'JES_FlavorQCDUp', 'JES_FlavorQCDDown', 'JES_FragmentationUp',
-                'JES_FragmentationDown', 'JES_PileUpDataMCUp', 'JES_PileUpDataMCDown', 'JES_PileUpPtBBUp', 'JES_PileUpPtBBDown',
-                'JES_PileUpPtEC1Up', 'JES_PileUpPtEC1Down', 'JES_PileUpPtEC2Up', 'JES_PileUpPtEC2Down', 'JES_PileUpPtHFUp', 'JES_PileUpPtHFDown', 
-                'JES_PileUpPtRefUp', 'JES_PileUpPtRefDown', 'JES_RelativeFSRUp', 'JES_RelativeFSRDown', 'JES_RelativeJEREC1Up',
-                'JES_RelativeJEREC1Down', 'JES_RelativeJEREC2Up', 'JES_RelativeJEREC2Down', 'JES_RelativeJERHFUp', 'JES_RelativeJERHFDown',
-                'JES_RelativePtBBUp', 'JES_RelativePtBBDown', 'JES_RelativePtEC1Up', 'JES_RelativePtEC1Down', 'JES_RelativePtEC2Up', 'JES_RelativePtEC2Down',
-                'JES_RelativePtHFUp', 'JES_RelativePtHFDown', 'JES_RelativeBalUp', 'JES_RelativeBalDown', 'JES_RelativeSampleUp', 'JES_RelativeSampleDown', 
-                'JES_RelativeStatECUp', 'JES_RelativeStatECDown', 'JES_RelativeStatFSRUp', 'JES_RelativeStatFSRDown', 'JES_RelativeStatHFUp', 'JES_RelativeStatHFDown',
-                'JES_SinglePionECALUp', 'JES_SinglePionECALDown', 'JES_SinglePionHCALUp', 'JES_SinglePionHCALDown', 'JES_TimePtEtaUp', 'JES_TimePtEtaDown']
-
-
-        non_jes_sys_list = ['nominal', 'puUp', 'puDown', 'elerecoUp', 'elerecoDown',
-                            'eleidUp', 'eleidDown', 'eletrigUp', 'eletrigDown', 'murecoUp',
-                            'murecoDown', 'muidUp', 'muidDown', 'mutrigUp', 'muisoUp', 'muisoDown','mutrigDown', 'pdfUp',
-                            'pdfDown', 'q2Up', 'q2Down', 'l1prefiringUp', 'l1prefiringDown', "ISRUp", "ISRDown", "FSRUp", "FSRDown",
-                            'JERUp', 'JERDown',  'JMSUp', 'JMSDown', 'herwigUp', 'herwigDown']
-                            #
-
-
-        # if self.groomed:
-        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
-        # else:
-        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
-        # with open( filename_sys, "rb") as f:
-        #     sys_matrix_dic = pkl.load( f )
-        
-        
-
-        # if do_syst:
-        #     #self.systematics = jes_sys_list + non_jes_sys_list
-        #     self.systematics = list(sys_matrix_dic.keys())
-        # else:
-        #     self.systematics = ['nominal']#, 'herwigUp', 'herwigDown', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
-
-        #self.systematics = ['nominal', 'herwigUp', 'herwigDown']#, 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
         self.y_unf_dict = {}
-        self.pt_edges = pt_edges
-        self.edges = edges
-        self.edges_gen = edges_gen
-        #filename MC is redundant here, using sys_matrix_dic.pkl to get all systematics including nominal
+        self._setup_binning()
         self._make_inputs_numpy()
-        sys_matrix_dic = self.sys_matrix_dic
-        if do_syst:
-            #self.systematics = jes_sys_list + non_jes_sys_list
-            self.systematics = list(sys_matrix_dic.keys())
-        else:
-            self.systematics = ['nominal']#, 'herwigUp', 'herwigDown', 'JERUp', 'JERDown', 'JMSUp', 'JMSDown']
-
-
-
-        #print("List of systematics:", self.systematics)
+        self._configure_systematics(do_syst)
         self._load_data(
-            filename_mc = './inputs/rhoInputs/jms_pythiaV2_all_syst.pkl',
-            filename_data = "./inputs/rhoInputs/data_all.pkl",
-            filename_herwig='./inputs/rhoInputs/herwig_all.pkl') 
-        
-        self._perform_unfold(closure = self.closure, herwig_closure = self.herwig_closure)
-        
+            filename_mc=DEFAULT_MC_FILE,
+            filename_data=DEFAULT_DATA_FILE,
+            filename_herwig=DEFAULT_HERWIG_FILE,
+        )
+        self._perform_unfold(closure=self.closure, herwig_closure=self.herwig_closure)
         for syst in self.systematics:
-            self._perform_unfold(systematic = syst, closure = self.closure, herwig_closure = self.herwig_closure)
+            self._perform_unfold(systematic=syst, closure=self.closure, herwig_closure=self.herwig_closure)
         self._compute_stat_unc()
         self._normalize_result()
         self._compute_total_systematic()
 
-    def _load_data(self, filename_mc = 'latest_pkl/0508/mc_0508_full.pkl', filename_data = "latest_pkl/0508/data_0508_full.pkl", filename_herwig = 'latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data = './inputs/rhoInputs/jk_data_all.pkl'):
+    def _setup_binning(self):
+        self.bins = binning.bin_edges(self.groomed)
+        self.edges = self.bins.rho_edges
+        self.edges_gen = self.bins.rho_edges_gen
+        self.pt_edges = self.bins.pt_edges
+
+    def _configure_systematics(self, do_syst):
+        available_systematics = list(self.sys_matrix_dic.keys())
+        self.systematics = available_systematics if do_syst else ["nominal"]
+
+    def _load_pickle(self, filename):
+        with open(filename, "rb") as handle:
+            return pkl.load(handle)
+
+    def _finalize_plot(self, save_path=None, show=True, fig=None):
+        if save_path is not None:
+            path = Path(save_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            target_fig = fig if fig is not None else plt.gcf()
+            target_fig.savefig(path)
+        if show:
+            plt.show()
+        else:
+            plt.close(fig if fig is not None else plt.gcf())
+
+    def _histogram_keys(self):
+        if self.groomed:
+            return {
+                "response": "response_matrix_rho_g",
+                "reco": "ptjet_rhojet_g_reco",
+                "gen": "ptjet_rhojet_g_gen",
+            }
+        return {
+            "response": "response_matrix_rho_u",
+            "reco": "ptjet_rhojet_u_reco",
+            "gen": "ptjet_rhojet_u_gen",
+        }
+
+    def _prepare_jackknife_inputs(self, data2d_jk, mass_edges_reco, pt_edges, reco_mass_edges_by_pt):
+        mosaic_2d_jk_list = []
+        for i in range(10):
+            reco_proj_jk = data2d_jk.project("jk", "ptreco", "mpt_reco")[i, ...]
+            h2d_jk = reco_proj_jk.values()
+            h2d_jk_reordered, _ = reorder_to_expected_2d(h2d_jk, mass_edges_reco, pt_edges)
+            mosaic_2d_jk_list.append(
+                merge_mass_flat(h2d_jk_reordered, mass_edges_reco, reco_mass_edges_by_pt)
+            )
+        return mosaic_2d_jk_list
+
+    def _prepare_nominal_inputs(
+        self,
+        input_data,
+        fakes,
+        misses,
+        resp_matrix_4d_gen,
+        mass_edges_reco,
+        mass_edges_gen,
+        pt_edges,
+        reco_mass_edges_by_pt,
+        gen_mass_edges_by_pt,
+    ):
+        reco_proj = input_data.project("ptreco", "mpt_reco")
+        self.h2d, _ = reorder_to_expected_2d(reco_proj.values(), mass_edges_reco, pt_edges)
+
+        reco_proj_fakes = fakes.project("ptreco", "mpt_reco")
+        self.h2d_fakes, _ = reorder_to_expected_2d(reco_proj_fakes.values(), mass_edges_reco, pt_edges)
+
+        reco_proj_misses = misses.project("ptgen", "mpt_gen")
+        self.h2d_misses, _ = reorder_to_expected_2d(reco_proj_misses.values(), mass_edges_gen, pt_edges)
+
+        nominal_gen = resp_matrix_4d_gen[{"systematic": "nominal"}]
+        proj_gen = nominal_gen.project("ptreco", "mpt_reco", "ptgen", "mpt_gen")
+        self.M_np_2d_gen, _ = reorder_to_expected(proj_gen.values(flow=False), mass_edges_gen, pt_edges, mass_edges_gen)
+        self.mosaic_gen, _ = mosaic_no_padding(
+            self.M_np_2d_gen,
+            mass_edges_gen,
+            mass_edges_gen,
+            gen_mass_edges_by_pt,
+            gen_mass_edges_by_pt,
+        )
+
+        self.fakes_2d = merge_mass_flat(self.h2d_fakes, mass_edges_reco, reco_mass_edges_by_pt)
+        self.misses_2d = merge_mass_flat(self.h2d_misses, mass_edges_gen, gen_mass_edges_by_pt)
+
+    def _prepare_herwig_inputs(
+        self,
+        resp_matrix_4d_herwig,
+        fakes_herwig,
+        misses_herwig,
+        mass_edges_reco,
+        mass_edges_gen,
+        pt_edges,
+        reco_mass_edges_by_pt,
+        gen_mass_edges_by_pt,
+    ):
+        resp_matrix_4d_syst = resp_matrix_4d_herwig[{"systematic": "nominal"}]
+        h2d_herwig = resp_matrix_4d_syst.project("ptreco", "mpt_reco").values(flow=False)
+        self.h2d_herwig, _ = reorder_to_expected_2d(h2d_herwig, mass_edges_reco, pt_edges)
+
+        reco_proj_fakes = fakes_herwig.project("ptreco", "mpt_reco")
+        self.h2d_fakes_herwig, _ = reorder_to_expected_2d(reco_proj_fakes.values(), mass_edges_reco, pt_edges)
+
+        reco_proj_misses = misses_herwig.project("ptgen", "mpt_gen")
+        self.h2d_misses_herwig, _ = reorder_to_expected_2d(reco_proj_misses.values(), mass_edges_gen, pt_edges)
+
+        self.fakes_2d_herwig = merge_mass_flat(self.h2d_fakes_herwig, mass_edges_reco, reco_mass_edges_by_pt)
+        self.misses_2d_herwig = merge_mass_flat(self.h2d_misses_herwig, mass_edges_gen, gen_mass_edges_by_pt)
+
+    def _response_matrix_for_systematic(self, syst, resp_matrix_4d_herwig, sys_matrix_dic):
+        if syst in {"herwigUp", "herwigDown"}:
+            resp_matrix_4d_syst = resp_matrix_4d_herwig[{"systematic": "nominal"}]
+            proj = resp_matrix_4d_syst.project("ptreco", "mpt_reco", "ptgen", "mpt_gen")
+            return sys_matrix_dic[syst], proj.variances(flow=False)
+        return sys_matrix_dic[syst], None
+
+    def _finalize_reco_views(self, mass_edges_reco, reco_mass_edges_by_pt):
+        self.M_np_2d = self.M_np_2d_dict["nominal"]
+        self.mosaic = self.mosaic_dict["nominal"]
+        self.mosaic_2d = merge_mass_flat(self.h2d, mass_edges_reco, reco_mass_edges_by_pt)
+
+        if "herwigUp" in self.systematics or "herwigDown" in self.systematics:
+            self.mosaic_herwig_2d = merge_mass_flat(self.h2d_herwig, mass_edges_reco, reco_mass_edges_by_pt)
+
+    def _load_data(self, filename_mc='latest_pkl/0508/mc_0508_full.pkl', filename_data="latest_pkl/0508/data_0508_full.pkl", filename_herwig='latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data=DEFAULT_JK_DATA_FILE):
         print("------------- Adding inputs to unfolder -----------------")
         self._merge_eras()
         output_pythia = self.pythia_hists
         print("Keys in pythia file:", output_pythia.keys())
+        output_herwig = self._load_pickle(filename_herwig)
+        output_data = self._load_pickle(filename_data)
+        output_jk_data = self._load_pickle(filename_jk_data)
+        print("Keys in jk data file:", output_jk_data.keys())
 
-        #filename_herwig = 'ROOT_files/herwig_ht_LO_output_no_syst.pkl'
-        with open(filename_herwig, "rb") as f:
-            output_herwig= pkl.load( f )
-    
-        with open(filename_data, "rb") as f:
-            output_data = pkl.load( f )
-        
-        with open(filename_jk_data, "rb") as f:
-            output_jk_data = pkl.load( f )
-            print("Keys in jk data file:", output_jk_data.keys())
-
-        # if self.groomed:
-        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_groomed_v2.pkl'
-            
-        # else:
-        #     filename_sys = './inputs/rho/sys_matrix_dic_rho_ungroomed_v2.pkl'
-        # with open( filename_sys, "rb") as f:
-        #     sys_matrix_dic = pkl.load( f )
         sys_matrix_dic = self.sys_matrix_dic
+        keys = self._histogram_keys()
 
-        if self.groomed:
-            pythia4d = output_pythia['response_matrix_rho_g']
-            herwig4d = output_herwig['response_matrix_rho_g']
-            pythia2d = output_pythia['ptjet_rhojet_g_reco']
-            herwig2d = output_herwig['ptjet_rhojet_g_reco']
-            data2d = output_data['ptjet_rhojet_g_reco']
-            data2d_jk = output_jk_data['ptjet_rhojet_g_reco']
-            pythia_gen2d = output_pythia['ptjet_rhojet_g_gen']
-            herwig_gen2d = output_herwig['ptjet_rhojet_g_gen']
-        else:
-            pythia4d = output_pythia['response_matrix_rho_u']
-            herwig4d = output_herwig['response_matrix_rho_u']
-            pythia2d = output_pythia['ptjet_rhojet_u_reco']   
-            herwig2d = output_herwig['ptjet_rhojet_u_reco']
-            data2d = output_data['ptjet_rhojet_u_reco']
-            data2d_jk = output_jk_data['ptjet_rhojet_u_reco']
-            pythia_gen2d = output_pythia['ptjet_rhojet_u_gen']
-            herwig_gen2d = output_herwig['ptjet_rhojet_u_gen']
+        pythia4d = output_pythia[keys["response"]]
+        herwig4d = output_herwig[keys["response"]]
+        pythia2d = output_pythia[keys["reco"]]
+        herwig2d = output_herwig[keys["reco"]]
+        data2d = output_data[keys["reco"]]
+        data2d_jk = output_jk_data[keys["reco"]]
+        pythia_gen2d = output_pythia[keys["gen"]]
+        herwig_gen2d = output_herwig[keys["gen"]]
 
         pythia4d_gen = rebin_hist(pythia4d.copy(), 'mpt_reco',self.edges_gen )
         herwig4d_gen = rebin_hist(herwig4d.copy(), 'mpt_reco',self.edges_gen )
@@ -143,12 +222,12 @@ class Unfolder:
         reco_mass_edges_by_pt = self.bins.reco_rho_edges_by_pt
         gen_mass_edges_by_pt = self.bins.gen_rho_edges_by_pt
 
-        fakes = pythia2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*pythia4d.project('ptreco', 'mpt_reco', 'systematic')
+        fakes = pythia2d.project('ptreco', 'mpt_reco', 'systematic')[:, :, 'nominal'] + (-1)*pythia4d.project('ptreco', 'mpt_reco', 'systematic')[:, :, 'nominal']
         fakes_herwig = herwig2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*herwig4d.project('ptreco', 'mpt_reco', 'systematic')
         self.fakes = fakes
         self.fakes_herwig = fakes_herwig
 
-        misses = pythia_gen2d.project('ptgen', 'mpt_gen', 'systematic') + (-1)*pythia4d.project('ptgen', 'mpt_gen', 'systematic')
+        misses = pythia_gen2d.project('ptgen', 'mpt_gen', 'systematic')[:, :, 'nominal'] + (-1)*pythia4d.project('ptgen', 'mpt_gen', 'systematic')[:, :, 'nominal']
         misses_herwig = herwig_gen2d.project('ptgen', 'mpt_gen', 'systematic') + (-1)*herwig4d.project('ptgen', 'mpt_gen', 'systematic')
         self.misses = misses
         self.misses_herwig = misses_herwig
@@ -170,180 +249,66 @@ class Unfolder:
         print("Loaded pkl files and rebinned histograms.")
 
         print("Processing jk inputs...")
-        self.mosaic_2d_jk_list = []
-        for i in range(10):
-            reco_proj_jk = data2d_jk.project('jk', 'ptreco', 'mpt_reco')[i, ...]
-            h2d_jk = reco_proj_jk.values()
-            h2d_jk_reordered, perm_used = reorder_to_expected_2d(h2d_jk, mass_edges_reco, pt_edges)
-
-            self.mosaic_2d_jk_list.append(merge_mass_flat(h2d_jk_reordered,
-                                    mass_edges_reco,
-                                    reco_mass_edges_by_pt))
+        self.mosaic_2d_jk_list = self._prepare_jackknife_inputs(
+            data2d_jk,
+            mass_edges_reco,
+            pt_edges,
+            reco_mass_edges_by_pt,
+        )
         
         self.mosaic_jk_list = []
-
-            
 
         for syst in self.systematics:
             if syst == 'nominal':
                 print("Processing nominal systematic:", syst)
-                reco_proj = input_data.project('ptreco', 'mpt_reco')
-                h2d = reco_proj.values()
-                self.h2d, perm_used = reorder_to_expected_2d(h2d, mass_edges_reco, pt_edges)
-
-                reco_proj_fakes = fakes.project('ptreco', 'mpt_reco')
-                h2d_fakes = reco_proj_fakes.values()
-                
-                self.h2d_fakes, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
-
-                reco_proj_misses = misses.project('ptgen', 'mpt_gen')
-                h2d_misses = reco_proj_misses.values()
-                self.h2d_misses, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
-                
-                resp_matrix_4d_syst_gen = resp_matrix_4d_gen[{'systematic':syst}]
-                proj_gen = resp_matrix_4d_syst_gen.project('ptreco', 'mpt_reco', 'ptgen', 'mpt_gen')
-                M_np_gen = proj_gen.values(flow=False)
-                self.M_np_2d_gen, perm_used = reorder_to_expected(M_np_gen, mass_edges_gen, pt_edges, mass_edges_gen)
-
-                self.mosaic_gen, blocks_gen = mosaic_no_padding(
-                                                self.M_np_2d_gen, mass_edges_gen, mass_edges_gen,
-                                                gen_mass_edges_by_pt, gen_mass_edges_by_pt
-                                            )
-            if (syst == "herwigUp") or (syst == "herwigDown"):
+                self._prepare_nominal_inputs(
+                    input_data,
+                    fakes,
+                    misses,
+                    resp_matrix_4d_gen,
+                    mass_edges_reco,
+                    mass_edges_gen,
+                    pt_edges,
+                    reco_mass_edges_by_pt,
+                    gen_mass_edges_by_pt,
+                )
+            if syst in {"herwigUp", "herwigDown"}:
                 print("Processing Herwig systematic:", syst)
-                resp_matrix_4d_syst = resp_matrix_4d_herwig[{'systematic':'nominal'}]
-                proj = resp_matrix_4d_syst.project('ptreco', 'mpt_reco', 'ptgen', 'mpt_gen')
-                M_np = sys_matrix_dic[syst]
-                M_np_vars = proj.variances(flow=False)
+                self._prepare_herwig_inputs(
+                    resp_matrix_4d_herwig,
+                    fakes_herwig,
+                    misses_herwig,
+                    mass_edges_reco,
+                    mass_edges_gen,
+                    pt_edges,
+                    reco_mass_edges_by_pt,
+                    gen_mass_edges_by_pt,
+                )
 
-
-                # Reweight Herwig ptreco projection to match nominal h2d
-                # Compute projection on ptreco axis for Herwig and nominal
-                herwig_ptreco_proj = M_np.sum(axis=(1,2,3))  # sum over mreco, ptgen, mgen
-                nominal_ptreco_proj = self.h2d.sum(axis=1)    # sum over mreco
-
-                # Normalize the response matrix per ptreco bin
-                # normalized_vals = _np.zeros_like(M_np)
-                # normalized_vars = _np.zeros_like(M_np_vars)
-                # for i_ptr in range(self.pt_edges.shape[0]-1):
-                #     s = float(sum_per_ptreco[i_ptr])
-                #     if s > 0.0:
-                #         normalized_vals[:, :, i_ptr, :] = vals[:, :, i_ptr, :] / s
-                #         normalized_vars[:, :, i_ptr, :] = vars_[:, :, i_ptr, :] / (s ** 2)
-                # M_np = normalized_vals
-                # M_np_vars = normalized_vars
-
-
-                h2d_herwig = resp_matrix_4d_syst.project('ptreco', 'mpt_reco').values(flow=False)
-                self.h2d_herwig, perm_used = reorder_to_expected_2d(h2d_herwig, mass_edges_reco, pt_edges)
-
-                reco_proj_fakes = fakes_herwig.project('ptreco', 'mpt_reco')
-                h2d_fakes = reco_proj_fakes.values()
-                self.h2d_fakes_herwig, perm_used = reorder_to_expected_2d(h2d_fakes, mass_edges_reco, pt_edges)
-
-
-                reco_proj_misses = misses_herwig.project('ptgen', 'mpt_gen')
-                h2d_misses = reco_proj_misses.values()
-                self.h2d_misses_herwig, perm_used = reorder_to_expected_2d(h2d_misses, mass_edges_gen, pt_edges)
-                self.fakes_2d_herwig = merge_mass_flat(self.h2d_fakes_herwig,
-                                    mass_edges_reco,
-                                    reco_mass_edges_by_pt)
-                self.misses_2d_herwig = merge_mass_flat(self.h2d_misses_herwig,
-                                            mass_edges_gen,
-                                            gen_mass_edges_by_pt)
-                #Avoid division by zero
-                # with np.errstate(divide='ignore', invalid='ignore'):
-                #     scale_factors = np.where(herwig_ptreco_proj != 0, nominal_ptreco_proj / herwig_ptreco_proj, 1.0)
-                # # Reshape for broadcasting
-                # for i in range(M_np.shape[0]):
-                #     M_np[i, :, :, :] *= scale_factors[i]
-            else:
-                #resp_matrix_4d_syst = resp_matrix_4d[{'systematic':syst}]
-                #proj = resp_matrix_4d_syst.project('ptreco', 'mreco', 'ptgen', 'mgen')
-                #M_np = proj.values(flow=False)
-                #M_np_vars = proj.variances(flow=False)
-
-                M_np = sys_matrix_dic[syst]
-                
-
-                # Normalize the response matrix per ptreco bin
-                # normalized_vals = _np.zeros_like(M_np)
-                # normalized_vars = _np.zeros_like(M_np_vars)
-                
-                # for i_ptr in range(self.pt_edges.shape[0]-1):
-                #     s = float(sum_per_ptreco[i_ptr])
-                #     if s > 0.0:
-                #         normalized_vals[:, :, i_ptr, :] = vals[:, :, i_ptr, :] / s
-                #         normalized_vars[:, :, i_ptr, :] = vars_[:, :, i_ptr, :] / (s ** 2)
-                # M_np = normalized_vals
-                # M_np_vars = normalized_vars
-
-            
-            
-                
-            
-            
-            # Ensure correct axis order first:
+            M_np, _ = self._response_matrix_for_systematic(syst, resp_matrix_4d_herwig, sys_matrix_dic)
             self.M_np_orig = M_np
-            self.M_np_2d_dict[syst], perm_used = reorder_to_expected(M_np, mass_edges_reco, pt_edges, mass_edges_gen)
-            # if syst == "herwigUp" or syst == "nominal":
-            #     #plt.imshow(M_np.reshape(96, 48))
-            #     plt.show()
-            #     #plt.imshow(self.M_np_2d_dict[syst].reshape(48, 96), norm = 'log')
-            #     plt.show()
-
-            # Build the unpadded mosaic (no NaNs):
-            
-            self.mosaic_dict[syst], blocks = mosaic_no_padding(
+            self.M_np_2d_dict[syst], _ = reorder_to_expected(M_np, mass_edges_reco, pt_edges, mass_edges_gen)
+            self.mosaic_dict[syst], _ = mosaic_no_padding(
                 self.M_np_2d_dict[syst], mass_edges_reco, mass_edges_gen,
                 reco_mass_edges_by_pt, gen_mass_edges_by_pt
             )
-            # if syst == "herwigUp" or syst == "nominal":
-            #     #plt.imshow(self.mosaic_dict[syst], norm = 'log')
-            #     plt.show()
                 
         print("Loaded data and prepared response matrices.")
-
-            
-                
         self.y_unf_jk_list = []
-        
-
-            
-        self.M_np_2d = self.M_np_2d_dict['nominal']
-        self.mosaic = self.mosaic_dict['nominal']
+        self._finalize_reco_views(mass_edges_reco, reco_mass_edges_by_pt)
         print("h2d shape:", self.h2d.shape)
         print("reco_mass_edges_by_pt:", reco_mass_edges_by_pt)
         print("len reco_mass_edges_by_pt:", len(reco_mass_edges_by_pt))
-        self.mosaic_2d = merge_mass_flat(self.h2d,
-                                    mass_edges_reco,
-                                    reco_mass_edges_by_pt)
-        
-        self.fakes_2d = merge_mass_flat(self.h2d_fakes,
-                                    mass_edges_reco,
-                                    reco_mass_edges_by_pt)
-        self.misses_2d = merge_mass_flat(self.h2d_misses,
-                                    mass_edges_gen,
-                                    gen_mass_edges_by_pt)
-
-
-        if 'herwigUp' in self.systematics or 'herwigDown' in self.systematics:
-            self.mosaic_herwig_2d = merge_mass_flat(self.h2d_herwig,
-                                        mass_edges_reco,
-                                        reco_mass_edges_by_pt)
-
-
-
-
-        #del output_pythia, resp_matrix_4d, resp_matrix_4d_syst
-    def plot_fakes_misses(self):
+    def plot_fakes_misses(self, show=True):
         title_list = ["",r"200 $<$ $p_T$ $<$ 290 GeV", r"290 $<$ $p_T$ $<$ 400 GeV", r"400 $<$ $p_T$ $< \, \infty$  GeV"]
 
         fakerate = self.fakes_2d/self.mosaic_2d
+
         fakerate = np.nan_to_num(fakerate, nan=0.0)# posinf=0.0, neginf=0.0)
         efficiency = 1 - (self.misses_2d/(self.misses_2d + self.mosaic.sum(axis=0)))
         efficiency_pt_binned = unflatten_gen_by_pt(efficiency, self.bins.gen_rho_edges_by_pt)
         fakerate_pt_binned = unflatten_gen_by_pt(fakerate, self.bins.reco_rho_edges_by_pt)
+
         for i in range(4):
             plt.stairs(1-fakerate_pt_binned[i], self.bins.reco_rho_edges_by_pt[i], label = f"Fake rate", lw = 1.5)
             plt.stairs(efficiency_pt_binned[i],self.bins.gen_rho_edges_by_pt[i], label = f"Efficiency", lw = 1.5)
@@ -356,10 +321,10 @@ class Unfolder:
             plt.ylim(0,1.05)
             hep.cms.label("Internal", data = False, lumi = 138, fontsize = 20)
             if self.groomed:
-                plt.savefig(f"./outputs/rho/fakerates_groomed_{i-1}.png")
+                save_path = f"./outputs/rho/fakerates_groomed_{i-1}.png"
             else:
-                plt.savefig(f"./outputs/rho/fakerates_ungroomed_{i-1}.png")
-            plt.show()
+                save_path = f"./outputs/rho/fakerates_ungroomed_{i-1}.png"
+            self._finalize_plot(save_path=save_path, show=show)
 
     def _compute_stat_unc(self):
         for i in range(10):
@@ -374,106 +339,124 @@ class Unfolder:
         #plt.stairs(self.stat_unc_frac)
         plt.show()
 
-    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False):
-        # ------------------------------------------------------------------
-        # 1.  Provide your numpy inputs
-        # ------------------------------------------------------------------
-        # resp_np   : 2-D numpy array – rows = reco bins, cols = true(gen) bins
-        # meas_flat : 1-D numpy array – reco distribution ( *same* row order as resp_np )
-
-        # example placeholders – replace with your real arrays
-        from array import array
-
-        #print(f"Closure is {closure}")
-        #print(f"Performing unfolding for systematic: {systematic}")
-        #print("Entered function _perform_unfold")
-        resp_np   = self.mosaic_dict[systematic]  # 2D numpy array (reco x true)
+    def _select_measured_spectrum(self, closure, herwig_closure, meas_flat):
         if meas_flat is None:
             if closure:
-                meas_flat = self.mosaic.sum(axis = 1)
-            
+                meas_flat = self.mosaic.sum(axis=1)
             else:
                 meas_flat = self.mosaic_2d
-
             if herwig_closure:
                 meas_flat = self.mosaic_herwig_2d
+        return meas_flat
+
+    def _build_root_binning(self):
+        truth_root = ROOT.TUnfoldBinning("truth")
+        reco_root = ROOT.TUnfoldBinning("reco")
+
+        truth_signal = truth_root.AddBinning("signal")
+        reco_primary = reco_root.AddBinning("primary")
+
+        for i, edges in enumerate(self.bins.gen_rho_edges_by_pt):
+            truth_node = truth_signal.AddBinning(f"pt{i}")
+            truth_node.AddAxis("mass", len(edges) - 1, array("d", edges), False, False)
+
+        for i, edges in enumerate(self.bins.reco_rho_edges_by_pt):
+            reco_node = reco_primary.AddBinning(f"pt{i}")
+            reco_node.AddAxis("mass", len(edges) - 1, array("d", edges), False, False)
+
+        return truth_root, reco_root
+
+    def _fill_root_histogram(self, hist, values):
+        for index, value in enumerate(values, 1):
+            hist.SetBinContent(index, float(value))
+
+    def _fill_response_histogram(self, h_resp, resp_np, misses):
+        n_reco, n_true = resp_np.shape
+        for i_reco in range(n_reco):
+            for j_true in range(n_true):
+                h_resp.SetBinContent(j_true + 1, i_reco + 1, resp_np[i_reco, j_true])
+        for j_true in range(n_true):
+            h_resp.SetBinContent(j_true + 1, 0, misses[j_true])
+
+    def _store_covariances(self, unfold, systematic):
+        if systematic == "nominal":
+            self.cov = unfold.GetEmatrixTotal("cov", "Covariance Matrix")
+            self.cov_uncorr = unfold.GetEmatrixSysUncorr(
+                "cov_uncorr",
+                "Covariance Matrix from Uncorrelated Uncertainties",
+            )
+            self.cov_uncorr_data = unfold.GetEmatrixInput(
+                "cov_uncorr_data",
+                "Covariance Matrix from Stat Uncertainties of Input Data",
+            )
+            self.cov_total = unfold.GetEmatrixTotal("total", "Cov")
+
+            _, n_true = self.mosaic.shape
+            self.cov_np = np.zeros((n_true, n_true))
+            self.cov_uncorr_np = np.zeros((n_true, n_true))
+            self.cov_data_np = np.zeros((n_true, n_true))
+            for i in range(1, n_true + 1):
+                for j in range(1, n_true + 1):
+                    self.cov_np[i - 1, j - 1] = self.cov.GetBinContent(i, j)
+                    self.cov_uncorr_np[i - 1, j - 1] = self.cov_uncorr.GetBinContent(i, j)
+                    self.cov_data_np[i - 1, j - 1] = self.cov_uncorr_data.GetBinContent(i, j)
+
+        if systematic == "herwigUp":
+            self.cov_uncorr_data = unfold.GetEmatrixInput(
+                "cov_uncorr_data",
+                "Covariance Matrix from Stat Uncertainties of Input Data",
+            )
+            _, n_true = self.mosaic.shape
+            self.cov_data_herwig_np = np.zeros((n_true, n_true))
+            for i in range(1, n_true + 1):
+                for j in range(1, n_true + 1):
+                    self.cov_data_herwig_np[i - 1, j - 1] = self.cov_uncorr_data.GetBinContent(i, j)
+
+    def _store_unfold_result(self, systematic, do_jk, unfold, h_meas, h_true):
+        h_unfold = unfold.GetOutput("unfold")
+        h_folded = unfold.GetFoldedOutput("folded")
+
+        y_meas, ye_meas = self._th1_to_arrays(h_meas)
+        y_true, ye_true = self._th1_to_arrays(h_true)
+        x_folded, _ = self._th1_to_arrays(h_folded)
+        y_unf, ye_unf = self._th1_to_arrays(h_unfold)
+
+        if do_jk and systematic == "nominal":
+            self.y_unf_jk_list.append(y_unf)
+            return
+
+        if systematic == "herwigUp":
+            self.y_true_herwig = self.mosaic_dict["herwigUp"].sum(axis=0)
+
+        if systematic == "nominal":
+            self.y_meas = y_meas
+            self.ye_meas = ye_meas
+            self.y_unf = y_unf
+            self.ye_unf = ye_unf
+            self.y_true = y_true
+            self.x_folded = x_folded
+            self.L = unfold.GetL("Lmatrix", "Lmatrix")
+        else:
+            self.y_unf_dict[systematic] = y_unf
+
+    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False):
+        resp_np = self.mosaic_dict[systematic]
+        meas_flat = self._select_measured_spectrum(closure, herwig_closure, meas_flat)
 
         true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
         n_reco, n_true = resp_np.shape
         assert len(meas_flat) == n_reco, "measured spectrum must have n_reco bins"
+        truth_root, reco_root = self._build_root_binning()
+        h_meas = reco_root.CreateHistogram("hRecoData")
+        h_true = truth_root.CreateHistogram("hTruthPrior")
+        h_resp = ROOT.TUnfoldBinning.CreateHistogramOfMigrations(truth_root, reco_root, "hResponse")
 
+        misses = self.misses_2d_herwig if systematic in {"herwigUp", "herwigDown"} else self.misses_2d
+        self._fill_response_histogram(h_resp, resp_np, misses)
+        self._fill_root_histogram(h_meas, meas_flat)
+        self._fill_root_histogram(h_true, true_flat)
+        self.h_resp = h_resp
 
-
-        # ------------------------------------------------------------------
-        # 2.  Build ROOT histograms
-        # ------------------------------------------------------------------
-        # Response matrix:  x = truth  (columns),  y = reco  (rows)
-
-        truth_root = ROOT.TUnfoldBinning("truth")
-        reco_root  = ROOT.TUnfoldBinning("reco")
-
-        truth_signal = truth_root.AddBinning("signal")
-        reco_primary = reco_root .AddBinning("primary")
-
-        truth_nodes, reco_nodes = [], []
-
-
-        for i,edges in enumerate(self.bins.gen_rho_edges_by_pt):
-            a = array('d', edges)
-            tnode = truth_signal.AddBinning(f"pt{i}")
-            # 1D mass axis inside each slice; exclude under/overflow bins here
-            tnode.AddAxis("mass", len(edges)-1, a, False, False)
-            
-            truth_nodes.append(tnode)
-            
-        for i,edges in enumerate(self.bins.reco_rho_edges_by_pt):
-            a = array('d', edges)
-            rnode = reco_primary.AddBinning(f"pt{i}")
-            
-            # 1D mass axis inside each slice; exclude under/overflow bins here
-            
-            rnode.AddAxis("mass", len(edges)-1, a, False, False)
-            
-            reco_nodes .append(rnode)
-
-        # Book histograms
-        h_meas   = reco_root .CreateHistogram("hRecoData")    # TH1D over global reco bins
-        h_true = truth_root.CreateHistogram("hTruthPrior")  # TH1D over global truth bins
-        h_resp  = ROOT.TUnfoldBinning.CreateHistogramOfMigrations(truth_root, reco_root, "hResponse") 
-
-
-        #
-        # h_resp = ROOT.TH2D("resp", "response;truth bin;reco bin",
-        #                 n_true,  0, n_true,
-        #                 n_reco,  0, n_reco)
-        for i_reco in range(n_reco):
-            for j_true in range(n_true):
-                h_resp.SetBinContent(j_true + 1, i_reco + 1, resp_np[i_reco, j_true])
-
-        # Filling underflow bins to take care of misses
-        if systematic == 'herwigUp' or systematic == 'herwigDown':
-            for j_true in range(n_true):
-                h_resp.SetBinContent(j_true + 1, 0, self.misses_2d_herwig[j_true])
-        else:
-            for j_true in range(n_true):
-                h_resp.SetBinContent(j_true + 1, 0, self.misses_2d[j_true])
-
-        # Measured (reco) spectrum
-        #h_meas = ROOT.TH1D("meas", "measured;reco bin;entries", n_reco, 0, n_reco)
-        for i_reco, val in enumerate(meas_flat, 1):
-            h_meas.SetBinContent(i_reco, float(val))
-
-
-        # True spectrum
-        #h_true = ROOT.TH1D("true", "sim;true bin;entries", n_true, 0, n_true)
-        for i_true, val in enumerate(true_flat, 1):
-            h_true.SetBinContent(i_true, float(val))
-
-        # if systematic == "herwigUp":
-        #     plt.imshow(resp_np)
-        # ------------------------------------------------------------------
-        # 3.  Run TUnfold
-        # ------------------------------------------------------------------
         unfold = ROOT.TUnfoldDensity(
             h_resp,
             ROOT.TUnfold.kHistMapOutputHoriz,          # mapping of TH2 axes
@@ -490,128 +473,13 @@ class Unfolder:
         status = unfold.SetInput(h_meas)
         if status >= 10000:
             raise RuntimeError("TUnfold input had overflow/underflow – check your hist.")
-        nPoint = 50
-        tauMin = 1e-6
-        tauMax = 0.1
-        #Optional: scan L-curve to choose tau.  Quick-n-dirty: 20 points, auto range
-        # unfold.ScanSURE(50, 0.000000001, 0.1, )
-        # #print("Chosen tau =", tau_best)
-        # nPoint, tauMin, tauMax = 50, 1e-4, 1.0   # coarse example range
-        # g_logTauSURE = ROOT.TGraph()
-        # g_df_chi2A   = ROOT.TGraph()
-        # g_lCurve     = ROOT.TGraph()
-
-        # tau_sure = unfold.ScanSURE(
-        #     nPoint,
-        #     tauMin,
-        #     tauMax,
-        #     g_logTauSURE,
-        #     g_df_chi2A,
-        #     g_lCurve,
-        # )
-        # nPoint = 50
-        # tauMin = 1e-6
-        # tauMax = 0.1
-        # logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
-        # logTauY = ROOT.MakeNullPointer(ROOT.TSpline)
-        # lCurve = ROOT.MakeNullPointer(ROOT.TGraph)
-        # logTauCurvature = ROOT.MakeNullPointer(ROOT.TSpline)
-        # tau_lcurve = unfold.ScanLcurve(
-        #     nPoint,
-        #     tauMin,
-        #     tauMax,
-        #     lCurve,
-        #     logTauX,
-        #     logTauY
-        # )
-        # print("Chosen tau from ScanLcurve:", tau_lcurve)
-        #print("Chosen tau from ScanSURE:", unfold.GetTau())
-        # logTauX = ROOT.MakeNullPointer(ROOT.TSpline)
-        # #ScanTau(nScan, tauMin, tauMax, logTauX, ROOT.TUnfoldDensity.kEScanTauRhoAvg, 'signal')
-        # tau_best = unfold.ScanTau(
-        #     nPoint,
-        #     tauMin,
-        #     tauMax,
-        #     logTauX,
-        #     ROOT.TUnfoldDensity.kEScanTauRhoAvg,
-        #     "signal"
-        # )
-        #print("Chosen tau from ScanTau:", unfold.GetTau())
-        #unfold.DoUnfold(tau_best)
         unfold.DoUnfold(0.0)
-        if systematic == 'nominal':
-            self.cov = unfold.GetEmatrixTotal("cov", "Covariance Matrix")
-            self.cov_uncorr = unfold.GetEmatrixSysUncorr("cov_uncorr",
-                                                        "Covariance Matrix from Uncorrelated Uncertainties")
-            self.cov_uncorr_data = unfold.GetEmatrixInput("cov_uncorr_data",
-                                                        "Covariance Matrix from Stat Uncertainties of Input Data")
-            self.cov_total = unfold.GetEmatrixTotal('total', "Cov")
-
-            #convert these to numpy arrays
-            # Convert ROOT covariance matrices to numpy arrays using the shape of self.M_np_2d
-            n_reco, n_true = self.mosaic.shape
-            n_bins = n_true  # unfolded bins correspond to truth bins
-
-            self.cov_np = np.zeros((n_bins, n_bins))
-            self.cov_uncorr_np = np.zeros((n_bins, n_bins))
-            self.cov_data_np = np.zeros((n_bins, n_bins))
-            for i in range(1, n_bins + 1):
-                for j in range(1, n_bins + 1):
-                    self.cov_np[i-1, j-1] = self.cov.GetBinContent(i, j)
-                    self.cov_uncorr_np[i-1, j-1] = self.cov_uncorr.GetBinContent(i, j)
-                    self.cov_data_np[i-1, j-1] = self.cov_uncorr_data.GetBinContent(i, j)
-        if systematic == 'herwigUp':
-            self.cov_uncorr_data = unfold.GetEmatrixInput("cov_uncorr_data", "Covariance Matrix from Stat Uncertainties of Input Data")
-            n_reco, n_true = self.mosaic.shape
-            n_bins = n_true  # unfolded bins correspond to truth bins
-            self.cov_data_herwig_np = np.zeros((n_bins, n_bins))
-            for i in range(1, n_bins + 1):
-                for j in range(1, n_bins + 1):
-                    self.cov_data_herwig_np[i-1, j-1] = self.cov_uncorr_data.GetBinContent(i, j)
-        # ------------------------------------------------------------------
-        # 4.  Grab the unfolded spectrum and covariance
-        # ------------------------------------------------------------------
-        h_unfold = unfold.GetOutput("unfold")          # TH1D with n_true bins
-        h_folded = unfold.GetFoldedOutput("folded")  # TH1D with n_reco bins
-        #cov      = unfold.GetEmatrixInput()            # TH2D covariance of input
-        #cov_out  = unfold.GetEmatrixOutput("cov_out")  # TH2D covariance of unfolded
-
-        # quick printout
-        #h_unfold.Print("all")
-        y_meas, ye_meas = self._th1_to_arrays(h_meas)
-        y_true, ye_true = self._th1_to_arrays(h_true)
-
-        x_folded, xe_folded = self._th1_to_arrays(h_folded)
-        if systematic == 'herwigUp':
-            y_true_herwig, ye_true_herwig = self._th1_to_arrays(h_true)
-        y_unf , ye_unf  = self._th1_to_arrays(h_unfold)
-
-        if do_jk and systematic == 'nominal':
-            self.y_unf_jk_list.append(y_unf)
-            
-            
-
-        
-        if systematic == 'herwigUp':
-            self.y_true_herwig = self.mosaic_dict['herwigUp'].sum(axis = 0)
-
-        
-        if systematic == 'nominal' and not do_jk:
-            self.y_meas = y_meas
-            self.ye_meas = ye_meas
-            self.y_unf = y_unf
-            self.ye_unf = ye_unf
-            self.y_true = y_true
-            self.h_resp = h_resp
-            self.x_folded = x_folded
-            self.L = unfold.GetL("Lmatrix", "Lmatrix")
-            
-        else:
-            self.y_unf_dict[systematic] = y_unf
+        self._store_covariances(unfold, systematic)
+        self._store_unfold_result(systematic, do_jk, unfold, h_meas, h_true)
         
         
     
-    def plot_L(self):
+    def plot_L(self, show=True):
         lMatrix = self.L
         #try plotting the L matrix root way
         c = ROOT.TCanvas("c", "L-curve Matrix", 800, 600)
@@ -627,18 +495,19 @@ class Unfolder:
         plt.imshow(l_np_masked, origin='lower', aspect='auto')
         plt.colorbar(label='L-curve Matrix Value')
         hep.cms.label(self.cms_label, data = False, lumi = 138 , com = 13, fontsize = 20)
+        self._finalize_plot(save_path="outputs/rho/unfold/L_matrix_matplotlib.png", show=show)
         
         
 
 
-
+    
     def _th1_to_arrays(self,h):
         nb = h.GetNbinsX()                       # bin numbers
         x  = np.arange(1, nb + 1)
         y  = np.array([h.GetBinContent(int(i)) for i in x])
         ye = np.array([h.GetBinError(int(i))   for i in x])
         return  y, ye
-    def plot_folded(self):
+    def plot_folded(self, show=True):
         folded_pt_binned = unflatten_gen_by_pt(self.x_folded, self.bins.reco_rho_edges_by_pt)
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.bins.reco_rho_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.bins.reco_rho_edges_by_pt)
@@ -680,9 +549,82 @@ class Unfolder:
                 plt.xlim(-2.5, 0)
                 #plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
                 hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
-            plt.show()
+            save_path = f"./outputs/rho/unfold/folded_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/folded_ungroomed_{i-1}.pdf"
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+    
+    def plot_jk(self, show= True):
+        # Outputs
+        n_pt_bins = len(self.pt_edges) - 1
+        jk_pt_binned = [
+            unflatten_gen_by_pt(sample, self.bins.gen_rho_edges_by_pt)
+            for sample in self.y_unf_jk_list
+        ]
 
-    def plot_bottom_line(self):
+        for pt_index in range(n_pt_bins):
+            fig, ax = plt.subplots()
+            for jk_index, unfolded_pt_binned in enumerate(jk_pt_binned):
+                ax.stairs(
+                    unfolded_pt_binned[pt_index],
+                    self.bins.gen_rho_edges_by_pt[pt_index],
+                    label=f"JK sample {jk_index}",
+                    alpha=0.6,
+                )
+
+            pt_low = int(self.pt_edges[pt_index])
+            pt_high = self.pt_edges[pt_index + 1]
+            pt_label = f"{pt_low}–∞ GeV" if pt_index == n_pt_bins - 1 else f"{pt_low}–{int(pt_high)} GeV"
+
+            ax.legend(title=pt_label, fontsize=12, title_fontsize=14)
+            
+            ax.set_ylabel("Unfolded entries")
+            if self.groomed:
+                ax.set_xlim(-4.5, 0)
+                ax.set_xlabel(r"log($\rho^2$), Groomed")
+                save_path = f"./outputs/rho/unfold/jk_outputs_groomed_pt{pt_index-1}.pdf"
+            else:
+                ax.set_xlim(-2.5, 0)
+                ax.set_xlabel(r"log($\rho^2$), Ungroomed")
+                save_path = f"./outputs/rho/unfold/jk_outputs_ungroomed_pt{pt_index-1}.pdf"
+
+            plt.sca(ax)
+            hep.cms.label(self.cms_label, data=True, lumi=138, com=13, fontsize=20)
+            plt.tight_layout()
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+        # Inputs
+        for pt_index in range(n_pt_bins):
+            fig, ax = plt.subplots()
+            for jk_index, mosaic_2d_jk in enumerate(self.mosaic_2d_jk_list):
+                reco_pt_binned_jk = unflatten_gen_by_pt(self.mosaic_2d_jk_list[jk_index], self.bins.reco_rho_edges_by_pt)
+                ax.stairs(
+                    reco_pt_binned_jk[pt_index],
+                    self.bins.reco_rho_edges_by_pt[pt_index],
+                    label=f"JK sample {jk_index}",
+                    alpha=0.6,
+                )
+
+            pt_low = int(self.pt_edges[pt_index])
+            pt_high = self.pt_edges[pt_index + 1]
+            pt_label = f"{pt_low}–∞ GeV" if pt_index == n_pt_bins - 1 else f"{pt_low}–{int(pt_high)} GeV"
+
+            ax.legend(title=pt_label, fontsize=12, title_fontsize=14)
+            
+            ax.set_ylabel("Entries")
+            if self.groomed:
+                ax.set_xlim(-4.5, 0)
+                ax.set_xlabel(r"log($\rho^2$), Groomed")
+                save_path = f"./outputs/rho/unfold/jk_inputs_groomed_pt{pt_index-1}.pdf"
+            else:
+                ax.set_xlim(-2.5, 0)
+                ax.set_xlabel(r"log($\rho^2$), Ungroomed")
+                save_path = f"./outputs/rho/unfold/jk_inputs_ungroomed_pt{pt_index-1}.pdf"
+
+            plt.sca(ax)
+            hep.cms.label(self.cms_label, data=False, lumi=138, com=13, fontsize=20)
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
+
+
+    def plot_bottom_line(self, show=True):
         unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.bins.gen_rho_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.bins.gen_rho_edges_by_pt)
 
@@ -719,10 +661,10 @@ class Unfolder:
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
             hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
-            plt.savefig(f"./outputs/rho/bottom_line_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/bottom_line_ungroomed_{i-1}.pdf")
-            plt.show()
+            save_path = f"./outputs/rho/bottom_line_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/bottom_line_ungroomed_{i-1}.pdf"
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
-    def plot_unfolded_fancy(self, log  = False):
+    def plot_unfolded_fancy(self, log=False, show=True):
         markers = ['o', 's', '^', 'D', 'v', '*', 'x', '+']
         npt = len(self.pt_edges)-1
         title_list = ["",r"200$<$$p_T$$<$290 GeV", r"290 $<$$p_T$$<$400 GeV", r"400 $<$$p_T$$< \, \infty$  GeV"]
@@ -765,11 +707,10 @@ class Unfolder:
             else:
                 plt.xlim(-2.5 , 0)
             if self.closure:
-                plt.savefig(f"./outputs/rho/closure_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/closure_ungroomed_{i-1}.pdf")
+                save_path = f"./outputs/rho/closure_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/closure_ungroomed_{i-1}.pdf"
             else:
-                plt.savefig(f"./outputs/rho/unfold/groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/ungroomed_{i-1}.pdf")
-
-            plt.show()
+                save_path = f"./outputs/rho/unfold/groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/ungroomed_{i-1}.pdf"
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
         
         # Now also plot a summary plot, with all of them together, but shifted on y axis for visibility
 
@@ -832,12 +773,13 @@ class Unfolder:
         else:
             plt.xlim(-2.5 , 0)
 
-        plt.savefig(f"./outputs/rho/groomed_summary.pdf" if self.groomed else f"./outputs/rho/ungroomed_summary.pdf")
+        save_path = f"./outputs/rho/groomed_summary.pdf" if self.groomed else f"./outputs/rho/ungroomed_summary.pdf"
+        self._finalize_plot(save_path=save_path, show=show)
 
 
 
 
-    def plot_unfolded(self, log = False):
+    def plot_unfolded(self, log=False, show=True):
 
         unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.bins.gen_rho_edges_by_pt)
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.bins.reco_rho_edges_by_pt)
@@ -875,7 +817,8 @@ class Unfolder:
                 plt.xlim(-2.5, 0)
                 #plt.xlim(20,250)
                 plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
-            plt.show() 
+            save_path = f"./outputs/rho/unfold/unfolded_basic_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/unfolded_basic_ungroomed_{i-1}.pdf"
+            self._finalize_plot(save_path=save_path, show=show)
             # Plot relative difference: (true - unfolded) / true after normalization
             # true_norm = true_pt_binned[i] / np.diff(self.bins.gen_mass_edges_by_pt[i]) / true_pt_binned[i].sum()
             # true_norm = true_herwig_pt_binned[i] / np.diff(self.bins.gen_mass_edges_by_pt[i]) / true_herwig_pt_binned[i].sum()
@@ -899,7 +842,8 @@ class Unfolder:
                 plt.ylim(0, 1)
                 plt.xlabel(r"Groomed Jet  $\log{\rho^2}$" if self.groomed else r"Ungroomed Jet $\log{\rho^2}$")
                 #plt.legend()
-                plt.show()
+                save_path = f"./outputs/rho/unfold/herwig_closure_unc_groomed_{i-1}.pdf" if self.groomed else f"./outputs/rho/unfold/herwig_closure_unc_ungroomed_{i-1}.pdf"
+                self._finalize_plot(save_path=save_path, show=show)
         # Save uncertainty in a file for later use
         if self.herwig_closure:
             if self.groomed:
@@ -1018,7 +962,7 @@ class Unfolder:
             }
             self.normalized_results[i]['stat_unc'] = stat_unc
 
-    def plot_systematic_fraction(self, syst_name = 'all'):
+    def plot_systematic_fraction(self, syst_name='all', show=True):
         # Plot the systematic uncertainties as a fraction of the nominal unfolded result
         
         for i, result in enumerate(self.normalized_results):
@@ -1220,11 +1164,11 @@ class Unfolder:
                 plt.xlim(-2.5, 0)
             plt.xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
             plt.ylabel("Fractional Uncertainty")
-            plt.savefig(f'./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf' if self.groomed else f'./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf')
-            plt.show()
+            save_path = f'./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf' if self.groomed else f'./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf'
+            self._finalize_plot(save_path=save_path, show=show)
 
     
-    def plot_systematic_frac_indiv(self, syst_names = ['JES' , 'JER']):
+    def plot_systematic_frac_indiv(self, syst_names=['JES', 'JER'], ylim=None, show=True):
 
         # First, collect all values to determine global y-range
         all_values = []
@@ -1253,10 +1197,10 @@ class Unfolder:
                 # Plot Up uncertainty (solid)
                 label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.'}
                 if up_key in syst_fraction_dict:
-                    hep.histplot(syst_fraction_dict[up_key], self.bins.gen_rho_edges_by_pt[i], label=f"{label_dic.get(syst, syst)} Up", color=color, ls='-')
+                    hep.histplot(syst_fraction_dict[up_key][1:], self.bins.gen_rho_edges_by_pt[i][1:], label=f"{label_dic.get(syst, syst)} Up", color=color, ls='-')
                 # Plot Down uncertainty (dashed)
                 if down_key in syst_fraction_dict:
-                    hep.histplot(-syst_fraction_dict[down_key], self.bins.gen_rho_edges_by_pt[i], label=f"{label_dic.get(syst, syst)} Down", color=color, ls='--')
+                    hep.histplot(-syst_fraction_dict[down_key][1:], self.bins.gen_rho_edges_by_pt[i][1:], label=f"{label_dic.get(syst, syst)} Down", color=color, ls='--')
 
 
                 
@@ -1265,22 +1209,22 @@ class Unfolder:
             else:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
             
-            #plt.ylim(0.8, 1.2)
+            # if ylim is not None:
+            #     plt.ylim(ylim)
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", fontsize = 15)#loc='center left', bbox_to_anchor=(1, 0.5))
             hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
 
             if self.groomed:
-                #plt.xlim(-4.5,0)
+                plt.xlim(-4.5,0)
                 plt.xlabel(r"$\log_{10}(\rho^2)$, Groomed")
-                plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_groomed_{i-1}.pdf')
+                save_path = f'./outputs/rho/uncertainties/{syst_names[0]}_groomed_{i-1}.pdf'
             else:
-                #plt.xlim(-2.5, 0)
+                plt.xlim(-2.5, 0)
                 plt.xlabel(r"$\log_{10}(\rho^2)$, Ungroomed")
-                plt.savefig(f'./outputs/rho/uncertainties/{syst_names[0]}_ungroomed_{i-1}.pdf')
-            
-            plt.show()
+                save_path = f'./outputs/rho/uncertainties/{syst_names[0]}_ungroomed_{i-1}.pdf'
+            self._finalize_plot(save_path=save_path, show=show)
 
-    def plot_herwig_systematic(self):
+    def plot_herwig_systematic(self, show=True):
         flat_uncertainty = np.sqrt(np.diag(self.cov_data_herwig_np))/np.abs(self.y_unf_dict['herwigUp'])
         uncertainty_pt_binned = unflatten_gen_by_pt(flat_uncertainty, self.bins.gen_rho_edges_by_pt)
         unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.bins.gen_rho_edges_by_pt)
@@ -1322,11 +1266,12 @@ class Unfolder:
             
             plt.xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
             plt.ylabel("Relative Uncertainty")
-            plt.show()
+            save_path = f'./outputs/rho/uncertainties/herwig_groomed_{i-1}.pdf' if self.groomed else f'./outputs/rho/uncertainties/herwig_ungroomed_{i-1}.pdf'
+            self._finalize_plot(save_path=save_path, show=show)
 
 
             
-    def plot_purity_stability(self):
+    def plot_purity_stability(self, show=True):
         hep.style.use("CMS")
         #ignore first slice in sum bc it's underflow
         len_underflow = len(self.bins.gen_mass_edges_by_pt[0]) - 1
@@ -1345,7 +1290,7 @@ class Unfolder:
         plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
         plt.legend()
         plt.xlim(0,200)
-        plt.show()
+        self._finalize_plot(save_path=f'./outputs/rho/unfold/purity_stability_ptslice_{"groomed" if self.groomed else "ungroomed"}.pdf', show=show)
         
         
         plt.stairs(purity, label = "Purity")
@@ -1357,10 +1302,10 @@ class Unfolder:
         plt.ylabel("Stability")
         hep.cms.label(self.cms_label, data=False, lumi = 138, com = 13, fontsize = 20)
         plt.legend()
-        plt.show()
+        self._finalize_plot(save_path=f'./outputs/rho/unfold/purity_stability_global_{"groomed" if self.groomed else "ungroomed"}.pdf', show=show)
 
 
-    def plot_correlation(self):
+    def plot_correlation(self, show=True):
         cov_matrix = self.cov_uncorr_np + self.cov_data_np
         std_devs = np.sqrt(np.diag(cov_matrix))
 
@@ -1422,10 +1367,9 @@ class Unfolder:
         cbar = plt.colorbar(img, ticks=bounds, boundaries=bounds, fraction=0.046, pad=0.04)
         cbar.set_label("Correlation (Groomed)" if self.groomed else "Correlation (Ungroomed)")
         hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
-        plt.savefig(f'outputs/rho/unfold/correlation_groomed.pdf' if self.groomed else f'outputs/rho/unfold/correlation_ungroomed.pdf')
-
-        plt.show()
-    def plot_response_matrix(self, probability = True, log = False):
+        save_path = f'outputs/rho/unfold/correlation_groomed.pdf' if self.groomed else f'outputs/rho/unfold/correlation_ungroomed.pdf'
+        self._finalize_plot(save_path=save_path, show=show)
+    def plot_response_matrix(self, probability=True, log=False, show=True):
         fig, ax = self._plot_response_mosaic_cms(
             self.mosaic,
             reco_mass_edges_by_pt=self.bins.reco_rho_edges_by_pt,
@@ -1437,7 +1381,23 @@ class Unfolder:
             log=log,                              # set False for linear
             rlabel=f"Groomed, " if self.groomed else f"Ungroomed, ",
         )
-        plt.show()
+        self._finalize_plot(show=show, fig=fig)
+
+    def run_all_plots(self, show=False):
+        self.plot_unfolded_fancy(show=show)
+        self.plot_systematic_fraction(show=show)
+        self.plot_herwig_systematic(show=show)
+        self.plot_systematic_frac_indiv(["JES", "JER"], show=show)
+        self.plot_systematic_frac_indiv(["JMS", "JMR"], show=show)
+        self.plot_systematic_frac_indiv(["q2", "pdf", "pu", "l1prefiring"], show=show)
+        self.plot_systematic_frac_indiv(["herwig"], show=show)
+        self.plot_systematic_frac_indiv(["ElectronSF", "MuonSF"], show=show)
+        self.plot_correlation(show=show)
+        self.plot_unfolded(show=show)
+        self.plot_response_matrix(probability=True, show=show)
+        self.plot_folded(show=show)
+        self.plot_bottom_line(show=show)
+        self.plot_fakes_misses(show=show)
     def _plot_response_mosaic_cms(
         self,
         mosaic,
@@ -1544,9 +1504,9 @@ class Unfolder:
 
         fig.tight_layout()
         if self.groomed:
-            plt.savefig("outputs/plots/unfold/response_groomed.pdf")
+            plt.savefig("outputs/rho/unfold/response_groomed.pdf")
         else:
-            plt.savefig("outputs/plots/unfold/response_ungroomed.pdf")
+            plt.savefig("outputs/rho/unfold/response_ungroomed.pdf")
         return fig, ax
     
     def _make_inputs_numpy(self,
@@ -1896,5 +1856,3 @@ class Unfolder:
 
 # sys_matrix_dic['herwigUp'] = resp_matrix_4d_herwig.project('ptgen','mgen','ptreco','mreco').values()
 # sys_matrix_dic_down['herwigDown'] = resp_matrix_4d_herwig.project('ptgen','mgen','ptreco','mreco').values()
-
-
