@@ -88,11 +88,14 @@ class Unfolder:
             path = Path(save_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             target_fig = fig if fig is not None else plt.gcf()
-            target_fig.savefig(path)
+            target_fig.savefig(path, bbox_inches="tight", pad_inches=0.1)
         if show:
             plt.show()
         else:
             plt.close(fig if fig is not None else plt.gcf())
+
+    def _cms_extra_label(self):
+        return f" {self.cms_label}" if self.cms_label and not self.cms_label.startswith(" ") else self.cms_label
 
     def _histogram_keys(self):
         if self.groomed:
@@ -262,6 +265,9 @@ class Unfolder:
 
         reco_mass_edges_by_pt = self.bins.reco_rho_edges_by_pt
         gen_mass_edges_by_pt = self.bins.gen_rho_edges_by_pt
+        pt_edges = self.bins.pt_edges
+        mass_edges_reco = self.bins.rho_edges
+        mass_edges_gen = self.bins.rho_edges_gen
 
         fakes = pythia2d.project('ptreco', 'mpt_reco', 'systematic')[:, :, 'nominal'] + (-1)*pythia4d.project('ptreco', 'mpt_reco', 'systematic')[:, :, 'nominal']
         fakes_herwig = herwig2d.project('ptreco', 'mpt_reco', 'systematic') + (-1)*herwig4d.project('ptreco', 'mpt_reco', 'systematic')
@@ -289,9 +295,6 @@ class Unfolder:
         self.input_data = input_data
         self.pythia_2d = pythia2d
         self.pythia_4d = pythia4d
-        pt_edges        = self.bins.pt_edges
-        mass_edges_reco = self.bins.rho_edges
-        mass_edges_gen  = self.bins.rho_edges_gen
 
         print("Loaded pkl files and rebinned histograms.")
 
@@ -761,6 +764,8 @@ class Unfolder:
             stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
             syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
             syst_down = np.array(self.normalized_results[i]['syst_unc']['down'], dtype=float)
+            rho_edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
+            centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
             plt.sca(ax_main)
             plt.stairs( unfolded + syst_up,
                 self.bins.gen_rho_edges_by_pt[i],
@@ -772,6 +777,7 @@ class Unfolder:
                 fill = True, color = "darkgreen" , label = "Stat. Unc.")
             plt.stairs(self.normalized_results[i]['true'], self.bins.gen_rho_edges_by_pt[i], label = 'PYTHIA8', color = 'b', ls = 'dotted', lw = 3)
             plt.stairs(herwig_norm, self.bins.gen_rho_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
+            plt.plot(centers, unfolded, color='k', lw=0, marker=markers[i], markersize=8, label='Unfolded')
 
             plt.legend(title = title_list[i], fontsize=14, title_fontsize=15)
             hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
@@ -806,8 +812,8 @@ class Unfolder:
         # Now also plot a summary plot, with all of them together, but shifted on y axis for visibility
 
         for i in range(1, npt):
-            j = i 
-            scale = 10 ** j
+            exponent = 2 * i - 1
+            scale = 10 ** exponent
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
             syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
             syst_down = np.array(self.normalized_results[i]['syst_unc']['down'], dtype=float)
@@ -817,6 +823,7 @@ class Unfolder:
 
             y_syst_up = scale * (unfolded + syst_up)
             y_syst_down = scale * (unfolded - syst_down)
+            y_syst_down = np.maximum(y_syst_down, scale * unfolded * 1e-1)
             y_stat_up = scale * (unfolded + stat_unc)
             y_stat_down = scale * (unfolded - stat_unc)
             plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.bins.gen_rho_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3)
@@ -825,7 +832,7 @@ class Unfolder:
             plt.stairs(y_stat_up, self.bins.gen_rho_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
             rho_edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
-            plt.plot(centers, scale * unfolded, label=rf'$10^{j}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
+            plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
             
 
         plt.yscale('log')
@@ -861,8 +868,8 @@ class Unfolder:
 
         fig = plt.figure(figsize=(12, 10))
         for i in range(1, npt):
-            j = i
-            scale = 10 ** j
+            exponent = 2 * i - 1
+            scale = 10 ** exponent
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
             syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
             syst_down = np.array(self.normalized_results[i]['syst_unc']['down'], dtype=float)
@@ -878,7 +885,7 @@ class Unfolder:
             plt.stairs(y_stat_up, self.bins.gen_rho_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
             rho_edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
-            plt.plot(centers, scale * unfolded, label=rf'$10^{j}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
+            plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
 
         ax = plt.gca()
         handles, labels = ax.get_legend_handles_labels()
@@ -1142,217 +1149,189 @@ class Unfolder:
             self._finalize_plot(save_path=save_path, show=show)
 
     def plot_systematic_fraction(self, syst_name='all', show=True):
-        # Plot the systematic uncertainties as a fraction of the nominal unfolded result
-        
+        self._plot_systematic_fraction_summary(grouped=False, show=show)
+
+    def _get_systematic_group_name(self, syst_name):
+        syst_lower = syst_name.lower()
+        if syst_lower.startswith("jes") or syst_lower.startswith("jer"):
+            return "Jet Energy"
+        if syst_lower.startswith("jms") or syst_lower.startswith("jmr"):
+            return "Jet Mass"
+        if syst_lower.startswith("ele") or syst_lower.startswith("mu"):
+            return "Lepton SFs"
+        if syst_lower.startswith("isr") or syst_lower.startswith("fsr"):
+            return "Parton Shower"
+        if (
+            syst_lower.startswith("pu")
+            or syst_lower.startswith("pdf")
+            or syst_lower.startswith("q2")
+            or syst_lower.startswith("l1prefiring")
+        ):
+            return "Other Theory"
+        return None
+
+    def _get_systematic_label(self, syst_name):
+        base_name = syst_name[:-2] if syst_name.endswith(("Up", "Down")) else syst_name
+        label_map = {
+            "pu": "Pileup",
+            "l1prefiring": "L1 Prefiring",
+            "q2": r"Q$^2$ Scale",
+            "pdf": "PDF",
+            "herwig": "Model Uncertainty",
+            "isr": "ISR",
+            "fsr": "FSR",
+            "jms": "JMS",
+            "jmr": "JMR",
+        }
+        return label_map.get(base_name.lower(), base_name)
+
+    def _build_syst_fraction_dict(self, pt_index):
+        result = self.normalized_results[pt_index]
+        nominal = result["unfolded"]
+        total_syst_up = result["syst_unc"]["up"]
+        total_syst_down = result["syst_unc"]["down"]
+        syst_fraction_dict = {}
+
+        for syst_name, syst_unfolded in self.normalized_systematics[pt_index]["unfolded"].items():
+            diff = syst_unfolded - nominal
+            syst_fraction = np.abs(np.divide(diff, nominal, out=np.zeros_like(diff), where=nominal != 0))
+            syst_fraction_dict[syst_name] = syst_fraction
+
+        stat_fraction = self.stat_unc_pt_binned[pt_index]
+        total_syst_fraction_up = np.abs(np.divide(total_syst_up, np.abs(nominal), out=np.zeros_like(total_syst_up), where=np.abs(nominal) != 0))
+        total_syst_fraction_down = np.abs(np.divide(total_syst_down, np.abs(nominal), out=np.zeros_like(total_syst_down), where=np.abs(nominal) != 0))
+
+        syst_fraction_dict["Stat Unc"] = stat_fraction
+        syst_fraction_dict["Total_Up"] = total_syst_fraction_up
+        syst_fraction_dict["Total_Down"] = total_syst_fraction_down
+        return syst_fraction_dict
+
+    def _group_syst_fraction_dict(self, syst_fraction_dict):
+        grouped_fraction_dict = {}
+        accumulators = {}
+
+        for syst_name, syst_fraction in syst_fraction_dict.items():
+            if syst_name in {"Stat Unc", "Total_Up", "Total_Down"}:
+                continue
+
+            group_name = self._get_systematic_group_name(syst_name)
+            target_name = group_name if group_name is not None else self._get_systematic_label(syst_name)
+
+            if syst_name.endswith("Down"):
+                target_key = f"{target_name}Down"
+            else:
+                target_key = f"{target_name}Up"
+
+            if target_key not in accumulators:
+                accumulators[target_key] = np.zeros_like(syst_fraction)
+            accumulators[target_key] += syst_fraction**2
+
+        for target_key, target_sum in accumulators.items():
+            grouped_fraction_dict[target_key] = np.sqrt(target_sum)
+
+        grouped_fraction_dict["Stat Unc"] = syst_fraction_dict["Stat Unc"]
+        grouped_fraction_dict["Total_Up"] = syst_fraction_dict["Total_Up"]
+        grouped_fraction_dict["Total_Down"] = syst_fraction_dict["Total_Down"]
+        return grouped_fraction_dict
+
+    def _plot_systematic_fraction_summary(self, grouped=False, show=True):
+        self.syst_fraction_dicts = []
+        grouped_legend_order = [
+            "Jet Energy",
+            "Jet Mass",
+            "Parton Shower",
+            "Lepton SFs",
+            "Other Theory",
+            "Model Uncertainty",
+            "Stat Unc",
+            "Total",
+        ]
+
         for i, result in enumerate(self.normalized_results):
-            if not hasattr(self, 'syst_fraction_dicts'):
-                self.syst_fraction_dicts = []
             fig = plt.figure(figsize=(12, 8))
-            pt_bin = result['pt_bin']
-            nominal = result['unfolded']
-            total_syst_up = result['syst_unc']['up']
-            total_syst_down = result['syst_unc']['down']
-
-
-            # Group systematics by prefix
-            jes_up = []
-            jes_down = []
-            jer_up = []
-            jer_down = []
-            ele_up = []
-            ele_down = []
-            mu_up = []
-            mu_down = []
-            print
-            for syst_name in self.normalized_systematics[i]['unfolded']:
-                if syst_name.startswith('JES'):
-                    #print("Processing JES systematic:", syst_name)
-                    if 'Down' in syst_name:
-                        jes_down.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                    else:
-                        jes_up.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                elif syst_name.startswith('ele'):
-                    if 'Down' in syst_name:
-                        ele_down.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                    else:
-                        ele_up.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                elif syst_name.startswith('mu'):
-                    if 'Down' in syst_name:
-                        mu_down.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                    else:
-                        mu_up.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                elif syst_name.startswith('JER'):
-                    #print("Processing JER systematic:", syst_name)
-                    if 'Down' in syst_name:
-                        jer_down.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-                    else:
-                        jer_up.append(self.normalized_systematics[i]['unfolded'][syst_name] - nominal)
-            
-            #print("JES up variations:", jes_up)
-            #print("JER up variations:", jer_up)
-
-            # Combine grouped uncertainties in quadrature
-            # Dictionary to store fractional systematic uncertainties by name
-            # Store the systematic fraction dict as a class attribute for each pt bin
-            
-            syst_fraction_dict = {}
-
-            # JES group
-            if jes_up:
-                
-                jes_up_total = np.sqrt(np.sum([diff**2 for diff in jes_up], axis=0))
-                jes_up_frac = np.abs(jes_up_total / nominal)
-                hep.histplot(jes_up_frac, self.bins.gen_rho_edges_by_pt[i], label="JES ", ls = '--')
-                syst_fraction_dict['JESUp'] = jes_up_frac
-            if jes_down:
-                jes_down_total = np.sqrt(np.sum([diff**2 for diff in jes_down], axis=0))
-                jes_down_frac = np.abs(jes_down_total / nominal)
-                syst_fraction_dict['JESDown'] = jes_down_frac
-            
-            # JER group
-            if jer_up:
-                jer_up_total = np.sqrt(np.sum([diff**2 for diff in jer_up], axis=0))
-                jer_up_frac = np.abs(jer_up_total / nominal)
-                hep.histplot(jer_up_frac, self.bins.gen_rho_edges_by_pt[i], label="JER ", ls = '--')
-                syst_fraction_dict['JERUp'] = jer_up_frac
-                
-            if jer_down:
-                jer_down_total = np.sqrt(np.sum([diff**2 for diff in jer_down], axis=0))
-                jer_down_frac = np.abs(jer_down_total / nominal)
-                syst_fraction_dict['JERDown'] = jer_down_frac
-
-            # Electron SFs group
-            if ele_up:
-                ele_up_total = np.sqrt(np.sum([diff**2 for diff in ele_up], axis=0))
-                ele_up_frac = np.abs(ele_up_total / nominal)
-                hep.histplot(ele_up_frac, self.bins.gen_rho_edges_by_pt[i], label="Electron SFs", ls = '--')
-                syst_fraction_dict['ElectronSFUp'] = ele_up_frac
-            if ele_down:
-                ele_down_total = np.sqrt(np.sum([diff**2 for diff in ele_down], axis=0))
-                ele_down_frac = np.abs(ele_down_total / nominal)
-                syst_fraction_dict['ElectronSFDown'] = ele_down_frac
-
-            # Muon SFs group
-            if mu_up:
-                mu_up_total = np.sqrt(np.sum([diff**2 for diff in mu_up], axis=0))
-                mu_up_frac = np.abs(mu_up_total / nominal)
-                hep.histplot(mu_up_frac, self.bins.gen_rho_edges_by_pt[i], label="Muon SFs", ls = '--')
-                syst_fraction_dict['MuonSFUp'] = mu_up_frac
-            if mu_down:
-                mu_down_total = np.sqrt(np.sum([diff**2 for diff in mu_down], axis=0))
-                mu_down_frac = np.abs(mu_down_total / nominal)
-                syst_fraction_dict['MuonSFDown'] = mu_down_frac
-
-            # Individual non-grouped systematics
-            for syst in self.systematics:
-                if syst == 'nominal':
-                    continue
-                if syst.startswith('JES') or syst.startswith('ele') or syst.startswith('mu') or syst.startswith('JER'):
-                    continue  # Already handled above
-                if syst.endswith('Up'):
-                    syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                    if syst.startswith('herwig'):
-                        ## case when fetching uncertainty from non-closure of herwig
-                        # diff_up = nominal*self.herwig_unc[i]  Using the closure uncertainty as the systematic variation for Herwig
-                        ## regular
-                        diff_up = syst_up - nominal
-                    else:
-                        diff_up = syst_up - nominal
-                    syst_fraction_up = np.abs(diff_up / nominal)
-                    syst_fraction_dict[f"{syst}"] = syst_fraction_up
-                    
-                    if syst.startswith('herwig'):
-                        hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"Model Uncertainty", ls = '-.')
-                    else:
-                        label = f"{syst[:-2]}"
-                        label_dic = {'pu':'Pileup', 'l1prefiring': 'L1 Prefiring', 'q2': r'Q$^2$ Scale', 'pdf': 'PDF', 'herwig': 'Model Unc.', 'isr': 'ISR', 'fsr': 'FSR'}
-                        if label in label_dic:
-                            label = label_dic[label]
-
-                        hep.histplot(syst_fraction_up, self.bins.gen_rho_edges_by_pt[i], label=f"{label}")
-                if syst.endswith('Down'):
-                    syst_down = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
-                    if syst.startswith('herwig'):
-                        ## case when fetching uncertainty from non-closure of herwig
-                        # diff_down = nominal*self.herwig_unc[i]
-                        ## regular
-                        diff_down = syst_down - nominal
-                    else:
-                        diff_down = syst_down - nominal
-                    syst_fraction_down = np.abs(diff_down / nominal)
-                    syst_fraction_dict[f"{syst}"] = syst_fraction_down
-            input_stat_fraction = self.input_stat_unc_pt_binned[i]
-            matrix_stat_fraction = self.matrix_stat_unc_pt_binned[i]
-            stat_fraction = self.stat_unc_pt_binned[i]
-            #hep.histplot(input_stat_fraction, self.bins.gen_rho_edges_by_pt[i], label="Input statistical Uncertainty", ls='--')
-            #hep.histplot(matrix_stat_fraction, self.bins.gen_rho_edges_by_pt[i], label="Matrix uncertainty", ls='-.')
-            hep.histplot(stat_fraction, self.bins.gen_rho_edges_by_pt[i], label="Stat Unc", ls=':')
-
-            # Calculate systematic fraction
-            total_syst_fraction_up = np.abs(total_syst_up / np.abs(nominal))
-            total_syst_fraction_down = np.abs(total_syst_down / np.abs(nominal))
-
-            # Store total up/down uncertainties as well
-            syst_fraction_dict['Total_Up'] = total_syst_fraction_up
-            syst_fraction_dict['Total_Down'] = total_syst_fraction_down
-
-            # Save the dictionary for this pt bin as a class attribute
+            pt_bin = result["pt_bin"]
+            syst_fraction_dict = self._build_syst_fraction_dict(i)
+            result["syst_fraction_dict"] = syst_fraction_dict
             self.syst_fraction_dicts.append(syst_fraction_dict)
-            result['syst_fraction_dict'] = syst_fraction_dict
 
-            # # Calculate systematic fraction
-            # total_syst_fraction_up = total_syst_up / nominal
-            # total_syst_fraction_down = total_syst_down / nominal
+            plot_fraction_dict = self._group_syst_fraction_dict(syst_fraction_dict) if grouped else syst_fraction_dict
 
-            # # Store total up/down uncertainties as well
-            # syst_fraction_dict['Total_Up'] = total_syst_fraction_up
-            # syst_fraction_dict['Total_Down'] = total_syst_fraction_down
+            plotted_labels = set()
+            for syst_name, syst_fraction in plot_fraction_dict.items():
+                if syst_name in {"Stat Unc", "Total_Up", "Total_Down"} or syst_name.endswith("Down"):
+                    continue
 
-            # # Save the dictionary for this pt bin
-            # result['syst_fraction_dict'] = syst_fraction_dict
+                label = syst_name[:-2] if syst_name.endswith("Up") else syst_name
+                if label in plotted_labels:
+                    continue
 
-            # Plot the systematic fraction
-            hep.histplot(total_syst_fraction_up, 
-                        self.bins.gen_rho_edges_by_pt[i], 
-                        label=f"Total ", color = 'k', lw = 3)
-            plt.yscale('log')
-            if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
+                linestyle = "-." if label == "Model Uncertainty" else "-"
+                hep.histplot(syst_fraction, self.bins.gen_rho_edges_by_pt[i], label=label, ls=linestyle)
+                plotted_labels.add(label)
+
+            hep.histplot(plot_fraction_dict["Stat Unc"], self.bins.gen_rho_edges_by_pt[i], label="Stat Unc", ls=":")
+            hep.histplot(
+                plot_fraction_dict["Total_Up"],
+                self.bins.gen_rho_edges_by_pt[i],
+                label="Total",
+                color="k",
+                lw=3,
+            )
+
+            plt.yscale("log")
+            if pt_bin[1] == float("inf") or pt_bin[1] > 100000:
                 pt_bin_label = f"{pt_bin[0]}–∞"
             else:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
-            plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", loc='center left', bbox_to_anchor=(1, 0.5))
-            hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
-            # if self.groomed:
-            #     plt.xlim(20,250)
-                
-            # else:
-            #     plt.xlim(10,250)
-            # # place the last x-tick at 250 and label it with infinity
-            # edges = np.array(self.bins.gen_mass_edges_by_pt[i], dtype=float)
-            # ticks = edges.copy()
-            # ticks[-1] = 250.0
-            # # remove the third tick to reduce clutter (index 2) if it exists
-            # if ticks.size > 2:
-            #     ticks = np.delete(ticks, 2)
-            # # disable minor ticks on the x-axis
-            # plt.gca().tick_params(axis='x', which='minor', bottom=False, top=False)
-            # # create human-readable labels for ticks and replace the last one with infinity
-            # labels = [str(int(x)) if float(x).is_integer() else f"{x}" for x in ticks]
-            # labels[-1] = r"$\infty$"
-            # plt.xticks(ticks, labels)
+
+            ax = plt.gca()
+            handles, labels = ax.get_legend_handles_labels()
+            if grouped:
+                label_to_handle = dict(zip(labels, handles))
+                ordered_labels = [label for label in grouped_legend_order if label in label_to_handle]
+                ordered_handles = [label_to_handle[label] for label in ordered_labels]
+                ax.legend(
+                    ordered_handles,
+                    ordered_labels,
+                    title=rf"$p_T$  {pt_bin_label} GeV",
+                    loc="center left",
+                    bbox_to_anchor=(1.01, 0.5),
+                    borderaxespad=0.0,
+                )
+            else:
+                ax.legend(
+                    title=rf"$p_T$  {pt_bin_label} GeV",
+                    loc="center left",
+                    bbox_to_anchor=(1.01, 0.5),
+                    borderaxespad=0.0,
+                )
+            hep.cms.label(self._cms_extra_label(), data=True, lumi=138, com=13, fontsize=20, ax=ax)
             plt.ylim(10e-5, 1)
             if self.groomed:
-                plt.xlim(-4.5,0)
+                plt.xlim(-4.5, 0)
             else:
                 plt.xlim(-2.5, 0)
-            plt.xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
-            plt.ylabel("Fractional Uncertainty")
-            ax = plt.gca()
-            ax.tick_params(axis='x', pad=8)
-            ax.tick_params(axis='y', pad=8)
-            plt.subplots_adjust(left=0.16, right=0.78, bottom=0.15)
-            save_path = f'./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf' if self.groomed else f'./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf'
+            ax.set_xlabel(r"Groomed Jet $\log_{10}(\rho^2)$" if self.groomed else r"Ungroomed Jet $\log_{10}(\rho^2)$")
+            ax.set_ylabel("Fractional Uncertainty")
+            ax.tick_params(axis="x", pad=8)
+            ax.tick_params(axis="y", pad=8)
+
+            if grouped:
+                save_path = (
+                    f"./outputs/rho/uncertainties/summary_grouped_groomed_{i-1}.pdf"
+                    if self.groomed
+                    else f"./outputs/rho/uncertainties/summary_grouped_ungroomed_{i-1}.pdf"
+                )
+            else:
+                save_path = (
+                    f"./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf"
+                    if self.groomed
+                    else f"./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf"
+                )
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
+    def plot_systematic_fraction_grouped(self, show=True):
+        self._plot_systematic_fraction_summary(grouped=True, show=show)
 
     
     def plot_systematic_frac_indiv(self, syst_names=['JES', 'JER'], ylim=None, show=True):
@@ -1575,12 +1554,14 @@ class Unfolder:
         self.plot_unfolded_summary_linear(show=show)
         self.plot_statistical_fraction(show=show)
         self.plot_systematic_fraction(show=show)
+        self.plot_systematic_fraction_grouped(show=show)
         self.plot_herwig_systematic(show=show)
         self.plot_systematic_frac_indiv(["JES", "JER"], show=show)
         self.plot_systematic_frac_indiv(["JMS", "JMR"], show=show)
         self.plot_systematic_frac_indiv(["q2", "pdf", "pu", "l1prefiring"], show=show)
         self.plot_systematic_frac_indiv(["herwig"], show=show)
         self.plot_systematic_frac_indiv(["ElectronSF", "MuonSF"], show=show)
+        self.plot_systematic_frac_indiv(["isr", "fsr"], show=show)
         self.plot_correlation(show=show)
         self.plot_unfolded(show=show)
         self.plot_response_matrix(probability=True, show=show)
