@@ -225,13 +225,29 @@ class Unfolder:
             return sys_matrix_dic[syst], proj.variances(flow=False)
         return sys_matrix_dic[syst], None
 
+    def _compute_fake_fraction(self, fakes_flat, matched_flat):
+        total_reco = matched_flat + fakes_flat
+        with np.errstate(divide="ignore", invalid="ignore"):
+            fake_fraction = np.divide(
+                fakes_flat,
+                total_reco,
+                out=np.zeros_like(fakes_flat, dtype=float),
+                where=total_reco > 0,
+            )
+        return np.clip(fake_fraction, 0.0, 1.0)
+
     def _finalize_reco_views(self, mass_edges_reco, reco_mass_edges_by_pt):
         self.M_np_2d = self.M_np_2d_dict["nominal"]
         self.mosaic = self.mosaic_dict["nominal"]
         self.mosaic_2d = merge_mass_flat(self.h2d, mass_edges_reco, reco_mass_edges_by_pt)
+        self.fake_fraction_2d = self._compute_fake_fraction(self.fakes_2d, self.mosaic.sum(axis=1))
 
         if "herwigUp" in self.systematics or "herwigDown" in self.systematics:
             self.mosaic_herwig_2d = merge_mass_flat(self.h2d_herwig, mass_edges_reco, reco_mass_edges_by_pt)
+            self.fake_fraction_2d_herwig = self._compute_fake_fraction(
+                self.fakes_2d_herwig,
+                self.mosaic_herwig_2d,
+            )
 
     def _load_data(self, filename_mc='latest_pkl/0508/mc_0508_full.pkl', filename_data="latest_pkl/0508/data_0508_full.pkl", filename_herwig='latest_pkl/0508/herwig_0508_full.pkl', filename_jk_data=DEFAULT_JK_DATA_FILE):
         print("------------- Adding inputs to unfolder -----------------")
@@ -433,6 +449,17 @@ class Unfolder:
                 meas_flat = self.mosaic_herwig_2d
         return meas_flat
 
+    def _apply_fake_correction(self, meas_flat, systematic, closure, herwig_closure):
+        if closure or herwig_closure:
+            return meas_flat
+
+        fake_fraction = self.fake_fraction_2d
+        if systematic in {"herwigUp", "herwigDown"} and hasattr(self, "fake_fraction_2d_herwig"):
+            fake_fraction = self.fake_fraction_2d_herwig
+
+        corrected = np.asarray(meas_flat, dtype=float) * (1.0 - fake_fraction)
+        return np.clip(corrected, 0.0, None)
+
     def _build_root_binning(self):
         truth_root = ROOT.TUnfoldBinning("truth")
         reco_root = ROOT.TUnfoldBinning("reco")
@@ -527,6 +554,7 @@ class Unfolder:
         if resp_np is None:
             resp_np = self.mosaic_dict[systematic]
         meas_flat = self._select_measured_spectrum(closure, herwig_closure, meas_flat)
+        meas_flat = self._apply_fake_correction(meas_flat, systematic, closure, herwig_closure)
 
         true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
         n_reco, n_true = resp_np.shape
