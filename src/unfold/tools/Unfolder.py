@@ -12,7 +12,7 @@ import ROOT
 import numpy as np
 import matplotlib.colors as mcolors
 from cycler import cycler
-plt.rcParams["axes.prop_cycle"] = cycler(color=plt.cm.tab20.colors)
+plt.rcParams["axes.prop_cycle"] = cycler(color=['#5790fc', '#f89c20', '#e42536', '#964a8b', '#9c9ca1', '#7a21dd'])
 
 
 
@@ -502,7 +502,7 @@ class Unfolder:
             bin_widths_reco = np.diff(self.bins.reco_mass_edges_by_pt[i])
             #self.normalized_herwig.append(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum())
             #hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_mass_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
-            hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_mass_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
+            hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_mass_edges_by_pt[i], color='#5790fc', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
             hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.bins.gen_mass_edges_by_pt[i], yerr = np.abs(error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()), label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
             #hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'k', ls= '--', alpha= 0.5, label = 'Meas' )
             #dhep.histplot(reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(), self.bins.reco_mass_edges_by_pt[i], color = 'g', ls= '--', alpha= 0.5, label = 'Reco_MC' )

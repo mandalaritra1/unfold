@@ -107,13 +107,13 @@ def card_html(path: Path, root: Path, dpi: int) -> str:
         preview = ensure_pdf_preview(path, root, dpi)
         preview_src = html.escape(rel(preview, root))
         media = (
-            f'<a href="{href}" target="_blank" rel="noreferrer">'
+            f'<a class="preview-link" href="{preview_src}" data-preview-src="{preview_src}" data-preview-alt="{title} preview">'
             f'<img src="{preview_src}" alt="{title} preview" loading="lazy"></a>'
         )
         open_label = "Open PDF"
     else:
         media = (
-            f'<a href="{href}" target="_blank" rel="noreferrer">'
+            f'<a class="preview-link" href="{href}" data-preview-src="{href}" data-preview-alt="{title} preview">'
             f'<img src="{href}" alt="{title} preview" loading="lazy"></a>'
         )
         open_label = "Open Image"
@@ -136,7 +136,15 @@ def card_html(path: Path, root: Path, dpi: int) -> str:
     """
 
 
-def build_html(root: Path, output: Path, dpi: int) -> None:
+def build_html(
+    root: Path,
+    output: Path,
+    dpi: int,
+    *,
+    page_title: str = "rho plot gallery",
+    hero_title: str = "rho plot gallery",
+    hero_copy: str | None = None,
+) -> None:
     files = collect_files(root)
     groups: dict[str, list[Path]] = defaultdict(list)
     for path in files:
@@ -161,12 +169,22 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
             """
         )
 
+    hero_copy_html = (
+        hero_copy
+        if hero_copy is not None
+        else (
+            f"Static review view for plots already written under "
+            f"<code>{html.escape(str(root))}</code>. "
+            f"PDF previews are cached in <code>{html.escape(str(root / PREVIEW_DIRNAME))}</code>."
+        )
+    )
+
     template = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>rho plot gallery</title>
+  <title>{html.escape(page_title)}</title>
   <style>
     :root {{
       --bg: #10151d;
@@ -194,9 +212,9 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
         linear-gradient(180deg, #17202b 0%, var(--bg) 45%, var(--bg-deep) 100%);
     }}
     .shell {{
-      max-width: 1500px;
+      max-width: 1920px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 24px 24px 40px;
     }}
     .hero {{
       position: sticky;
@@ -271,15 +289,15 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
     }}
     .grid {{
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
     }}
     .card {{
       background:
         linear-gradient(180deg, rgba(30, 39, 54, 0.98), var(--panel));
       border: 1px solid var(--line);
       border-radius: 18px;
-      padding: 14px;
+      padding: 18px;
       box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
       transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
     }}
@@ -295,13 +313,13 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
       margin-bottom: 10px;
     }}
     .card-title {{
-      font-size: 1.05rem;
+      font-size: 1.35rem;
       font-weight: 700;
       line-height: 1.2;
     }}
     .card-meta {{
       color: var(--muted);
-      font-size: 0.85rem;
+      font-size: 1rem;
     }}
     .card-type {{
       color: #f6ead8;
@@ -322,6 +340,9 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
       border: 1px solid var(--line);
       background: white;
     }}
+    .preview-link {{
+      display: block;
+    }}
     .card-actions {{
       display: flex;
       gap: 10px;
@@ -333,7 +354,8 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
       color: var(--ink);
       border: 1px solid var(--line);
       border-radius: 999px;
-      padding: 8px 12px;
+      padding: 10px 16px;
+      font-size: 1rem;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
     }}
     .btn:hover {{
@@ -348,7 +370,68 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
     .hidden {{
       display: none !important;
     }}
+    .lightbox {{
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: rgba(5, 8, 14, 0.82);
+      backdrop-filter: blur(8px);
+    }}
+    .lightbox[hidden] {{
+      display: none;
+    }}
+    .lightbox-dialog {{
+      position: relative;
+      max-width: min(94vw, 1800px);
+      max-height: 92vh;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(24, 31, 42, 0.98), rgba(16, 21, 29, 0.98));
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.42);
+    }}
+    .lightbox-image {{
+      display: block;
+      max-width: min(90vw, 1720px);
+      max-height: calc(92vh - 32px);
+      width: auto;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+    }}
+    .lightbox-close {{
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(12, 17, 24, 0.82);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }}
+    .lightbox-close:hover {{
+      border-color: var(--accent);
+      color: var(--accent);
+    }}
+    @media (max-width: 1200px) {{
+      .grid {{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }}
+    }}
     @media (max-width: 800px) {{
+      .grid {{
+        grid-template-columns: 1fr;
+      }}
       .controls {{
         grid-template-columns: 1fr;
       }}
@@ -358,10 +441,9 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
 <body>
   <div class="shell">
     <div class="hero">
-      <h1>rho plot gallery</h1>
+      <h1>{html.escape(hero_title)}</h1>
       <div class="hero-copy">
-        Static review view for plots already written under <code>{html.escape(str(root))}</code>.
-        PDF previews are cached in <code>{html.escape(str(root / PREVIEW_DIRNAME))}</code>.
+        {hero_copy_html}
       </div>
       <div class="controls">
         <input id="filter" type="search" placeholder="Filter by file name or folder">
@@ -370,11 +452,21 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
     </div>
     {''.join(sections)}
   </div>
+  <div class="lightbox" id="lightbox" hidden>
+    <div class="lightbox-dialog" role="dialog" aria-modal="true" aria-label="Expanded preview">
+      <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close preview">&times;</button>
+      <img class="lightbox-image" id="lightbox-image" alt="">
+    </div>
+  </div>
   <script>
     const cards = Array.from(document.querySelectorAll('.card'));
     const sections = Array.from(document.querySelectorAll('.section'));
     const count = document.getElementById('visible-count');
     const filter = document.getElementById('filter');
+    const previewLinks = Array.from(document.querySelectorAll('.preview-link'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxClose = document.getElementById('lightbox-close');
 
     function update() {{
       const term = filter.value.trim().toLowerCase();
@@ -391,6 +483,39 @@ def build_html(root: Path, output: Path, dpi: int) -> None:
       }}
       count.textContent = String(visible);
     }}
+
+    function closeLightbox() {{
+      lightbox.hidden = true;
+      lightboxImage.removeAttribute('src');
+      lightboxImage.alt = '';
+      document.body.style.overflow = '';
+    }}
+
+    function openLightbox(src, alt) {{
+      lightboxImage.src = src;
+      lightboxImage.alt = alt;
+      lightbox.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }}
+
+    for (const link of previewLinks) {{
+      link.addEventListener('click', (event) => {{
+        event.preventDefault();
+        openLightbox(link.dataset.previewSrc, link.dataset.previewAlt || 'Expanded preview');
+      }});
+    }}
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (event) => {{
+      if (event.target === lightbox) {{
+        closeLightbox();
+      }}
+    }});
+    document.addEventListener('keydown', (event) => {{
+      if (event.key === 'Escape' && !lightbox.hidden) {{
+        closeLightbox();
+      }}
+    }});
 
     filter.addEventListener('input', update);
     update();

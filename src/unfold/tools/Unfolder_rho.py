@@ -15,7 +15,7 @@ from unfold.tools import binning
 from unfold.utils.integrate_and_rebin import *
 from unfold.utils.merge_helpers import *
 
-plt.rcParams["axes.prop_cycle"] = cycler(color=plt.cm.tab20.colors)
+plt.rcParams["axes.prop_cycle"] = cycler(color=['#5790fc', '#f89c20', '#e42536', '#964a8b', '#9c9ca1', '#7a21dd'])
 
 DEFAULT_MC_FILE = "./inputs/rhoInputs/jms_pythiaV2_all_syst.pkl"
 DEFAULT_DATA_FILE = "./inputs/rhoInputs/data_all.pkl"
@@ -629,7 +629,7 @@ class Unfolder:
             # two-panel plot: main + ratio
             fig, (ax_top, ax_bot) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
             plt.sca(ax_top)
-            hep.histplot(folded_pt_binned[i]/bin_widths_reco/folded_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], label='Folded', color='r', alpha=0.8, ls='dotted', lw=3, ax=ax_top)
+            hep.histplot(folded_pt_binned[i]/bin_widths_reco/folded_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], label='Folded', color='#e42536', alpha=0.8, ls='dotted', lw=3, ax=ax_top)
             hep.histplot(measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(), self.bins.reco_rho_edges_by_pt[i], color='k', ls='--', alpha=1, label='Measured Data', ax=ax_top)
 
             # ratio (Measured / Folded)
@@ -762,7 +762,7 @@ class Unfolder:
             
             ax.axhline(1.0, color='gray', ls='--')
             hep.histplot(ratio_unf_true, self.bins.gen_rho_edges_by_pt[i], yerr = np.abs(error),label='Unfolded / True', color='k', ls='--')
-            hep.histplot(ratio_meas_reco, self.bins.reco_rho_edges_by_pt[i],  label='Measured / Reco_MC', color='r', ls=':')
+            hep.histplot(ratio_meas_reco, self.bins.reco_rho_edges_by_pt[i],  label='Measured / Reco_MC', color='#e42536', ls=':')
             ax.set_ylabel('Ratio')
             ax.set_xlim(self.bins.gen_rho_edges_by_pt[i][0], self.bins.gen_rho_edges_by_pt[i][-1])
             ax.set_ylim(0.5, 1.5)
@@ -934,7 +934,6 @@ class Unfolder:
             plt.xlim(-4.5, 0)
         else:
             plt.xlim(-2.5, 0)
-        plt.ylim(bottom=0)
 
         save_path = f"./outputs/rho/groomed_summary_linear.pdf" if self.groomed else f"./outputs/rho/ungroomed_summary_linear.pdf"
         self._finalize_plot(save_path=save_path, show=show, fig=fig)
@@ -959,9 +958,9 @@ class Unfolder:
             bin_widths_reco = np.diff(self.bins.reco_rho_edges_by_pt[i])
             #self.normalized_herwig.append(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum())
             if self.herwig_closure:
-                hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'green', label = 'Herwig', alpha = 0.7, ls = 'dotted')
+                hep.histplot(true_herwig_pt_binned[i]/bin_widths/true_herwig_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color='#964a8b', label = 'Herwig', alpha = 0.7, ls = 'dotted')
             else:
-                hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color = 'b', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
+                hep.histplot(true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], color='#5790fc', label = 'PYTHIA', alpha = 0.8, ls = 'dotted', lw = 3)
             hep.histplot(unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), self.bins.gen_rho_edges_by_pt[i], label = 'Unfolded Herwig' if self.herwig_closure else 'Unfolded', color = 'k', ls = '--' )
 
             
@@ -997,7 +996,7 @@ class Unfolder:
                 unfolded = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum()
                 herwig_closure_unc = np.abs(true_herwig - unfolded) / true_herwig
                 self.herwig_closure_unc.append(herwig_closure_unc)
-                plt.stairs(herwig_closure_unc, self.bins.gen_rho_edges_by_pt[i], label = 'Closure Unc (|Herwig - Unfolded| / Herwig)', color = 'g', ls = 'dotted')
+                plt.stairs(herwig_closure_unc, self.bins.gen_rho_edges_by_pt[i], label = 'Closure Unc (|Herwig - Unfolded| / Herwig)', color='#7a21dd', ls = 'dotted')
                 if not self.groomed:
                     plt.xlim(-2.5, 0)
                 else:
@@ -1176,8 +1175,8 @@ class Unfolder:
             )
             self._finalize_plot(save_path=save_path, show=show)
 
-    def plot_systematic_fraction(self, syst_name='all', show=True):
-        self._plot_systematic_fraction_summary(grouped=False, show=show)
+    def plot_systematic_fraction(self, syst_name='all', show=True, log=True):
+        self._plot_systematic_fraction_summary(grouped=False, show=show, log=log)
 
     def _get_systematic_group_name(self, syst_name):
         syst_lower = syst_name.lower()
@@ -1213,6 +1212,43 @@ class Unfolder:
         }
         return label_map.get(base_name.lower(), base_name)
 
+    def _get_systematic_summary_name(self, syst_name, grouped=False):
+        if grouped:
+            group_name = self._get_systematic_group_name(syst_name)
+            if group_name is not None:
+                return group_name
+            return self._get_systematic_label(syst_name)
+
+        base_name = syst_name[:-2] if syst_name.endswith(("Up", "Down")) else syst_name
+        base_lower = base_name.lower()
+        summary_map = {
+            "elereco": "Electron RECO",
+            "eleid": "Electron ID",
+            "eletrig": "Electron Trigger",
+            "mureco": "Muon RECO",
+            "muid": "Muon ID",
+            "mutrig": "Muon Trigger",
+            "muiso": "Muon ISO",
+            "pu": "Pileup",
+            "pdf": "PDF",
+            "q2": "Q2 Scale",
+            "l1prefiring": "L1 Prefiring",
+            "herwig": "Model Uncertainty",
+        }
+        if base_lower.startswith("jes"):
+            return "JES"
+        if base_lower.startswith("jer"):
+            return "JER"
+        if base_lower.startswith("isr"):
+            return "ISR"
+        if base_lower.startswith("fsr"):
+            return "FSR"
+        if base_lower.startswith("jmr"):
+            return "JMR"
+        if base_lower.startswith("jms"):
+            return "JMS"
+        return summary_map.get(base_lower, self._get_systematic_label(syst_name))
+
     def _build_syst_fraction_dict(self, pt_index):
         result = self.normalized_results[pt_index]
         nominal = result["unfolded"]
@@ -1234,7 +1270,7 @@ class Unfolder:
         syst_fraction_dict["Total_Down"] = total_syst_fraction_down
         return syst_fraction_dict
 
-    def _group_syst_fraction_dict(self, syst_fraction_dict):
+    def _group_syst_fraction_dict(self, syst_fraction_dict, grouped=True):
         grouped_fraction_dict = {}
         accumulators = {}
 
@@ -1242,8 +1278,7 @@ class Unfolder:
             if syst_name in {"Stat Unc", "Total_Up", "Total_Down"}:
                 continue
 
-            group_name = self._get_systematic_group_name(syst_name)
-            target_name = group_name if group_name is not None else self._get_systematic_label(syst_name)
+            target_name = self._get_systematic_summary_name(syst_name, grouped=grouped)
 
             if syst_name.endswith("Down"):
                 target_key = f"{target_name}Down"
@@ -1262,8 +1297,9 @@ class Unfolder:
         grouped_fraction_dict["Total_Down"] = syst_fraction_dict["Total_Down"]
         return grouped_fraction_dict
 
-    def _plot_systematic_fraction_summary(self, grouped=False, show=True):
+    def _plot_systematic_fraction_summary(self, grouped=False, show=True, log=True):
         self.syst_fraction_dicts = []
+        linear_ymax = 0.5
         grouped_legend_order = [
             "Jet Energy",
             "Jet Mass",
@@ -1274,6 +1310,33 @@ class Unfolder:
             "Stat Unc",
             "Total",
         ]
+        summary_style_map = {
+            "JES": {"color": "#1f77b4", "ls": "-"},
+            "JER": {"color": "#ff7f0e", "ls": "-"},
+            "Pileup": {"color": "#d62728", "ls": "-"},
+            "Electron RECO": {"color": "#9467bd", "ls": "-"},
+            "Electron ID": {"color": "#8c564b", "ls": "-"},
+            "Electron Trigger": {"color": "#e377c2", "ls": "-"},
+            "Muon RECO": {"color": "#7f7f7f", "ls": "-"},
+            "Muon ID": {"color": "#bcbd22", "ls": "-"},
+            "Muon Trigger": {"color": "#17becf", "ls": "-"},
+            "Muon ISO": {"color": "#4c78a8", "ls": "-"},
+            "PDF": {"color": "#f58518", "ls": "-"},
+            "Q2 Scale": {"color": "#54a24b", "ls": "-"},
+            "L1 Prefiring": {"color": "#eeca3b", "ls": "-"},
+            "ISR": {"color": "#b279a2", "ls": "-"},
+            "FSR": {"color": "#ff9da6", "ls": "-"},
+            "JMR": {"color": "#9d755d", "ls": "-"},
+            "JMS": {"color": "#bab0ab", "ls": "-"},
+            "Jet Energy": {"color": "#1f77b4", "ls": "-"},
+            "Jet Mass": {"color": "#2ca02c", "ls": "-"},
+            "Parton Shower": {"color": "#d62728", "ls": "-"},
+            "Lepton SFs": {"color": "#9467bd", "ls": "-"},
+            "Other Theory": {"color": "#8c564b", "ls": "-"},
+            "Model Uncertainty": {"color": "#7f3c8d", "ls": "-."},
+            "Stat Unc": {"color": "#4c78a8", "ls": ":"},
+            "Total": {"color": "k", "ls": "-", "lw": 3},
+        }
 
         for i, result in enumerate(self.normalized_results):
             fig = plt.figure(figsize=(12, 8))
@@ -1282,7 +1345,9 @@ class Unfolder:
             result["syst_fraction_dict"] = syst_fraction_dict
             self.syst_fraction_dicts.append(syst_fraction_dict)
 
-            plot_fraction_dict = self._group_syst_fraction_dict(syst_fraction_dict) if grouped else syst_fraction_dict
+            plot_fraction_dict = self._group_syst_fraction_dict(syst_fraction_dict, grouped=grouped)
+            rho_edges = np.asarray(self.bins.gen_rho_edges_by_pt[i], dtype=float)
+            rho_centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
 
             plotted_labels = set()
             for syst_name, syst_fraction in plot_fraction_dict.items():
@@ -1293,20 +1358,44 @@ class Unfolder:
                 if label in plotted_labels:
                     continue
 
-                linestyle = "-." if label == "Model Uncertainty" else "-"
-                hep.histplot(syst_fraction, self.bins.gen_rho_edges_by_pt[i], label=label, ls=linestyle)
+                style = summary_style_map.get(label, {"ls": "-"})
+                hep.histplot(
+                    syst_fraction,
+                    self.bins.gen_rho_edges_by_pt[i],
+                    label=label,
+                    **style,
+                )
                 plotted_labels.add(label)
 
-            hep.histplot(plot_fraction_dict["Stat Unc"], self.bins.gen_rho_edges_by_pt[i], label="Stat Unc", ls=":")
+            hep.histplot(
+                plot_fraction_dict["Stat Unc"],
+                self.bins.gen_rho_edges_by_pt[i],
+                label="Stat Unc",
+                **summary_style_map["Stat Unc"],
+            )
             hep.histplot(
                 plot_fraction_dict["Total_Up"],
                 self.bins.gen_rho_edges_by_pt[i],
                 label="Total",
-                color="k",
-                lw=3,
+                **summary_style_map["Total"],
             )
 
-            plt.yscale("log")
+            if not log:
+                ax = plt.gca()
+                for x_pos, y_val in zip(rho_centers, np.asarray(plot_fraction_dict["Total_Up"], dtype=float)):
+                    if y_val > linear_ymax:
+                        ax.text(
+                            x_pos,
+                            linear_ymax - 0.015,
+                            f"{y_val:.2f}",
+                            ha="center",
+                            va="top",
+                            fontsize=13,
+                            clip_on=True,
+                        )
+
+            if log:
+                plt.yscale("log")
             if pt_bin[1] == float("inf") or pt_bin[1] > 100000:
                 pt_bin_label = f"{pt_bin[0]}–∞"
             else:
@@ -1334,7 +1423,10 @@ class Unfolder:
                     borderaxespad=0.0,
                 )
             hep.cms.label(self._cms_extra_label(), data=True, lumi=138, com=13, fontsize=20, ax=ax)
-            plt.ylim(10e-5, 1)
+            if log:
+                plt.ylim(10e-5, 1)
+            else:
+                plt.ylim(0, linear_ymax)
             if self.groomed:
                 plt.xlim(-4.5, 0)
             else:
@@ -1345,21 +1437,35 @@ class Unfolder:
             ax.tick_params(axis="y", pad=8)
 
             if grouped:
-                save_path = (
-                    f"./outputs/rho/uncertainties/summary_grouped_groomed_{i-1}.pdf"
-                    if self.groomed
-                    else f"./outputs/rho/uncertainties/summary_grouped_ungroomed_{i-1}.pdf"
-                )
+                if log:
+                    save_path = (
+                        f"./outputs/rho/uncertainties/summary_grouped_groomed_{i-1}.pdf"
+                        if self.groomed
+                        else f"./outputs/rho/uncertainties/summary_grouped_ungroomed_{i-1}.pdf"
+                    )
+                else:
+                    save_path = (
+                        f"./outputs/rho/uncertainties/summary_grouped_linear_groomed_{i-1}.pdf"
+                        if self.groomed
+                        else f"./outputs/rho/uncertainties/summary_grouped_linear_ungroomed_{i-1}.pdf"
+                    )
             else:
-                save_path = (
-                    f"./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf"
-                    if self.groomed
-                    else f"./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf"
-                )
+                if log:
+                    save_path = (
+                        f"./outputs/rho/uncertainties/summary_groomed_{i-1}.pdf"
+                        if self.groomed
+                        else f"./outputs/rho/uncertainties/summary_ungroomed_{i-1}.pdf"
+                    )
+                else:
+                    save_path = (
+                        f"./outputs/rho/uncertainties/summary_linear_groomed_{i-1}.pdf"
+                        if self.groomed
+                        else f"./outputs/rho/uncertainties/summary_linear_ungroomed_{i-1}.pdf"
+                    )
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
-    def plot_systematic_fraction_grouped(self, show=True):
-        self._plot_systematic_fraction_summary(grouped=True, show=show)
+    def plot_systematic_fraction_grouped(self, show=True, log=True):
+        self._plot_systematic_fraction_summary(grouped=True, show=show, log=log)
 
     
     def plot_systematic_frac_indiv(self, syst_names=['JES', 'JER'], ylim=None, show=True):
@@ -1385,7 +1491,7 @@ class Unfolder:
             for syst in syst_names:
                 up_key = f"{syst}Up"
                 down_key = f"{syst}Down"
-                color_map = ['red', 'blue', 'green']
+                color_map = ['#e42536', '#5790fc', '#964a8b']
                 color = color_map[syst_names.index(syst)] if syst in syst_names and syst_names.index(syst) < len(color_map) else None
 
                 # Plot Up uncertainty (solid)
@@ -1428,7 +1534,7 @@ class Unfolder:
             error_in_syst = uncertainty_pt_binned[i]*syst_fraction_dict['herwigUp']  # Uncertainty on relative uncertainty
             pt_bin = result['pt_bin']
             if 'herwigUp' in syst_fraction_dict:
-                hep.histplot(syst_fraction_dict['herwigUp'], self.bins.gen_rho_edges_by_pt[i], yerr = error_in_syst, label=f"Model Unc.", color='g', ls='-')
+                hep.histplot(syst_fraction_dict['herwigUp'], self.bins.gen_rho_edges_by_pt[i], yerr = error_in_syst, label=f"Model Unc.", color='#964a8b', ls='-')
 
 
             # Fit a polynomial to the herwigUp systematic fraction
@@ -1443,7 +1549,7 @@ class Unfolder:
                     coeffs = np.polyfit(centers[mask], y[mask], degree, w=1.0/np.where(error_in_syst[mask] > 0, error_in_syst[mask], 1e-10))
                     poly = np.poly1d(coeffs)
                     x_fit = np.linspace(centers[mask][1], centers[mask][-1], 200)
-                    plt.plot(x_fit, poly(x_fit), 'b--', lw=2, label=f"Poly fit (deg {degree})")
+                    plt.plot(x_fit, poly(x_fit), color='#5790fc', ls='--', lw=2, label=f"Poly fit (deg {degree})")
 
             if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
                 pt_bin_label = f"{pt_bin[0]}–∞"
@@ -1577,12 +1683,125 @@ class Unfolder:
         )
         self._finalize_plot(show=show, fig=fig)
 
+    def plot_uncertainty_heatmap(self, show=True):
+        """
+        2D heatmap of fractional uncertainties: rows = systematic groups,
+        columns = rho bins, color = uncertainty magnitude in %.
+        Gives an at-a-glance budget matrix showing which source dominates
+        in which part of the spectrum. One figure per pT bin.
+        """
+        group_order = [
+            "Jet Energy",
+            "Jet Mass",
+            "Parton Shower",
+            "Lepton SFs",
+            "Other Theory",
+            "Model Uncertainty",
+            "Stat Unc",
+            "Total",
+        ]
+
+        # Observable display limits (mirror the hardcoded xlim used in other plots)
+        x_lo = -4.5 if self.groomed else -2.5
+        obs_label = (r"$\log_{10}(\rho^2)$, Groomed" if self.groomed
+                     else r"$\log_{10}(\rho^2)$, Ungroomed")
+
+        for i, result in enumerate(self.normalized_results):
+            syst_fraction_dict = self._build_syst_fraction_dict(i)
+            grouped_dict = self._group_syst_fraction_dict(syst_fraction_dict, grouped=True)
+
+            # Compute per-group envelope: max(Up, Down) for each group
+            envelopes = {}
+            seen_bases = set()
+            for key in grouped_dict:
+                if key in {"Stat Unc", "Total_Up", "Total_Down"}:
+                    continue
+                base = key[:-4] if key.endswith("Down") else key[:-2]
+                if base not in seen_bases:
+                    seen_bases.add(base)
+                    up = grouped_dict.get(f"{base}Up", np.zeros_like(grouped_dict[key]))
+                    down = grouped_dict.get(f"{base}Down", np.zeros_like(grouped_dict[key]))
+                    envelopes[base] = np.maximum(up, down)
+
+            envelopes["Stat Unc"] = grouped_dict["Stat Unc"]
+            envelopes["Total"] = np.maximum(
+                grouped_dict.get("Total_Up", np.zeros(1)),
+                grouped_dict.get("Total_Down", np.zeros(1)),
+            )
+
+            # Build matrix in the predefined group order, skipping absent groups
+            rows = [g for g in group_order if g in envelopes]
+            matrix = np.array([envelopes[row] for row in rows]) * 100.0  # → percent
+
+            edges = np.array(self.bins.gen_rho_edges_by_pt[i], dtype=float)
+            centers = 0.5 * (edges[:-1] + edges[1:])
+
+            # Trim columns below the observable lower limit
+            start_col = int(np.searchsorted(edges[:-1], x_lo, side='left'))
+            centers = centers[start_col:]
+            matrix = matrix[:, start_col:]
+
+            n_rows, n_cols = matrix.shape
+
+            fig_w = max(10, n_cols * 0.9 + 3)
+            fig_h = n_rows * 0.8 + 2.5
+            fig, ax = plt.subplots(figsize=(fig_w, fig_h))
+
+            vmax = 50.0
+
+            im = ax.imshow(matrix, aspect='auto', cmap='YlOrRd',
+                           vmin=0.0, vmax=vmax, origin='upper')
+
+            # Annotate every cell with its numeric value
+            for r in range(n_rows):
+                for c in range(n_cols):
+                    val = matrix[r, c]
+                    text_color = 'white' if val > vmax * 0.65 else 'black'
+                    ax.text(c, r, f"{val:.1f}", ha='center', va='center',
+                            fontsize=8, color=text_color, fontweight='bold')
+
+            ax.set_xticks(np.arange(n_cols))
+            ax.set_xticklabels([f"{c:.2f}" for c in centers],
+                               rotation=45, ha='right', fontsize=9)
+            ax.set_yticks(np.arange(n_rows))
+            ax.set_yticklabels(rows, fontsize=15)
+
+            # Visual separators: dashed blue before stat unc, solid black before total
+            if "Stat Unc" in rows:
+                ax.axhline(rows.index("Stat Unc") - 0.5, color='steelblue', lw=1.5, ls='--')
+            if "Total" in rows:
+                ax.axhline(rows.index("Total") - 0.5, color='black', lw=2.0)
+
+            # Aligned colorbar
+            from mpl_toolkits.axes_grid1 import make_axes_locatable
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="3%", pad=0.15)
+            cbar = fig.colorbar(im, cax=cax)
+            cbar.set_label("Fractional Uncertainty (%)", fontsize=11)
+
+            pt_bin = result['pt_bin']
+            if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
+                pt_bin_label = f"{int(pt_bin[0])}–∞ GeV"
+            else:
+                pt_bin_label = f"{int(pt_bin[0])}–{int(pt_bin[1])} GeV"
+
+            ax.set_xlabel(obs_label, fontsize=12)
+            ax.set_title(rf"Uncertainty budget  |  $p_T$: {pt_bin_label}", fontsize=13, pad=8)
+            hep.cms.label(self._cms_extra_label(), data=True, lumi=138, com=13,
+                          fontsize=16, ax=ax)
+
+            plt.tight_layout()
+            suffix = "groomed" if self.groomed else "ungroomed"
+            save_path = f"./outputs/rho/uncertainties/heatmap_{suffix}_{i-1}.pdf"
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
     def run_all_plots(self, show=False):
         self.plot_unfolded_fancy(show=show)
         self.plot_unfolded_summary_linear(show=show)
         self.plot_statistical_fraction(show=show)
         self.plot_systematic_fraction(show=show)
         self.plot_systematic_fraction_grouped(show=show)
+        self.plot_systematic_fraction_grouped(show=show, log=False)
         self.plot_herwig_systematic(show=show)
         self.plot_systematic_frac_indiv(["JES", "JER"], show=show)
         self.plot_systematic_frac_indiv(["JMS", "JMR"], show=show)
@@ -1591,6 +1810,7 @@ class Unfolder:
         self.plot_systematic_frac_indiv(["ElectronSF", "MuonSF"], show=show)
         self.plot_systematic_frac_indiv(["isr", "fsr"], show=show)
         self.plot_correlation(show=show)
+        self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
         self.plot_response_matrix(probability=True, show=show)
         self.plot_folded(show=show)

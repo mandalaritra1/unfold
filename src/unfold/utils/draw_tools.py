@@ -57,12 +57,12 @@ def plot_ratio(output_data, output_sys, mgen_edge, label1, label2):
     # Plot the unfolded data (main canvas)
     ax_main.stairs(y_data, mgen_edge, label=label1, color='k')
     # Plot the systematic variation (main canvas)
-    ax_main.stairs(y_sys, mgen_edge, label=label2, color='r', linestyle='--')
+    ax_main.stairs(y_sys, mgen_edge, label=label2, color='#e42536', linestyle='--')
     ax_main.set_ylabel("Normalized Rate")
     ax_main.legend(loc='best')
 
     # Plot the ratio (systematic over data)
-    ax_ratio.stairs(ratio, mgen_edge, label="Ratio (sys/data)", color='b')
+    ax_ratio.stairs(ratio, mgen_edge, label="Ratio (sys/data)", color='#5790fc')
     ax_ratio.axhline(1, color='gray', linestyle='--')  # Reference line at 1
     ax_ratio.set_xlabel("Bin Edge")
     ax_ratio.set_ylabel("Ratio")

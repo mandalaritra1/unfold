@@ -225,15 +225,15 @@ class AsymmetricErrorPlot:
         # Plot main data with error bars
         for (mass, value, stat_err_up, stat_err_down, total_err_up, total_err_down, width) in zip(masses, values_data, stat_unc_up, stat_unc_down, total_unc_up, total_unc_down, widths):
             #Total uncertainties
-            ax1.add_patch(plt.Rectangle((mass - width / 2, value - total_err_down), width, total_err_up + total_err_down, edgecolor='cyan', facecolor='cyan', label='Total Unc.'))
+            ax1.add_patch(plt.Rectangle((mass - width / 2, value - total_err_down), width, total_err_up + total_err_down, edgecolor='#9c9ca1', facecolor='#9c9ca1', label='Total Unc.'))
             # Statistical uncertainties
             #ax1.add_patch(plt.Rectangle((mass - width / 2, value - stat_err_down), width, stat_err_up + stat_err_down ,facecolor='none', hatch='/////', label='Stat. Unc.'))
-            ax1.add_patch(plt.Rectangle((mass - width / 2, value - stat_err_down), width, stat_err_up + stat_err_down ,edgecolor='b', facecolor='b', label='Stat. Unc.'))
+            ax1.add_patch(plt.Rectangle((mass - width / 2, value - stat_err_down), width, stat_err_up + stat_err_down ,edgecolor='#964a8b', facecolor='#964a8b', label='Stat. Unc.'))
 
         print("masses len", len(masses))
         print(" len values_data", len(values_data))
         ax1.scatter(masses, values_data, label='Unfolded Mass', color='black', marker='o')
-        ax1.scatter(masses, values, label='MC Truth Pythia', color='red', marker = '*')
+        ax1.scatter(masses, values, label='MC Truth Pythia', color='#e42536', marker = '*')
         #ax1.scatter(masses, values_herwig, label='Unfolded using Herwig Matrix', color='g', marker = 'o')
         
         ax1.set_xticks(bin_edges)  # Set tick positions
@@ -295,11 +295,11 @@ class AsymmetricErrorPlot:
         ax2.plot(masses, ratio, marker='.', color='black', label='Stat. Unc.', linestyle = 'none')
         
         for (mass, rat, total_err_up, total_err_down, ratio_unc_stat, width) in zip(masses, ratio, total_ratio_unc_up, total_ratio_unc_down, ratio_unc_stat, widths):
-            ax2.add_patch(plt.Rectangle((mass - width / 2, rat - total_err_down), width, total_err_up + total_err_down, edgecolor='cyan', facecolor='cyan'))
+            ax2.add_patch(plt.Rectangle((mass - width / 2, rat - total_err_down), width, total_err_up + total_err_down, edgecolor='#9c9ca1', facecolor='#9c9ca1'))
             # Statistical uncertainties
-            ax2.add_patch(plt.Rectangle((mass - width / 2, rat - ratio_unc_stat), width, 2*ratio_unc_stat ,edgecolor='b', facecolor='b', label='Stat. Unc.'))
+            ax2.add_patch(plt.Rectangle((mass - width / 2, rat - ratio_unc_stat), width, 2*ratio_unc_stat ,edgecolor='#964a8b', facecolor='#964a8b', label='Stat. Unc.'))
             
-        ax2.axhline(1, color='red', linestyle='--')
+        ax2.axhline(1, color='#e42536', linestyle='--')
         ax2.set_ylabel('MC/Data')
         ax2.set_xlabel(xlabel)
         ax2.set_ylim(0,5)

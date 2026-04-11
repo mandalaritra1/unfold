@@ -1,0 +1,3223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jet Mass Plot gallery</title>
+  <style>
+    :root {
+      --bg: #10151d;
+      --bg-deep: #0b1017;
+      --panel: rgba(24, 31, 42, 0.92);
+      --panel-strong: rgba(31, 40, 54, 0.98);
+      --ink: #edf1f7;
+      --muted: #aab4c3;
+      --line: rgba(153, 175, 201, 0.18);
+      --accent: #ff8a57;
+      --accent-soft: rgba(255, 138, 87, 0.14);
+      --gold: #f0ba58;
+      --sage: #7fc5aa;
+      --rose: #f28aa5;
+      --sky: #8cb7ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(255, 138, 87, 0.18), transparent 24rem),
+        radial-gradient(circle at top left, rgba(140, 183, 255, 0.12), transparent 22rem),
+        linear-gradient(180deg, #17202b 0%, var(--bg) 45%, var(--bg-deep) 100%);
+    }
+    .shell {
+      max-width: 1920px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+    }
+    .hero {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 0 0 24px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+      background:
+        linear-gradient(135deg, rgba(27, 35, 48, 0.92), rgba(18, 24, 34, 0.88));
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+      border-radius: 0 0 22px 22px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 700;
+      color: #fff3ed;
+    }
+    .hero-copy {
+      color: var(--muted);
+      margin-bottom: 14px;
+      max-width: 70rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(16rem, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(14, 19, 27, 0.92);
+      font: inherit;
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .count {
+      color: var(--muted);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .section {
+      margin: 30px 0 0;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      text-transform: capitalize;
+      color: #e7edf8;
+    }
+    .section-header span {
+      color: #d2d9e5;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+    }
+    .card {
+      background:
+        linear-gradient(180deg, rgba(30, 39, 54, 0.98), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.34);
+      border-color: rgba(255, 138, 87, 0.38);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .card-meta {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .card-type {
+      color: #f6ead8;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, rgba(240, 186, 88, 0.22), rgba(255, 138, 87, 0.16));
+      border: 1px solid rgba(255, 138, 87, 0.18);
+      border-radius: 999px;
+      padding: 4px 9px;
+      height: fit-content;
+    }
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .preview-link {
+      display: block;
+    }
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+    }
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: linear-gradient(180deg, rgba(255, 138, 87, 0.18), rgba(255, 138, 87, 0.09));
+    }
+    .section[data-folder="."] .section-header h2 { color: var(--accent); }
+    .section[data-folder="unfold"] .section-header h2 { color: var(--rose); }
+    .section[data-folder="uncertainties"] .section-header h2 { color: var(--sky); }
+    .section[data-folder="data_mc"] .section-header h2 { color: var(--sage); }
+    .hidden {
+      display: none !important;
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: rgba(5, 8, 14, 0.82);
+      backdrop-filter: blur(8px);
+    }
+    .lightbox[hidden] {
+      display: none;
+    }
+    .lightbox-dialog {
+      position: relative;
+      max-width: min(94vw, 1800px);
+      max-height: 92vh;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(24, 31, 42, 0.98), rgba(16, 21, 29, 0.98));
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.42);
+    }
+    .lightbox-image {
+      display: block;
+      max-width: min(90vw, 1720px);
+      max-height: calc(92vh - 32px);
+      width: auto;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(12, 17, 24, 0.82);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .lightbox-close:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    @media (max-width: 1200px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <h1>Jet Mass Plot gallery</h1>
+      <div class="hero-copy">
+        Quick review of plots stored in <code>/unfold/output/mass/</code>
+      </div>
+      <div class="controls">
+        <input id="filter" type="search" placeholder="Filter by file name or folder">
+        <div class="count"><span id="visible-count">190</span> / 190 visible</div>
+      </div>
+    </div>
+    
+            <section class="section" data-folder=".">
+              <div class="section-header">
+                <h2>root</h2>
+                <span>24 files</span>
+              </div>
+              <div class="grid">
+                
+    <article class="card" data-folder="." data-name="bottom_line_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line groomed -1</div>
+          <div class="card-meta">bottom_line_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_groomed_-1.png" data-preview-src="_previews/bottom_line_groomed_-1.png" data-preview-alt="bottom line groomed -1 preview"><img src="_previews/bottom_line_groomed_-1.png" alt="bottom line groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line groomed 0</div>
+          <div class="card-meta">bottom_line_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_groomed_0.png" data-preview-src="_previews/bottom_line_groomed_0.png" data-preview-alt="bottom line groomed 0 preview"><img src="_previews/bottom_line_groomed_0.png" alt="bottom line groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line groomed 1</div>
+          <div class="card-meta">bottom_line_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_groomed_1.png" data-preview-src="_previews/bottom_line_groomed_1.png" data-preview-alt="bottom line groomed 1 preview"><img src="_previews/bottom_line_groomed_1.png" alt="bottom line groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line groomed 2</div>
+          <div class="card-meta">bottom_line_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_groomed_2.png" data-preview-src="_previews/bottom_line_groomed_2.png" data-preview-alt="bottom line groomed 2 preview"><img src="_previews/bottom_line_groomed_2.png" alt="bottom line groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line ungroomed -1</div>
+          <div class="card-meta">bottom_line_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_ungroomed_-1.png" data-preview-src="_previews/bottom_line_ungroomed_-1.png" data-preview-alt="bottom line ungroomed -1 preview"><img src="_previews/bottom_line_ungroomed_-1.png" alt="bottom line ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line ungroomed 0</div>
+          <div class="card-meta">bottom_line_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_ungroomed_0.png" data-preview-src="_previews/bottom_line_ungroomed_0.png" data-preview-alt="bottom line ungroomed 0 preview"><img src="_previews/bottom_line_ungroomed_0.png" alt="bottom line ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line ungroomed 1</div>
+          <div class="card-meta">bottom_line_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_ungroomed_1.png" data-preview-src="_previews/bottom_line_ungroomed_1.png" data-preview-alt="bottom line ungroomed 1 preview"><img src="_previews/bottom_line_ungroomed_1.png" alt="bottom line ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="bottom_line_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">bottom line ungroomed 2</div>
+          <div class="card-meta">bottom_line_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/bottom_line_ungroomed_2.png" data-preview-src="_previews/bottom_line_ungroomed_2.png" data-preview-alt="bottom line ungroomed 2 preview"><img src="_previews/bottom_line_ungroomed_2.png" alt="bottom line ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="bottom_line_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="bottom_line_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates groomed -1</div>
+          <div class="card-meta">fakerates_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_groomed_-1.png" data-preview-src="_previews/fakerates_groomed_-1.png" data-preview-alt="fakerates groomed -1 preview"><img src="_previews/fakerates_groomed_-1.png" alt="fakerates groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates groomed 0</div>
+          <div class="card-meta">fakerates_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_groomed_0.png" data-preview-src="_previews/fakerates_groomed_0.png" data-preview-alt="fakerates groomed 0 preview"><img src="_previews/fakerates_groomed_0.png" alt="fakerates groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates groomed 1</div>
+          <div class="card-meta">fakerates_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_groomed_1.png" data-preview-src="_previews/fakerates_groomed_1.png" data-preview-alt="fakerates groomed 1 preview"><img src="_previews/fakerates_groomed_1.png" alt="fakerates groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates groomed 2</div>
+          <div class="card-meta">fakerates_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_groomed_2.png" data-preview-src="_previews/fakerates_groomed_2.png" data-preview-alt="fakerates groomed 2 preview"><img src="_previews/fakerates_groomed_2.png" alt="fakerates groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates ungroomed -1</div>
+          <div class="card-meta">fakerates_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_ungroomed_-1.png" data-preview-src="_previews/fakerates_ungroomed_-1.png" data-preview-alt="fakerates ungroomed -1 preview"><img src="_previews/fakerates_ungroomed_-1.png" alt="fakerates ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates ungroomed 0</div>
+          <div class="card-meta">fakerates_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_ungroomed_0.png" data-preview-src="_previews/fakerates_ungroomed_0.png" data-preview-alt="fakerates ungroomed 0 preview"><img src="_previews/fakerates_ungroomed_0.png" alt="fakerates ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates ungroomed 1</div>
+          <div class="card-meta">fakerates_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_ungroomed_1.png" data-preview-src="_previews/fakerates_ungroomed_1.png" data-preview-alt="fakerates ungroomed 1 preview"><img src="_previews/fakerates_ungroomed_1.png" alt="fakerates ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="fakerates_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">fakerates ungroomed 2</div>
+          <div class="card-meta">fakerates_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/fakerates_ungroomed_2.png" data-preview-src="_previews/fakerates_ungroomed_2.png" data-preview-alt="fakerates ungroomed 2 preview"><img src="_previews/fakerates_ungroomed_2.png" alt="fakerates ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="fakerates_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="fakerates_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="groomed_summary.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed summary</div>
+          <div class="card-meta">groomed_summary.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/groomed_summary.png" data-preview-src="_previews/groomed_summary.png" data-preview-alt="groomed summary preview"><img src="_previews/groomed_summary.png" alt="groomed summary preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="groomed_summary.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="groomed_summary.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="groomed_summary_linear.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed summary linear</div>
+          <div class="card-meta">groomed_summary_linear.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/groomed_summary_linear.png" data-preview-src="_previews/groomed_summary_linear.png" data-preview-alt="groomed summary linear preview"><img src="_previews/groomed_summary_linear.png" alt="groomed summary linear preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="groomed_summary_linear.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="groomed_summary_linear.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="herwig_pythia_comparison_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig pythia comparison ungroomed -1</div>
+          <div class="card-meta">herwig_pythia_comparison_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/herwig_pythia_comparison_ungroomed_-1.png" data-preview-src="_previews/herwig_pythia_comparison_ungroomed_-1.png" data-preview-alt="herwig pythia comparison ungroomed -1 preview"><img src="_previews/herwig_pythia_comparison_ungroomed_-1.png" alt="herwig pythia comparison ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="herwig_pythia_comparison_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig pythia comparison ungroomed 0</div>
+          <div class="card-meta">herwig_pythia_comparison_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/herwig_pythia_comparison_ungroomed_0.png" data-preview-src="_previews/herwig_pythia_comparison_ungroomed_0.png" data-preview-alt="herwig pythia comparison ungroomed 0 preview"><img src="_previews/herwig_pythia_comparison_ungroomed_0.png" alt="herwig pythia comparison ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="herwig_pythia_comparison_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig pythia comparison ungroomed 1</div>
+          <div class="card-meta">herwig_pythia_comparison_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/herwig_pythia_comparison_ungroomed_1.png" data-preview-src="_previews/herwig_pythia_comparison_ungroomed_1.png" data-preview-alt="herwig pythia comparison ungroomed 1 preview"><img src="_previews/herwig_pythia_comparison_ungroomed_1.png" alt="herwig pythia comparison ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="herwig_pythia_comparison_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig pythia comparison ungroomed 2</div>
+          <div class="card-meta">herwig_pythia_comparison_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/herwig_pythia_comparison_ungroomed_2.png" data-preview-src="_previews/herwig_pythia_comparison_ungroomed_2.png" data-preview-alt="herwig pythia comparison ungroomed 2 preview"><img src="_previews/herwig_pythia_comparison_ungroomed_2.png" alt="herwig pythia comparison ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="herwig_pythia_comparison_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="ungroomed_summary.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed summary</div>
+          <div class="card-meta">ungroomed_summary.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/ungroomed_summary.png" data-preview-src="_previews/ungroomed_summary.png" data-preview-alt="ungroomed summary preview"><img src="_previews/ungroomed_summary.png" alt="ungroomed summary preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="ungroomed_summary.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="ungroomed_summary.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="ungroomed_summary_linear.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed summary linear</div>
+          <div class="card-meta">ungroomed_summary_linear.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/ungroomed_summary_linear.png" data-preview-src="_previews/ungroomed_summary_linear.png" data-preview-alt="ungroomed summary linear preview"><img src="_previews/ungroomed_summary_linear.png" alt="ungroomed summary linear preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="ungroomed_summary_linear.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="ungroomed_summary_linear.pdf" download>Download</a>
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="section" data-folder="unfold">
+              <div class="section-header">
+                <h2>unfold</h2>
+                <span>50 files</span>
+              </div>
+              <div class="grid">
+                
+    <article class="card" data-folder="unfold" data-name="correlation_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">correlation groomed</div>
+          <div class="card-meta">correlation_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/correlation_groomed.png" data-preview-src="_previews/unfold/correlation_groomed.png" data-preview-alt="correlation groomed preview"><img src="_previews/unfold/correlation_groomed.png" alt="correlation groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/correlation_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/correlation_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="correlation_ungroomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">correlation ungroomed</div>
+          <div class="card-meta">correlation_ungroomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/correlation_ungroomed.png" data-preview-src="_previews/unfold/correlation_ungroomed.png" data-preview-alt="correlation ungroomed preview"><img src="_previews/unfold/correlation_ungroomed.png" alt="correlation ungroomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/correlation_ungroomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/correlation_ungroomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded groomed -1</div>
+          <div class="card-meta">folded_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_groomed_-1.png" data-preview-src="_previews/unfold/folded_groomed_-1.png" data-preview-alt="folded groomed -1 preview"><img src="_previews/unfold/folded_groomed_-1.png" alt="folded groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded groomed 0</div>
+          <div class="card-meta">folded_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_groomed_0.png" data-preview-src="_previews/unfold/folded_groomed_0.png" data-preview-alt="folded groomed 0 preview"><img src="_previews/unfold/folded_groomed_0.png" alt="folded groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded groomed 1</div>
+          <div class="card-meta">folded_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_groomed_1.png" data-preview-src="_previews/unfold/folded_groomed_1.png" data-preview-alt="folded groomed 1 preview"><img src="_previews/unfold/folded_groomed_1.png" alt="folded groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded groomed 2</div>
+          <div class="card-meta">folded_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_groomed_2.png" data-preview-src="_previews/unfold/folded_groomed_2.png" data-preview-alt="folded groomed 2 preview"><img src="_previews/unfold/folded_groomed_2.png" alt="folded groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded ungroomed -1</div>
+          <div class="card-meta">folded_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_ungroomed_-1.png" data-preview-src="_previews/unfold/folded_ungroomed_-1.png" data-preview-alt="folded ungroomed -1 preview"><img src="_previews/unfold/folded_ungroomed_-1.png" alt="folded ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded ungroomed 0</div>
+          <div class="card-meta">folded_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_ungroomed_0.png" data-preview-src="_previews/unfold/folded_ungroomed_0.png" data-preview-alt="folded ungroomed 0 preview"><img src="_previews/unfold/folded_ungroomed_0.png" alt="folded ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded ungroomed 1</div>
+          <div class="card-meta">folded_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_ungroomed_1.png" data-preview-src="_previews/unfold/folded_ungroomed_1.png" data-preview-alt="folded ungroomed 1 preview"><img src="_previews/unfold/folded_ungroomed_1.png" alt="folded ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="folded_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">folded ungroomed 2</div>
+          <div class="card-meta">folded_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/folded_ungroomed_2.png" data-preview-src="_previews/unfold/folded_ungroomed_2.png" data-preview-alt="folded ungroomed 2 preview"><img src="_previews/unfold/folded_ungroomed_2.png" alt="folded ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/folded_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/folded_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed -1</div>
+          <div class="card-meta">groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/groomed_-1.png" data-preview-src="_previews/unfold/groomed_-1.png" data-preview-alt="groomed -1 preview"><img src="_previews/unfold/groomed_-1.png" alt="groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed 0</div>
+          <div class="card-meta">groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/groomed_0.png" data-preview-src="_previews/unfold/groomed_0.png" data-preview-alt="groomed 0 preview"><img src="_previews/unfold/groomed_0.png" alt="groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed 1</div>
+          <div class="card-meta">groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/groomed_1.png" data-preview-src="_previews/unfold/groomed_1.png" data-preview-alt="groomed 1 preview"><img src="_previews/unfold/groomed_1.png" alt="groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">groomed 2</div>
+          <div class="card-meta">groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/groomed_2.png" data-preview-src="_previews/unfold/groomed_2.png" data-preview-alt="groomed 2 preview"><img src="_previews/unfold/groomed_2.png" alt="groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_groomed_pt-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs groomed pt-1</div>
+          <div class="card-meta">jk_inputs_groomed_pt-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_groomed_pt-1.png" data-preview-src="_previews/unfold/jk_inputs_groomed_pt-1.png" data-preview-alt="jk inputs groomed pt-1 preview"><img src="_previews/unfold/jk_inputs_groomed_pt-1.png" alt="jk inputs groomed pt-1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_groomed_pt-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_groomed_pt-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_groomed_pt0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs groomed pt0</div>
+          <div class="card-meta">jk_inputs_groomed_pt0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_groomed_pt0.png" data-preview-src="_previews/unfold/jk_inputs_groomed_pt0.png" data-preview-alt="jk inputs groomed pt0 preview"><img src="_previews/unfold/jk_inputs_groomed_pt0.png" alt="jk inputs groomed pt0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_groomed_pt0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_groomed_pt0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_groomed_pt1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs groomed pt1</div>
+          <div class="card-meta">jk_inputs_groomed_pt1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_groomed_pt1.png" data-preview-src="_previews/unfold/jk_inputs_groomed_pt1.png" data-preview-alt="jk inputs groomed pt1 preview"><img src="_previews/unfold/jk_inputs_groomed_pt1.png" alt="jk inputs groomed pt1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_groomed_pt1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_groomed_pt1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_groomed_pt2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs groomed pt2</div>
+          <div class="card-meta">jk_inputs_groomed_pt2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_groomed_pt2.png" data-preview-src="_previews/unfold/jk_inputs_groomed_pt2.png" data-preview-alt="jk inputs groomed pt2 preview"><img src="_previews/unfold/jk_inputs_groomed_pt2.png" alt="jk inputs groomed pt2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_groomed_pt2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_groomed_pt2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_ungroomed_pt-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs ungroomed pt-1</div>
+          <div class="card-meta">jk_inputs_ungroomed_pt-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_ungroomed_pt-1.png" data-preview-src="_previews/unfold/jk_inputs_ungroomed_pt-1.png" data-preview-alt="jk inputs ungroomed pt-1 preview"><img src="_previews/unfold/jk_inputs_ungroomed_pt-1.png" alt="jk inputs ungroomed pt-1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_ungroomed_pt0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs ungroomed pt0</div>
+          <div class="card-meta">jk_inputs_ungroomed_pt0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_ungroomed_pt0.png" data-preview-src="_previews/unfold/jk_inputs_ungroomed_pt0.png" data-preview-alt="jk inputs ungroomed pt0 preview"><img src="_previews/unfold/jk_inputs_ungroomed_pt0.png" alt="jk inputs ungroomed pt0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_ungroomed_pt1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs ungroomed pt1</div>
+          <div class="card-meta">jk_inputs_ungroomed_pt1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_ungroomed_pt1.png" data-preview-src="_previews/unfold/jk_inputs_ungroomed_pt1.png" data-preview-alt="jk inputs ungroomed pt1 preview"><img src="_previews/unfold/jk_inputs_ungroomed_pt1.png" alt="jk inputs ungroomed pt1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_inputs_ungroomed_pt2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk inputs ungroomed pt2</div>
+          <div class="card-meta">jk_inputs_ungroomed_pt2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_inputs_ungroomed_pt2.png" data-preview-src="_previews/unfold/jk_inputs_ungroomed_pt2.png" data-preview-alt="jk inputs ungroomed pt2 preview"><img src="_previews/unfold/jk_inputs_ungroomed_pt2.png" alt="jk inputs ungroomed pt2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_inputs_ungroomed_pt2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_groomed_pt-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs groomed pt-1</div>
+          <div class="card-meta">jk_outputs_groomed_pt-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_groomed_pt-1.png" data-preview-src="_previews/unfold/jk_outputs_groomed_pt-1.png" data-preview-alt="jk outputs groomed pt-1 preview"><img src="_previews/unfold/jk_outputs_groomed_pt-1.png" alt="jk outputs groomed pt-1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_groomed_pt-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_groomed_pt-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_groomed_pt0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs groomed pt0</div>
+          <div class="card-meta">jk_outputs_groomed_pt0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_groomed_pt0.png" data-preview-src="_previews/unfold/jk_outputs_groomed_pt0.png" data-preview-alt="jk outputs groomed pt0 preview"><img src="_previews/unfold/jk_outputs_groomed_pt0.png" alt="jk outputs groomed pt0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_groomed_pt0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_groomed_pt0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_groomed_pt1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs groomed pt1</div>
+          <div class="card-meta">jk_outputs_groomed_pt1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_groomed_pt1.png" data-preview-src="_previews/unfold/jk_outputs_groomed_pt1.png" data-preview-alt="jk outputs groomed pt1 preview"><img src="_previews/unfold/jk_outputs_groomed_pt1.png" alt="jk outputs groomed pt1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_groomed_pt1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_groomed_pt1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_groomed_pt2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs groomed pt2</div>
+          <div class="card-meta">jk_outputs_groomed_pt2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_groomed_pt2.png" data-preview-src="_previews/unfold/jk_outputs_groomed_pt2.png" data-preview-alt="jk outputs groomed pt2 preview"><img src="_previews/unfold/jk_outputs_groomed_pt2.png" alt="jk outputs groomed pt2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_groomed_pt2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_groomed_pt2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_ungroomed_pt-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs ungroomed pt-1</div>
+          <div class="card-meta">jk_outputs_ungroomed_pt-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_ungroomed_pt-1.png" data-preview-src="_previews/unfold/jk_outputs_ungroomed_pt-1.png" data-preview-alt="jk outputs ungroomed pt-1 preview"><img src="_previews/unfold/jk_outputs_ungroomed_pt-1.png" alt="jk outputs ungroomed pt-1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_ungroomed_pt0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs ungroomed pt0</div>
+          <div class="card-meta">jk_outputs_ungroomed_pt0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_ungroomed_pt0.png" data-preview-src="_previews/unfold/jk_outputs_ungroomed_pt0.png" data-preview-alt="jk outputs ungroomed pt0 preview"><img src="_previews/unfold/jk_outputs_ungroomed_pt0.png" alt="jk outputs ungroomed pt0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_ungroomed_pt1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs ungroomed pt1</div>
+          <div class="card-meta">jk_outputs_ungroomed_pt1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_ungroomed_pt1.png" data-preview-src="_previews/unfold/jk_outputs_ungroomed_pt1.png" data-preview-alt="jk outputs ungroomed pt1 preview"><img src="_previews/unfold/jk_outputs_ungroomed_pt1.png" alt="jk outputs ungroomed pt1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="jk_outputs_ungroomed_pt2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">jk outputs ungroomed pt2</div>
+          <div class="card-meta">jk_outputs_ungroomed_pt2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/jk_outputs_ungroomed_pt2.png" data-preview-src="_previews/unfold/jk_outputs_ungroomed_pt2.png" data-preview-alt="jk outputs ungroomed pt2 preview"><img src="_previews/unfold/jk_outputs_ungroomed_pt2.png" alt="jk outputs ungroomed pt2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/jk_outputs_ungroomed_pt2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_global_ungroomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability global ungroomed</div>
+          <div class="card-meta">purity_stability_global_ungroomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_global_ungroomed.png" data-preview-src="_previews/unfold/purity_stability_global_ungroomed.png" data-preview-alt="purity stability global ungroomed preview"><img src="_previews/unfold/purity_stability_global_ungroomed.png" alt="purity stability global ungroomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_global_ungroomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_global_ungroomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_ptslice_ungroomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability ptslice ungroomed</div>
+          <div class="card-meta">purity_stability_ptslice_ungroomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_ptslice_ungroomed.png" data-preview-src="_previews/unfold/purity_stability_ptslice_ungroomed.png" data-preview-alt="purity stability ptslice ungroomed preview"><img src="_previews/unfold/purity_stability_ptslice_ungroomed.png" alt="purity stability ptslice ungroomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_ptslice_ungroomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_ptslice_ungroomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability ungroomed -1</div>
+          <div class="card-meta">purity_stability_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_ungroomed_-1.png" data-preview-src="_previews/unfold/purity_stability_ungroomed_-1.png" data-preview-alt="purity stability ungroomed -1 preview"><img src="_previews/unfold/purity_stability_ungroomed_-1.png" alt="purity stability ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability ungroomed 0</div>
+          <div class="card-meta">purity_stability_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_ungroomed_0.png" data-preview-src="_previews/unfold/purity_stability_ungroomed_0.png" data-preview-alt="purity stability ungroomed 0 preview"><img src="_previews/unfold/purity_stability_ungroomed_0.png" alt="purity stability ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability ungroomed 1</div>
+          <div class="card-meta">purity_stability_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_ungroomed_1.png" data-preview-src="_previews/unfold/purity_stability_ungroomed_1.png" data-preview-alt="purity stability ungroomed 1 preview"><img src="_previews/unfold/purity_stability_ungroomed_1.png" alt="purity stability ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="purity_stability_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">purity stability ungroomed 2</div>
+          <div class="card-meta">purity_stability_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/purity_stability_ungroomed_2.png" data-preview-src="_previews/unfold/purity_stability_ungroomed_2.png" data-preview-alt="purity stability ungroomed 2 preview"><img src="_previews/unfold/purity_stability_ungroomed_2.png" alt="purity stability ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/purity_stability_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/purity_stability_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="response_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">response groomed</div>
+          <div class="card-meta">response_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/response_groomed.png" data-preview-src="_previews/unfold/response_groomed.png" data-preview-alt="response groomed preview"><img src="_previews/unfold/response_groomed.png" alt="response groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/response_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/response_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="response_ungroomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">response ungroomed</div>
+          <div class="card-meta">response_ungroomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/response_ungroomed.png" data-preview-src="_previews/unfold/response_ungroomed.png" data-preview-alt="response ungroomed preview"><img src="_previews/unfold/response_ungroomed.png" alt="response ungroomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/response_ungroomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/response_ungroomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic groomed -1</div>
+          <div class="card-meta">unfolded_basic_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_groomed_-1.png" data-preview-src="_previews/unfold/unfolded_basic_groomed_-1.png" data-preview-alt="unfolded basic groomed -1 preview"><img src="_previews/unfold/unfolded_basic_groomed_-1.png" alt="unfolded basic groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic groomed 0</div>
+          <div class="card-meta">unfolded_basic_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_groomed_0.png" data-preview-src="_previews/unfold/unfolded_basic_groomed_0.png" data-preview-alt="unfolded basic groomed 0 preview"><img src="_previews/unfold/unfolded_basic_groomed_0.png" alt="unfolded basic groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic groomed 1</div>
+          <div class="card-meta">unfolded_basic_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_groomed_1.png" data-preview-src="_previews/unfold/unfolded_basic_groomed_1.png" data-preview-alt="unfolded basic groomed 1 preview"><img src="_previews/unfold/unfolded_basic_groomed_1.png" alt="unfolded basic groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic groomed 2</div>
+          <div class="card-meta">unfolded_basic_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_groomed_2.png" data-preview-src="_previews/unfold/unfolded_basic_groomed_2.png" data-preview-alt="unfolded basic groomed 2 preview"><img src="_previews/unfold/unfolded_basic_groomed_2.png" alt="unfolded basic groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic ungroomed -1</div>
+          <div class="card-meta">unfolded_basic_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_ungroomed_-1.png" data-preview-src="_previews/unfold/unfolded_basic_ungroomed_-1.png" data-preview-alt="unfolded basic ungroomed -1 preview"><img src="_previews/unfold/unfolded_basic_ungroomed_-1.png" alt="unfolded basic ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic ungroomed 0</div>
+          <div class="card-meta">unfolded_basic_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_ungroomed_0.png" data-preview-src="_previews/unfold/unfolded_basic_ungroomed_0.png" data-preview-alt="unfolded basic ungroomed 0 preview"><img src="_previews/unfold/unfolded_basic_ungroomed_0.png" alt="unfolded basic ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic ungroomed 1</div>
+          <div class="card-meta">unfolded_basic_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_ungroomed_1.png" data-preview-src="_previews/unfold/unfolded_basic_ungroomed_1.png" data-preview-alt="unfolded basic ungroomed 1 preview"><img src="_previews/unfold/unfolded_basic_ungroomed_1.png" alt="unfolded basic ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="unfolded_basic_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">unfolded basic ungroomed 2</div>
+          <div class="card-meta">unfolded_basic_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/unfolded_basic_ungroomed_2.png" data-preview-src="_previews/unfold/unfolded_basic_ungroomed_2.png" data-preview-alt="unfolded basic ungroomed 2 preview"><img src="_previews/unfold/unfolded_basic_ungroomed_2.png" alt="unfolded basic ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/unfolded_basic_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed -1</div>
+          <div class="card-meta">ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/ungroomed_-1.png" data-preview-src="_previews/unfold/ungroomed_-1.png" data-preview-alt="ungroomed -1 preview"><img src="_previews/unfold/ungroomed_-1.png" alt="ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed 0</div>
+          <div class="card-meta">ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/ungroomed_0.png" data-preview-src="_previews/unfold/ungroomed_0.png" data-preview-alt="ungroomed 0 preview"><img src="_previews/unfold/ungroomed_0.png" alt="ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed 1</div>
+          <div class="card-meta">ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/ungroomed_1.png" data-preview-src="_previews/unfold/ungroomed_1.png" data-preview-alt="ungroomed 1 preview"><img src="_previews/unfold/ungroomed_1.png" alt="ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="unfold" data-name="ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ungroomed 2</div>
+          <div class="card-meta">ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/unfold/ungroomed_2.png" data-preview-src="_previews/unfold/ungroomed_2.png" data-preview-alt="ungroomed 2 preview"><img src="_previews/unfold/ungroomed_2.png" alt="ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="unfold/ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="unfold/ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="section" data-folder="uncertainties">
+              <div class="section-header">
+                <h2>uncertainties</h2>
+                <span>116 files</span>
+              </div>
+              <div class="grid">
+                
+    <article class="card" data-folder="uncertainties" data-name="electronsf_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF groomed -1</div>
+          <div class="card-meta">ElectronSF_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_groomed_-1.png" data-preview-src="_previews/uncertainties/ElectronSF_groomed_-1.png" data-preview-alt="ElectronSF groomed -1 preview"><img src="_previews/uncertainties/ElectronSF_groomed_-1.png" alt="ElectronSF groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF groomed 0</div>
+          <div class="card-meta">ElectronSF_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_groomed_0.png" data-preview-src="_previews/uncertainties/ElectronSF_groomed_0.png" data-preview-alt="ElectronSF groomed 0 preview"><img src="_previews/uncertainties/ElectronSF_groomed_0.png" alt="ElectronSF groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF groomed 1</div>
+          <div class="card-meta">ElectronSF_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_groomed_1.png" data-preview-src="_previews/uncertainties/ElectronSF_groomed_1.png" data-preview-alt="ElectronSF groomed 1 preview"><img src="_previews/uncertainties/ElectronSF_groomed_1.png" alt="ElectronSF groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF groomed 2</div>
+          <div class="card-meta">ElectronSF_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_groomed_2.png" data-preview-src="_previews/uncertainties/ElectronSF_groomed_2.png" data-preview-alt="ElectronSF groomed 2 preview"><img src="_previews/uncertainties/ElectronSF_groomed_2.png" alt="ElectronSF groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF ungroomed -1</div>
+          <div class="card-meta">ElectronSF_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_ungroomed_-1.png" data-preview-src="_previews/uncertainties/ElectronSF_ungroomed_-1.png" data-preview-alt="ElectronSF ungroomed -1 preview"><img src="_previews/uncertainties/ElectronSF_ungroomed_-1.png" alt="ElectronSF ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF ungroomed 0</div>
+          <div class="card-meta">ElectronSF_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_ungroomed_0.png" data-preview-src="_previews/uncertainties/ElectronSF_ungroomed_0.png" data-preview-alt="ElectronSF ungroomed 0 preview"><img src="_previews/uncertainties/ElectronSF_ungroomed_0.png" alt="ElectronSF ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF ungroomed 1</div>
+          <div class="card-meta">ElectronSF_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_ungroomed_1.png" data-preview-src="_previews/uncertainties/ElectronSF_ungroomed_1.png" data-preview-alt="ElectronSF ungroomed 1 preview"><img src="_previews/uncertainties/ElectronSF_ungroomed_1.png" alt="ElectronSF ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="electronsf_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ElectronSF ungroomed 2</div>
+          <div class="card-meta">ElectronSF_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ElectronSF_ungroomed_2.png" data-preview-src="_previews/uncertainties/ElectronSF_ungroomed_2.png" data-preview-alt="ElectronSF ungroomed 2 preview"><img src="_previews/uncertainties/ElectronSF_ungroomed_2.png" alt="ElectronSF ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ElectronSF_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ISR groomed -1</div>
+          <div class="card-meta">ISR_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ISR_groomed_-1.png" data-preview-src="_previews/uncertainties/ISR_groomed_-1.png" data-preview-alt="ISR groomed -1 preview"><img src="_previews/uncertainties/ISR_groomed_-1.png" alt="ISR groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ISR_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ISR_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ISR groomed 0</div>
+          <div class="card-meta">ISR_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ISR_groomed_0.png" data-preview-src="_previews/uncertainties/ISR_groomed_0.png" data-preview-alt="ISR groomed 0 preview"><img src="_previews/uncertainties/ISR_groomed_0.png" alt="ISR groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ISR_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ISR_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ISR groomed 1</div>
+          <div class="card-meta">ISR_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ISR_groomed_1.png" data-preview-src="_previews/uncertainties/ISR_groomed_1.png" data-preview-alt="ISR groomed 1 preview"><img src="_previews/uncertainties/ISR_groomed_1.png" alt="ISR groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ISR_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ISR_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ISR groomed 2</div>
+          <div class="card-meta">ISR_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/ISR_groomed_2.png" data-preview-src="_previews/uncertainties/ISR_groomed_2.png" data-preview-alt="ISR groomed 2 preview"><img src="_previews/uncertainties/ISR_groomed_2.png" alt="ISR groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/ISR_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/ISR_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jer_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JER ungroomed -1</div>
+          <div class="card-meta">JER_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JER_ungroomed_-1.png" data-preview-src="_previews/uncertainties/JER_ungroomed_-1.png" data-preview-alt="JER ungroomed -1 preview"><img src="_previews/uncertainties/JER_ungroomed_-1.png" alt="JER ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JER_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JER_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jer_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JER ungroomed 0</div>
+          <div class="card-meta">JER_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JER_ungroomed_0.png" data-preview-src="_previews/uncertainties/JER_ungroomed_0.png" data-preview-alt="JER ungroomed 0 preview"><img src="_previews/uncertainties/JER_ungroomed_0.png" alt="JER ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JER_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JER_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jer_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JER ungroomed 1</div>
+          <div class="card-meta">JER_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JER_ungroomed_1.png" data-preview-src="_previews/uncertainties/JER_ungroomed_1.png" data-preview-alt="JER ungroomed 1 preview"><img src="_previews/uncertainties/JER_ungroomed_1.png" alt="JER ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JER_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JER_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jer_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JER ungroomed 2</div>
+          <div class="card-meta">JER_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JER_ungroomed_2.png" data-preview-src="_previews/uncertainties/JER_ungroomed_2.png" data-preview-alt="JER ungroomed 2 preview"><img src="_previews/uncertainties/JER_ungroomed_2.png" alt="JER ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JER_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JER_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES groomed -1</div>
+          <div class="card-meta">JES_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_groomed_-1.png" data-preview-src="_previews/uncertainties/JES_groomed_-1.png" data-preview-alt="JES groomed -1 preview"><img src="_previews/uncertainties/JES_groomed_-1.png" alt="JES groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES groomed 0</div>
+          <div class="card-meta">JES_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_groomed_0.png" data-preview-src="_previews/uncertainties/JES_groomed_0.png" data-preview-alt="JES groomed 0 preview"><img src="_previews/uncertainties/JES_groomed_0.png" alt="JES groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES groomed 1</div>
+          <div class="card-meta">JES_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_groomed_1.png" data-preview-src="_previews/uncertainties/JES_groomed_1.png" data-preview-alt="JES groomed 1 preview"><img src="_previews/uncertainties/JES_groomed_1.png" alt="JES groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES groomed 2</div>
+          <div class="card-meta">JES_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_groomed_2.png" data-preview-src="_previews/uncertainties/JES_groomed_2.png" data-preview-alt="JES groomed 2 preview"><img src="_previews/uncertainties/JES_groomed_2.png" alt="JES groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES ungroomed -1</div>
+          <div class="card-meta">JES_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_ungroomed_-1.png" data-preview-src="_previews/uncertainties/JES_ungroomed_-1.png" data-preview-alt="JES ungroomed -1 preview"><img src="_previews/uncertainties/JES_ungroomed_-1.png" alt="JES ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES ungroomed 0</div>
+          <div class="card-meta">JES_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_ungroomed_0.png" data-preview-src="_previews/uncertainties/JES_ungroomed_0.png" data-preview-alt="JES ungroomed 0 preview"><img src="_previews/uncertainties/JES_ungroomed_0.png" alt="JES ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES ungroomed 1</div>
+          <div class="card-meta">JES_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_ungroomed_1.png" data-preview-src="_previews/uncertainties/JES_ungroomed_1.png" data-preview-alt="JES ungroomed 1 preview"><img src="_previews/uncertainties/JES_ungroomed_1.png" alt="JES ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jes_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JES ungroomed 2</div>
+          <div class="card-meta">JES_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JES_ungroomed_2.png" data-preview-src="_previews/uncertainties/JES_ungroomed_2.png" data-preview-alt="JES ungroomed 2 preview"><img src="_previews/uncertainties/JES_ungroomed_2.png" alt="JES ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JES_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JES_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jmr_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMR ungroomed -1</div>
+          <div class="card-meta">JMR_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMR_ungroomed_-1.png" data-preview-src="_previews/uncertainties/JMR_ungroomed_-1.png" data-preview-alt="JMR ungroomed -1 preview"><img src="_previews/uncertainties/JMR_ungroomed_-1.png" alt="JMR ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMR_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMR_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jmr_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMR ungroomed 0</div>
+          <div class="card-meta">JMR_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMR_ungroomed_0.png" data-preview-src="_previews/uncertainties/JMR_ungroomed_0.png" data-preview-alt="JMR ungroomed 0 preview"><img src="_previews/uncertainties/JMR_ungroomed_0.png" alt="JMR ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMR_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMR_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jmr_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMR ungroomed 1</div>
+          <div class="card-meta">JMR_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMR_ungroomed_1.png" data-preview-src="_previews/uncertainties/JMR_ungroomed_1.png" data-preview-alt="JMR ungroomed 1 preview"><img src="_previews/uncertainties/JMR_ungroomed_1.png" alt="JMR ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMR_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMR_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jmr_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMR ungroomed 2</div>
+          <div class="card-meta">JMR_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMR_ungroomed_2.png" data-preview-src="_previews/uncertainties/JMR_ungroomed_2.png" data-preview-alt="JMR ungroomed 2 preview"><img src="_previews/uncertainties/JMR_ungroomed_2.png" alt="JMR ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMR_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMR_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS groomed -1</div>
+          <div class="card-meta">JMS_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_groomed_-1.png" data-preview-src="_previews/uncertainties/JMS_groomed_-1.png" data-preview-alt="JMS groomed -1 preview"><img src="_previews/uncertainties/JMS_groomed_-1.png" alt="JMS groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS groomed 0</div>
+          <div class="card-meta">JMS_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_groomed_0.png" data-preview-src="_previews/uncertainties/JMS_groomed_0.png" data-preview-alt="JMS groomed 0 preview"><img src="_previews/uncertainties/JMS_groomed_0.png" alt="JMS groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS groomed 1</div>
+          <div class="card-meta">JMS_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_groomed_1.png" data-preview-src="_previews/uncertainties/JMS_groomed_1.png" data-preview-alt="JMS groomed 1 preview"><img src="_previews/uncertainties/JMS_groomed_1.png" alt="JMS groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS groomed 2</div>
+          <div class="card-meta">JMS_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_groomed_2.png" data-preview-src="_previews/uncertainties/JMS_groomed_2.png" data-preview-alt="JMS groomed 2 preview"><img src="_previews/uncertainties/JMS_groomed_2.png" alt="JMS groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS ungroomed -1</div>
+          <div class="card-meta">JMS_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_ungroomed_-1.png" data-preview-src="_previews/uncertainties/JMS_ungroomed_-1.png" data-preview-alt="JMS ungroomed -1 preview"><img src="_previews/uncertainties/JMS_ungroomed_-1.png" alt="JMS ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS ungroomed 0</div>
+          <div class="card-meta">JMS_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_ungroomed_0.png" data-preview-src="_previews/uncertainties/JMS_ungroomed_0.png" data-preview-alt="JMS ungroomed 0 preview"><img src="_previews/uncertainties/JMS_ungroomed_0.png" alt="JMS ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS ungroomed 1</div>
+          <div class="card-meta">JMS_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_ungroomed_1.png" data-preview-src="_previews/uncertainties/JMS_ungroomed_1.png" data-preview-alt="JMS ungroomed 1 preview"><img src="_previews/uncertainties/JMS_ungroomed_1.png" alt="JMS ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="jms_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">JMS ungroomed 2</div>
+          <div class="card-meta">JMS_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/JMS_ungroomed_2.png" data-preview-src="_previews/uncertainties/JMS_ungroomed_2.png" data-preview-alt="JMS ungroomed 2 preview"><img src="_previews/uncertainties/JMS_ungroomed_2.png" alt="JMS ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/JMS_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/JMS_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="j_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">J ungroomed -1</div>
+          <div class="card-meta">J_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/J_ungroomed_-1.png" data-preview-src="_previews/uncertainties/J_ungroomed_-1.png" data-preview-alt="J ungroomed -1 preview"><img src="_previews/uncertainties/J_ungroomed_-1.png" alt="J ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/J_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/J_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="j_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">J ungroomed 0</div>
+          <div class="card-meta">J_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/J_ungroomed_0.png" data-preview-src="_previews/uncertainties/J_ungroomed_0.png" data-preview-alt="J ungroomed 0 preview"><img src="_previews/uncertainties/J_ungroomed_0.png" alt="J ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/J_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/J_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="j_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">J ungroomed 1</div>
+          <div class="card-meta">J_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/J_ungroomed_1.png" data-preview-src="_previews/uncertainties/J_ungroomed_1.png" data-preview-alt="J ungroomed 1 preview"><img src="_previews/uncertainties/J_ungroomed_1.png" alt="J ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/J_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/J_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="j_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">J ungroomed 2</div>
+          <div class="card-meta">J_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/J_ungroomed_2.png" data-preview-src="_previews/uncertainties/J_ungroomed_2.png" data-preview-alt="J ungroomed 2 preview"><img src="_previews/uncertainties/J_ungroomed_2.png" alt="J ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/J_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/J_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap groomed -1</div>
+          <div class="card-meta">heatmap_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_groomed_-1.png" data-preview-src="_previews/uncertainties/heatmap_groomed_-1.png" data-preview-alt="heatmap groomed -1 preview"><img src="_previews/uncertainties/heatmap_groomed_-1.png" alt="heatmap groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap groomed 0</div>
+          <div class="card-meta">heatmap_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_groomed_0.png" data-preview-src="_previews/uncertainties/heatmap_groomed_0.png" data-preview-alt="heatmap groomed 0 preview"><img src="_previews/uncertainties/heatmap_groomed_0.png" alt="heatmap groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap groomed 1</div>
+          <div class="card-meta">heatmap_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_groomed_1.png" data-preview-src="_previews/uncertainties/heatmap_groomed_1.png" data-preview-alt="heatmap groomed 1 preview"><img src="_previews/uncertainties/heatmap_groomed_1.png" alt="heatmap groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap groomed 2</div>
+          <div class="card-meta">heatmap_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_groomed_2.png" data-preview-src="_previews/uncertainties/heatmap_groomed_2.png" data-preview-alt="heatmap groomed 2 preview"><img src="_previews/uncertainties/heatmap_groomed_2.png" alt="heatmap groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap ungroomed -1</div>
+          <div class="card-meta">heatmap_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_ungroomed_-1.png" data-preview-src="_previews/uncertainties/heatmap_ungroomed_-1.png" data-preview-alt="heatmap ungroomed -1 preview"><img src="_previews/uncertainties/heatmap_ungroomed_-1.png" alt="heatmap ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap ungroomed 0</div>
+          <div class="card-meta">heatmap_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_ungroomed_0.png" data-preview-src="_previews/uncertainties/heatmap_ungroomed_0.png" data-preview-alt="heatmap ungroomed 0 preview"><img src="_previews/uncertainties/heatmap_ungroomed_0.png" alt="heatmap ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap ungroomed 1</div>
+          <div class="card-meta">heatmap_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_ungroomed_1.png" data-preview-src="_previews/uncertainties/heatmap_ungroomed_1.png" data-preview-alt="heatmap ungroomed 1 preview"><img src="_previews/uncertainties/heatmap_ungroomed_1.png" alt="heatmap ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="heatmap_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">heatmap ungroomed 2</div>
+          <div class="card-meta">heatmap_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/heatmap_ungroomed_2.png" data-preview-src="_previews/uncertainties/heatmap_ungroomed_2.png" data-preview-alt="heatmap ungroomed 2 preview"><img src="_previews/uncertainties/heatmap_ungroomed_2.png" alt="heatmap ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/heatmap_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/heatmap_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig groomed -1</div>
+          <div class="card-meta">herwig_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_groomed_-1.png" data-preview-src="_previews/uncertainties/herwig_groomed_-1.png" data-preview-alt="herwig groomed -1 preview"><img src="_previews/uncertainties/herwig_groomed_-1.png" alt="herwig groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig groomed 0</div>
+          <div class="card-meta">herwig_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_groomed_0.png" data-preview-src="_previews/uncertainties/herwig_groomed_0.png" data-preview-alt="herwig groomed 0 preview"><img src="_previews/uncertainties/herwig_groomed_0.png" alt="herwig groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig groomed 1</div>
+          <div class="card-meta">herwig_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_groomed_1.png" data-preview-src="_previews/uncertainties/herwig_groomed_1.png" data-preview-alt="herwig groomed 1 preview"><img src="_previews/uncertainties/herwig_groomed_1.png" alt="herwig groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig groomed 2</div>
+          <div class="card-meta">herwig_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_groomed_2.png" data-preview-src="_previews/uncertainties/herwig_groomed_2.png" data-preview-alt="herwig groomed 2 preview"><img src="_previews/uncertainties/herwig_groomed_2.png" alt="herwig groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig ungroomed -1</div>
+          <div class="card-meta">herwig_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_ungroomed_-1.png" data-preview-src="_previews/uncertainties/herwig_ungroomed_-1.png" data-preview-alt="herwig ungroomed -1 preview"><img src="_previews/uncertainties/herwig_ungroomed_-1.png" alt="herwig ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig ungroomed 0</div>
+          <div class="card-meta">herwig_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_ungroomed_0.png" data-preview-src="_previews/uncertainties/herwig_ungroomed_0.png" data-preview-alt="herwig ungroomed 0 preview"><img src="_previews/uncertainties/herwig_ungroomed_0.png" alt="herwig ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig ungroomed 1</div>
+          <div class="card-meta">herwig_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_ungroomed_1.png" data-preview-src="_previews/uncertainties/herwig_ungroomed_1.png" data-preview-alt="herwig ungroomed 1 preview"><img src="_previews/uncertainties/herwig_ungroomed_1.png" alt="herwig ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="herwig_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">herwig ungroomed 2</div>
+          <div class="card-meta">herwig_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/herwig_ungroomed_2.png" data-preview-src="_previews/uncertainties/herwig_ungroomed_2.png" data-preview-alt="herwig ungroomed 2 preview"><img src="_previews/uncertainties/herwig_ungroomed_2.png" alt="herwig ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/herwig_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/herwig_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr groomed -1</div>
+          <div class="card-meta">isr_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_groomed_-1.png" data-preview-src="_previews/uncertainties/isr_groomed_-1.png" data-preview-alt="isr groomed -1 preview"><img src="_previews/uncertainties/isr_groomed_-1.png" alt="isr groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr groomed 0</div>
+          <div class="card-meta">isr_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_groomed_0.png" data-preview-src="_previews/uncertainties/isr_groomed_0.png" data-preview-alt="isr groomed 0 preview"><img src="_previews/uncertainties/isr_groomed_0.png" alt="isr groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr groomed 1</div>
+          <div class="card-meta">isr_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_groomed_1.png" data-preview-src="_previews/uncertainties/isr_groomed_1.png" data-preview-alt="isr groomed 1 preview"><img src="_previews/uncertainties/isr_groomed_1.png" alt="isr groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr groomed 2</div>
+          <div class="card-meta">isr_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_groomed_2.png" data-preview-src="_previews/uncertainties/isr_groomed_2.png" data-preview-alt="isr groomed 2 preview"><img src="_previews/uncertainties/isr_groomed_2.png" alt="isr groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr ungroomed -1</div>
+          <div class="card-meta">isr_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_ungroomed_-1.png" data-preview-src="_previews/uncertainties/isr_ungroomed_-1.png" data-preview-alt="isr ungroomed -1 preview"><img src="_previews/uncertainties/isr_ungroomed_-1.png" alt="isr ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr ungroomed 0</div>
+          <div class="card-meta">isr_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_ungroomed_0.png" data-preview-src="_previews/uncertainties/isr_ungroomed_0.png" data-preview-alt="isr ungroomed 0 preview"><img src="_previews/uncertainties/isr_ungroomed_0.png" alt="isr ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr ungroomed 1</div>
+          <div class="card-meta">isr_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_ungroomed_1.png" data-preview-src="_previews/uncertainties/isr_ungroomed_1.png" data-preview-alt="isr ungroomed 1 preview"><img src="_previews/uncertainties/isr_ungroomed_1.png" alt="isr ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="isr_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">isr ungroomed 2</div>
+          <div class="card-meta">isr_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/isr_ungroomed_2.png" data-preview-src="_previews/uncertainties/isr_ungroomed_2.png" data-preview-alt="isr ungroomed 2 preview"><img src="_previews/uncertainties/isr_ungroomed_2.png" alt="isr ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/isr_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/isr_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_jmr_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus JMR ungroomed -1</div>
+          <div class="card-meta">nominal_minus_JMR_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_JMR_ungroomed_-1.png" data-preview-src="_previews/uncertainties/nominal_minus_JMR_ungroomed_-1.png" data-preview-alt="nominal minus JMR ungroomed -1 preview"><img src="_previews/uncertainties/nominal_minus_JMR_ungroomed_-1.png" alt="nominal minus JMR ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_jmr_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus JMR ungroomed 0</div>
+          <div class="card-meta">nominal_minus_JMR_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_JMR_ungroomed_0.png" data-preview-src="_previews/uncertainties/nominal_minus_JMR_ungroomed_0.png" data-preview-alt="nominal minus JMR ungroomed 0 preview"><img src="_previews/uncertainties/nominal_minus_JMR_ungroomed_0.png" alt="nominal minus JMR ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_jmr_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus JMR ungroomed 1</div>
+          <div class="card-meta">nominal_minus_JMR_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_JMR_ungroomed_1.png" data-preview-src="_previews/uncertainties/nominal_minus_JMR_ungroomed_1.png" data-preview-alt="nominal minus JMR ungroomed 1 preview"><img src="_previews/uncertainties/nominal_minus_JMR_ungroomed_1.png" alt="nominal minus JMR ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_jmr_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus JMR ungroomed 2</div>
+          <div class="card-meta">nominal_minus_JMR_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_JMR_ungroomed_2.png" data-preview-src="_previews/uncertainties/nominal_minus_JMR_ungroomed_2.png" data-preview-alt="nominal minus JMR ungroomed 2 preview"><img src="_previews/uncertainties/nominal_minus_JMR_ungroomed_2.png" alt="nominal minus JMR ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_JMR_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_pu_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus pu ungroomed -1</div>
+          <div class="card-meta">nominal_minus_pu_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_pu_ungroomed_-1.png" data-preview-src="_previews/uncertainties/nominal_minus_pu_ungroomed_-1.png" data-preview-alt="nominal minus pu ungroomed -1 preview"><img src="_previews/uncertainties/nominal_minus_pu_ungroomed_-1.png" alt="nominal minus pu ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_pu_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus pu ungroomed 0</div>
+          <div class="card-meta">nominal_minus_pu_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_pu_ungroomed_0.png" data-preview-src="_previews/uncertainties/nominal_minus_pu_ungroomed_0.png" data-preview-alt="nominal minus pu ungroomed 0 preview"><img src="_previews/uncertainties/nominal_minus_pu_ungroomed_0.png" alt="nominal minus pu ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_pu_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus pu ungroomed 1</div>
+          <div class="card-meta">nominal_minus_pu_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_pu_ungroomed_1.png" data-preview-src="_previews/uncertainties/nominal_minus_pu_ungroomed_1.png" data-preview-alt="nominal minus pu ungroomed 1 preview"><img src="_previews/uncertainties/nominal_minus_pu_ungroomed_1.png" alt="nominal minus pu ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="nominal_minus_pu_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">nominal minus pu ungroomed 2</div>
+          <div class="card-meta">nominal_minus_pu_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/nominal_minus_pu_ungroomed_2.png" data-preview-src="_previews/uncertainties/nominal_minus_pu_ungroomed_2.png" data-preview-alt="nominal minus pu ungroomed 2 preview"><img src="_previews/uncertainties/nominal_minus_pu_ungroomed_2.png" alt="nominal minus pu ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/nominal_minus_pu_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="pu_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pu ungroomed -1</div>
+          <div class="card-meta">pu_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/pu_ungroomed_-1.png" data-preview-src="_previews/uncertainties/pu_ungroomed_-1.png" data-preview-alt="pu ungroomed -1 preview"><img src="_previews/uncertainties/pu_ungroomed_-1.png" alt="pu ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/pu_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/pu_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="pu_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pu ungroomed 0</div>
+          <div class="card-meta">pu_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/pu_ungroomed_0.png" data-preview-src="_previews/uncertainties/pu_ungroomed_0.png" data-preview-alt="pu ungroomed 0 preview"><img src="_previews/uncertainties/pu_ungroomed_0.png" alt="pu ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/pu_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/pu_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="pu_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pu ungroomed 1</div>
+          <div class="card-meta">pu_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/pu_ungroomed_1.png" data-preview-src="_previews/uncertainties/pu_ungroomed_1.png" data-preview-alt="pu ungroomed 1 preview"><img src="_previews/uncertainties/pu_ungroomed_1.png" alt="pu ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/pu_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/pu_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="pu_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pu ungroomed 2</div>
+          <div class="card-meta">pu_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/pu_ungroomed_2.png" data-preview-src="_previews/uncertainties/pu_ungroomed_2.png" data-preview-alt="pu ungroomed 2 preview"><img src="_previews/uncertainties/pu_ungroomed_2.png" alt="pu ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/pu_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/pu_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 groomed -1</div>
+          <div class="card-meta">q2_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_groomed_-1.png" data-preview-src="_previews/uncertainties/q2_groomed_-1.png" data-preview-alt="q2 groomed -1 preview"><img src="_previews/uncertainties/q2_groomed_-1.png" alt="q2 groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 groomed 0</div>
+          <div class="card-meta">q2_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_groomed_0.png" data-preview-src="_previews/uncertainties/q2_groomed_0.png" data-preview-alt="q2 groomed 0 preview"><img src="_previews/uncertainties/q2_groomed_0.png" alt="q2 groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 groomed 1</div>
+          <div class="card-meta">q2_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_groomed_1.png" data-preview-src="_previews/uncertainties/q2_groomed_1.png" data-preview-alt="q2 groomed 1 preview"><img src="_previews/uncertainties/q2_groomed_1.png" alt="q2 groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 groomed 2</div>
+          <div class="card-meta">q2_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_groomed_2.png" data-preview-src="_previews/uncertainties/q2_groomed_2.png" data-preview-alt="q2 groomed 2 preview"><img src="_previews/uncertainties/q2_groomed_2.png" alt="q2 groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 ungroomed -1</div>
+          <div class="card-meta">q2_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_ungroomed_-1.png" data-preview-src="_previews/uncertainties/q2_ungroomed_-1.png" data-preview-alt="q2 ungroomed -1 preview"><img src="_previews/uncertainties/q2_ungroomed_-1.png" alt="q2 ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 ungroomed 0</div>
+          <div class="card-meta">q2_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_ungroomed_0.png" data-preview-src="_previews/uncertainties/q2_ungroomed_0.png" data-preview-alt="q2 ungroomed 0 preview"><img src="_previews/uncertainties/q2_ungroomed_0.png" alt="q2 ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 ungroomed 1</div>
+          <div class="card-meta">q2_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_ungroomed_1.png" data-preview-src="_previews/uncertainties/q2_ungroomed_1.png" data-preview-alt="q2 ungroomed 1 preview"><img src="_previews/uncertainties/q2_ungroomed_1.png" alt="q2 ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="q2_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">q2 ungroomed 2</div>
+          <div class="card-meta">q2_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/q2_ungroomed_2.png" data-preview-src="_previews/uncertainties/q2_ungroomed_2.png" data-preview-alt="q2 ungroomed 2 preview"><img src="_previews/uncertainties/q2_ungroomed_2.png" alt="q2 ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/q2_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/q2_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction groomed -1</div>
+          <div class="card-meta">stat_fraction_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_groomed_-1.png" data-preview-src="_previews/uncertainties/stat_fraction_groomed_-1.png" data-preview-alt="stat fraction groomed -1 preview"><img src="_previews/uncertainties/stat_fraction_groomed_-1.png" alt="stat fraction groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction groomed 0</div>
+          <div class="card-meta">stat_fraction_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_groomed_0.png" data-preview-src="_previews/uncertainties/stat_fraction_groomed_0.png" data-preview-alt="stat fraction groomed 0 preview"><img src="_previews/uncertainties/stat_fraction_groomed_0.png" alt="stat fraction groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction groomed 1</div>
+          <div class="card-meta">stat_fraction_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_groomed_1.png" data-preview-src="_previews/uncertainties/stat_fraction_groomed_1.png" data-preview-alt="stat fraction groomed 1 preview"><img src="_previews/uncertainties/stat_fraction_groomed_1.png" alt="stat fraction groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction groomed 2</div>
+          <div class="card-meta">stat_fraction_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_groomed_2.png" data-preview-src="_previews/uncertainties/stat_fraction_groomed_2.png" data-preview-alt="stat fraction groomed 2 preview"><img src="_previews/uncertainties/stat_fraction_groomed_2.png" alt="stat fraction groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction ungroomed -1</div>
+          <div class="card-meta">stat_fraction_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_ungroomed_-1.png" data-preview-src="_previews/uncertainties/stat_fraction_ungroomed_-1.png" data-preview-alt="stat fraction ungroomed -1 preview"><img src="_previews/uncertainties/stat_fraction_ungroomed_-1.png" alt="stat fraction ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction ungroomed 0</div>
+          <div class="card-meta">stat_fraction_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_ungroomed_0.png" data-preview-src="_previews/uncertainties/stat_fraction_ungroomed_0.png" data-preview-alt="stat fraction ungroomed 0 preview"><img src="_previews/uncertainties/stat_fraction_ungroomed_0.png" alt="stat fraction ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction ungroomed 1</div>
+          <div class="card-meta">stat_fraction_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_ungroomed_1.png" data-preview-src="_previews/uncertainties/stat_fraction_ungroomed_1.png" data-preview-alt="stat fraction ungroomed 1 preview"><img src="_previews/uncertainties/stat_fraction_ungroomed_1.png" alt="stat fraction ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="stat_fraction_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">stat fraction ungroomed 2</div>
+          <div class="card-meta">stat_fraction_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/stat_fraction_ungroomed_2.png" data-preview-src="_previews/uncertainties/stat_fraction_ungroomed_2.png" data-preview-alt="stat fraction ungroomed 2 preview"><img src="_previews/uncertainties/stat_fraction_ungroomed_2.png" alt="stat fraction ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/stat_fraction_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary groomed -1</div>
+          <div class="card-meta">summary_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_groomed_-1.png" data-preview-src="_previews/uncertainties/summary_groomed_-1.png" data-preview-alt="summary groomed -1 preview"><img src="_previews/uncertainties/summary_groomed_-1.png" alt="summary groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary groomed 0</div>
+          <div class="card-meta">summary_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_groomed_0.png" data-preview-src="_previews/uncertainties/summary_groomed_0.png" data-preview-alt="summary groomed 0 preview"><img src="_previews/uncertainties/summary_groomed_0.png" alt="summary groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary groomed 1</div>
+          <div class="card-meta">summary_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_groomed_1.png" data-preview-src="_previews/uncertainties/summary_groomed_1.png" data-preview-alt="summary groomed 1 preview"><img src="_previews/uncertainties/summary_groomed_1.png" alt="summary groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary groomed 2</div>
+          <div class="card-meta">summary_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_groomed_2.png" data-preview-src="_previews/uncertainties/summary_groomed_2.png" data-preview-alt="summary groomed 2 preview"><img src="_previews/uncertainties/summary_groomed_2.png" alt="summary groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped groomed -1</div>
+          <div class="card-meta">summary_grouped_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_groomed_-1.png" data-preview-src="_previews/uncertainties/summary_grouped_groomed_-1.png" data-preview-alt="summary grouped groomed -1 preview"><img src="_previews/uncertainties/summary_grouped_groomed_-1.png" alt="summary grouped groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped groomed 0</div>
+          <div class="card-meta">summary_grouped_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_groomed_0.png" data-preview-src="_previews/uncertainties/summary_grouped_groomed_0.png" data-preview-alt="summary grouped groomed 0 preview"><img src="_previews/uncertainties/summary_grouped_groomed_0.png" alt="summary grouped groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped groomed 1</div>
+          <div class="card-meta">summary_grouped_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_groomed_1.png" data-preview-src="_previews/uncertainties/summary_grouped_groomed_1.png" data-preview-alt="summary grouped groomed 1 preview"><img src="_previews/uncertainties/summary_grouped_groomed_1.png" alt="summary grouped groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped groomed 2</div>
+          <div class="card-meta">summary_grouped_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_groomed_2.png" data-preview-src="_previews/uncertainties/summary_grouped_groomed_2.png" data-preview-alt="summary grouped groomed 2 preview"><img src="_previews/uncertainties/summary_grouped_groomed_2.png" alt="summary grouped groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_groomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear groomed -1</div>
+          <div class="card-meta">summary_grouped_linear_groomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_groomed_-1.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_groomed_-1.png" data-preview-alt="summary grouped linear groomed -1 preview"><img src="_previews/uncertainties/summary_grouped_linear_groomed_-1.png" alt="summary grouped linear groomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_groomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear groomed 0</div>
+          <div class="card-meta">summary_grouped_linear_groomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_groomed_0.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_groomed_0.png" data-preview-alt="summary grouped linear groomed 0 preview"><img src="_previews/uncertainties/summary_grouped_linear_groomed_0.png" alt="summary grouped linear groomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_groomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear groomed 1</div>
+          <div class="card-meta">summary_grouped_linear_groomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_groomed_1.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_groomed_1.png" data-preview-alt="summary grouped linear groomed 1 preview"><img src="_previews/uncertainties/summary_grouped_linear_groomed_1.png" alt="summary grouped linear groomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_groomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear groomed 2</div>
+          <div class="card-meta">summary_grouped_linear_groomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_groomed_2.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_groomed_2.png" data-preview-alt="summary grouped linear groomed 2 preview"><img src="_previews/uncertainties/summary_grouped_linear_groomed_2.png" alt="summary grouped linear groomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_groomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear ungroomed -1</div>
+          <div class="card-meta">summary_grouped_linear_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_ungroomed_-1.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_ungroomed_-1.png" data-preview-alt="summary grouped linear ungroomed -1 preview"><img src="_previews/uncertainties/summary_grouped_linear_ungroomed_-1.png" alt="summary grouped linear ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear ungroomed 0</div>
+          <div class="card-meta">summary_grouped_linear_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_ungroomed_0.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_ungroomed_0.png" data-preview-alt="summary grouped linear ungroomed 0 preview"><img src="_previews/uncertainties/summary_grouped_linear_ungroomed_0.png" alt="summary grouped linear ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear ungroomed 1</div>
+          <div class="card-meta">summary_grouped_linear_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_ungroomed_1.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_ungroomed_1.png" data-preview-alt="summary grouped linear ungroomed 1 preview"><img src="_previews/uncertainties/summary_grouped_linear_ungroomed_1.png" alt="summary grouped linear ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_linear_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped linear ungroomed 2</div>
+          <div class="card-meta">summary_grouped_linear_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_linear_ungroomed_2.png" data-preview-src="_previews/uncertainties/summary_grouped_linear_ungroomed_2.png" data-preview-alt="summary grouped linear ungroomed 2 preview"><img src="_previews/uncertainties/summary_grouped_linear_ungroomed_2.png" alt="summary grouped linear ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_linear_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped ungroomed -1</div>
+          <div class="card-meta">summary_grouped_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_ungroomed_-1.png" data-preview-src="_previews/uncertainties/summary_grouped_ungroomed_-1.png" data-preview-alt="summary grouped ungroomed -1 preview"><img src="_previews/uncertainties/summary_grouped_ungroomed_-1.png" alt="summary grouped ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped ungroomed 0</div>
+          <div class="card-meta">summary_grouped_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_ungroomed_0.png" data-preview-src="_previews/uncertainties/summary_grouped_ungroomed_0.png" data-preview-alt="summary grouped ungroomed 0 preview"><img src="_previews/uncertainties/summary_grouped_ungroomed_0.png" alt="summary grouped ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped ungroomed 1</div>
+          <div class="card-meta">summary_grouped_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_ungroomed_1.png" data-preview-src="_previews/uncertainties/summary_grouped_ungroomed_1.png" data-preview-alt="summary grouped ungroomed 1 preview"><img src="_previews/uncertainties/summary_grouped_ungroomed_1.png" alt="summary grouped ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_grouped_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary grouped ungroomed 2</div>
+          <div class="card-meta">summary_grouped_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_grouped_ungroomed_2.png" data-preview-src="_previews/uncertainties/summary_grouped_ungroomed_2.png" data-preview-alt="summary grouped ungroomed 2 preview"><img src="_previews/uncertainties/summary_grouped_ungroomed_2.png" alt="summary grouped ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_grouped_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_ungroomed_-1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary ungroomed -1</div>
+          <div class="card-meta">summary_ungroomed_-1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_ungroomed_-1.png" data-preview-src="_previews/uncertainties/summary_ungroomed_-1.png" data-preview-alt="summary ungroomed -1 preview"><img src="_previews/uncertainties/summary_ungroomed_-1.png" alt="summary ungroomed -1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_ungroomed_-1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_ungroomed_-1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_ungroomed_0.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary ungroomed 0</div>
+          <div class="card-meta">summary_ungroomed_0.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_ungroomed_0.png" data-preview-src="_previews/uncertainties/summary_ungroomed_0.png" data-preview-alt="summary ungroomed 0 preview"><img src="_previews/uncertainties/summary_ungroomed_0.png" alt="summary ungroomed 0 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_ungroomed_0.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_ungroomed_0.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_ungroomed_1.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary ungroomed 1</div>
+          <div class="card-meta">summary_ungroomed_1.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_ungroomed_1.png" data-preview-src="_previews/uncertainties/summary_ungroomed_1.png" data-preview-alt="summary ungroomed 1 preview"><img src="_previews/uncertainties/summary_ungroomed_1.png" alt="summary ungroomed 1 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_ungroomed_1.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_ungroomed_1.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="uncertainties" data-name="summary_ungroomed_2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">summary ungroomed 2</div>
+          <div class="card-meta">summary_ungroomed_2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/uncertainties/summary_ungroomed_2.png" data-preview-src="_previews/uncertainties/summary_ungroomed_2.png" data-preview-alt="summary ungroomed 2 preview"><img src="_previews/uncertainties/summary_ungroomed_2.png" alt="summary ungroomed 2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="uncertainties/summary_ungroomed_2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="uncertainties/summary_ungroomed_2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+  </div>
+  <div class="lightbox" id="lightbox" hidden>
+    <div class="lightbox-dialog" role="dialog" aria-modal="true" aria-label="Expanded preview">
+      <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close preview">&times;</button>
+      <img class="lightbox-image" id="lightbox-image" alt="">
+    </div>
+  </div>
+  <script>
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const sections = Array.from(document.querySelectorAll('.section'));
+    const count = document.getElementById('visible-count');
+    const filter = document.getElementById('filter');
+    const previewLinks = Array.from(document.querySelectorAll('.preview-link'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    function update() {
+      const term = filter.value.trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        const text = `${card.dataset.folder} ${card.dataset.name}`;
+        const show = !term || text.includes(term);
+        card.classList.toggle('hidden', !show);
+        if (show) visible += 1;
+      }
+      for (const section of sections) {
+        const hasVisible = section.querySelector('.card:not(.hidden)');
+        section.classList.toggle('hidden', !hasVisible);
+      }
+      count.textContent = String(visible);
+    }
+
+    function closeLightbox() {
+      lightbox.hidden = true;
+      lightboxImage.removeAttribute('src');
+      lightboxImage.alt = '';
+      document.body.style.overflow = '';
+    }
+
+    function openLightbox(src, alt) {
+      lightboxImage.src = src;
+      lightboxImage.alt = alt;
+      lightbox.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    for (const link of previewLinks) {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        openLightbox(link.dataset.previewSrc, link.dataset.previewAlt || 'Expanded preview');
+      });
+    }
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) {
+        closeLightbox();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !lightbox.hidden) {
+        closeLightbox();
+      }
+    });
+
+    filter.addEventListener('input', update);
+    update();
+  </script>
+</body>
+</html>
