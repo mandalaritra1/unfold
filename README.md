@@ -1,4 +1,8 @@
-Use latest version of the tool in `unfolder_v4.ipynb`. New tools are stored in `unfold_tool/`
+Use the latest shared unfolder implementation in `src/unfold/tools/unfolder_core.py`.
+
+## Documentation
+
+- Core class reference: [docs/Unfolder_core_class_reference.md](docs/Unfolder_core_class_reference.md)
 
 For the rho workflow:
 
