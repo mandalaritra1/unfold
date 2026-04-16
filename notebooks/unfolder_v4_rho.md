@@ -48,7 +48,7 @@ OUTPUTS_ROOT = REPO_ROOT / "outputs" / "rho"
 GALLERY_SCRIPT = REPO_ROOT / "outputs" / "build_rho_gallery.py"
 GALLERY_HTML = OUTPUTS_ROOT / "index.html"
 
-from unfold.tools.Unfolder_rho import Unfolder
+from unfold.tools.unfolder_core import Unfolder, RHO_SPEC
 from unfold.utils.merge_helpers import *
 
 ROOT.gErrorIgnoreLevel = ROOT.kWarning
@@ -87,6 +87,7 @@ def build_rho_gallery():
 def run_mode(mode_name, groomed_flag, *, closure=False, herwig_closure=False, do_syst=True, show=False):
     print(f"===== Running {mode_name} =====")
     mode_unfolder = Unfolder(
+        RHO_SPEC,
         groomed=groomed_flag,
         closure=closure,
         herwig_closure=herwig_closure,
