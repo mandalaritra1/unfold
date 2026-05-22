@@ -7,13 +7,17 @@ This is the current reference for the shared `Unfolder` class used for both mass
 ## Quick start
 
 ```python
-from unfold.tools.unfolder_core import Unfolder, MASS_SPEC, RHO_SPEC
+from unfold.tools.unfolder_core import Unfolder, MASS_SPEC, RHO_SPEC, RHO_SPECS
 
 # Mass unfolding
 u_mass = Unfolder(spec=MASS_SPEC, groomed=True, do_syst=True, cms_label="Internal")
 
-# Rho unfolding
+# Rho unfolding, defaulting to the fixed-JEC 2026-05-15 input tag
 u_rho = Unfolder(spec=RHO_SPEC, groomed=False, do_syst=True, cms_label="Internal")
+
+# Explicit rho input/output tags
+u_rho_original = Unfolder(spec=RHO_SPECS["original"], groomed=False, do_syst=True, cms_label="Internal")
+u_rho_fixed_jec = Unfolder(spec=RHO_SPECS["fixed_jec"], groomed=False, do_syst=True, cms_label="Internal")
 ```
 
 ## Architecture update
@@ -24,7 +28,9 @@ u_rho = Unfolder(spec=RHO_SPEC, groomed=False, do_syst=True, cms_label="Internal
   - histogram key names
   - bin-edge attribute names
   - labels, axis limits, normalized y-axis text
-- `MASS_SPEC` and `RHO_SPEC` are concrete instances passed into `Unfolder`.
+- `MASS_SPEC`, `RHO_SPEC`, and explicit `RHO_SPECS` entries are concrete instances passed into `Unfolder`.
+- `RHO_SPECS["original"]` reads `inputs/rhoInputs/` and writes `outputs/rho/original/`; `RHO_SPECS["fixed_jec"]` reads `inputs/rhoInputs_2026_05_15/` and writes `outputs/rho/fixed_jec/`.
+- `RHO_SPEC` remains a backward-compatible alias for `RHO_SPECS["fixed_jec"]`.
 - One `Unfolder` implementation now supports both observables.
 
 ## High-level constructor flow

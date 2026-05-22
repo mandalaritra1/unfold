@@ -145,6 +145,8 @@ def build_html(
     hero_title: str = "rho plot gallery",
     hero_copy: str | None = None,
 ) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    output.parent.mkdir(parents=True, exist_ok=True)
     files = collect_files(root)
     groups: dict[str, list[Path]] = defaultdict(list)
     for path in files:
@@ -532,7 +534,9 @@ def main() -> None:
     args = parse_args()
     root = args.root.resolve()
     output = args.output.resolve() if args.output else root / "index.html"
-    build_html(root=root, output=output, dpi=args.dpi)
+    tag = root.name if root.parent.name == "rho" else None
+    title = f"rho plot gallery: {tag}" if tag else "rho plot gallery"
+    build_html(root=root, output=output, dpi=args.dpi, page_title=title, hero_title=title)
 
 
 if __name__ == "__main__":

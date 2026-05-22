@@ -1,5 +1,5 @@
 from array import array
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 import re
 
@@ -118,11 +118,11 @@ MASS_SPEC = ObservableSpec(
 )
 
 
-RHO_SPEC = ObservableSpec(
+RHO_FIXED_JEC_SPEC = ObservableSpec(
     name="rho",
     reco_axis="mpt_reco",
     gen_axis="mpt_gen",
-    input_dir="./inputs/rhoInputs/",
+    input_dir="./inputs/rhoInputs_2026_05_15/",
     mc_file="pythia_all.pkl",
     data_file="data_all.pkl",
     herwig_file="herwig_all.pkl",
@@ -144,7 +144,7 @@ RHO_SPEC = ObservableSpec(
         "pythia_reweighted_all.pkl",
         "herwig_all.pkl",
     ],
-    output_dir="outputs/rho/",
+    output_dir="outputs/rho/fixed_jec/",
     edges_reco_attr="rho_edges",
     edges_gen_attr="rho_edges_gen",
     reco_edges_by_pt_attr="reco_rho_edges_by_pt",
@@ -163,10 +163,24 @@ RHO_SPEC = ObservableSpec(
     x_label_ungroomed=r"Ungroomed $\rho = \ln(m^2/p_T^2)$",
     short_label_groomed=r"$\rho$, Groomed",
     short_label_ungroomed=r"$\rho$, Ungroomed",
-    xlim_lower_groomed=-10.0,
-    xlim_lower_ungroomed=-10.0,
+    xlim_lower_groomed=-4.5,
+    xlim_lower_ungroomed=-2.5,
     normalized_ylabel=r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d\rho\,dp_T}$",
 )
+
+RHO_ORIGINAL_SPEC = replace(
+    RHO_FIXED_JEC_SPEC,
+    input_dir="./inputs/rhoInputs/",
+    output_dir="outputs/rho/original/",
+)
+
+RHO_SPECS = {
+    "original": RHO_ORIGINAL_SPEC,
+    "fixed_jec": RHO_FIXED_JEC_SPEC,
+}
+
+# Backward-compatible default: the current rho input set with fixed JEC.
+RHO_SPEC = RHO_FIXED_JEC_SPEC
 
 JES_SYSTEMATICS = [
     "JES_AbsoluteMPFBiasUp", "JES_AbsoluteMPFBiasDown", "JES_AbsoluteScaleUp", "JES_AbsoluteScaleDown",
@@ -203,6 +217,7 @@ class Unfolder:
         self.closure = closure
         self.herwig_closure = herwig_closure
         self.y_unf_dict = {}
+        self._ensure_output_dirs()
         self._setup_binning()
         self._make_inputs_numpy()
         self._configure_systematics(do_syst)
@@ -217,6 +232,13 @@ class Unfolder:
         self._compute_stat_unc()
         self._normalize_result()
         self._compute_total_systematic()
+
+    def _ensure_output_dirs(self):
+        output_dir = Path(self.spec.output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "unfold").mkdir(parents=True, exist_ok=True)
+        (output_dir / "uncertainties").mkdir(parents=True, exist_ok=True)
+        (output_dir / "_previews").mkdir(parents=True, exist_ok=True)
 
     def _setup_binning(self):
         self.bins = binning.bin_edges(self.groomed)
@@ -267,9 +289,11 @@ class Unfolder:
 
     def _observable_xlim(self, i_pt=None):
         if i_pt is not None:
-            upper = float(self.gen_edges_by_pt[i_pt][-2])
+            edges = self.gen_edges_by_pt[i_pt]
+            upper = float(edges[-1] if self.spec.name == "rho" else edges[-2])
         else:
-            upper = max(float(edges[-2]) for edges in self.gen_edges_by_pt)
+            edge_index = -1 if self.spec.name == "rho" else -2
+            upper = max(float(edges[edge_index]) for edges in self.gen_edges_by_pt)
         lower = self.spec.xlim_lower_groomed if self.groomed else self.spec.xlim_lower_ungroomed
         return (lower, upper)
 

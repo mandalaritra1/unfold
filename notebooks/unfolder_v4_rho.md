@@ -14,10 +14,16 @@ jupyter:
 ---
 
 ```python
-import sys, os
-#os.chdir("..")
-sys.path.insert(0, "./src")
-#sys.path.insert(0, '/mnt/e/ws/unfold/src')
+import os
+import sys
+from pathlib import Path
+
+_cwd = Path.cwd().resolve()
+REPO_ROOT = next((p for p in [_cwd, *_cwd.parents] if (p / "src" / "unfold").exists()), _cwd)
+os.chdir(REPO_ROOT)
+SRC_DIR = REPO_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 ```
 
 ```python
@@ -46,9 +52,10 @@ if str(REPO_ROOT / "src") not in sys.path:
 
 OUTPUTS_ROOT = REPO_ROOT / "outputs" / "rho"
 GALLERY_SCRIPT = REPO_ROOT / "outputs" / "build_rho_gallery.py"
-GALLERY_HTML = OUTPUTS_ROOT / "index.html"
+DEFAULT_VERSION_TAG = "fixed_jec"
+GALLERY_HTML = OUTPUTS_ROOT / DEFAULT_VERSION_TAG / "index.html"
 
-from unfold.tools.unfolder_core import Unfolder, RHO_SPEC
+from unfold.tools.unfolder_core import Unfolder, RHO_SPEC, RHO_SPECS
 from unfold.utils.merge_helpers import *
 
 ROOT.gErrorIgnoreLevel = ROOT.kWarning
@@ -69,25 +76,37 @@ MODE_CONFIGS = [
     ("groomed", True),
 ]
 
+VERSION_CONFIGS = [
+    ("original", RHO_SPECS["original"]),
+    ("fixed_jec", RHO_SPECS["fixed_jec"]),
+]
 
-def save_mode_artifacts(mode_name, unfolder_instance):
-    np.savez(REPO_ROOT / "outputs" / f"unfolding_mosaic_rho_{mode_name}.npz", mosaic=unfolder_instance.mosaic)
-    np.savez(REPO_ROOT / "outputs" / f"unfolding_mosaic_2d_rho_{mode_name}.npz", mosaic_2d=unfolder_instance.mosaic_2d)
+
+def output_root_for(spec):
+    return REPO_ROOT / spec.output_dir
 
 
-def build_rho_gallery():
+def save_mode_artifacts(version_tag, mode_name, unfolder_instance):
+    output_root = output_root_for(unfolder_instance.spec)
+    output_root.mkdir(parents=True, exist_ok=True)
+    np.savez(output_root / f"unfolding_mosaic_rho_{mode_name}.npz", mosaic=unfolder_instance.mosaic)
+    np.savez(output_root / f"unfolding_mosaic_2d_rho_{mode_name}.npz", mosaic_2d=unfolder_instance.mosaic_2d)
+
+
+def build_rho_gallery(version_tag=DEFAULT_VERSION_TAG):
+    output_root = output_root_for(RHO_SPECS[version_tag])
     subprocess.run(
-        [sys.executable, str(GALLERY_SCRIPT), "--root", str(OUTPUTS_ROOT)],
+        [sys.executable, str(GALLERY_SCRIPT), "--root", str(output_root)],
         check=True,
         cwd=str(REPO_ROOT),
     )
-    return GALLERY_HTML
+    return output_root / "index.html"
 
 
-def run_mode(mode_name, groomed_flag, *, closure=False, herwig_closure=False, do_syst=True, show=False):
-    print(f"===== Running {mode_name} =====")
+def run_mode(version_tag, spec, mode_name, groomed_flag, *, closure=False, herwig_closure=False, do_syst=True, show=False):
+    print(f"===== Running {version_tag} / {mode_name} =====")
     mode_unfolder = Unfolder(
-        RHO_SPEC,
+        spec,
         groomed=groomed_flag,
         closure=closure,
         herwig_closure=herwig_closure,
@@ -95,51 +114,65 @@ def run_mode(mode_name, groomed_flag, *, closure=False, herwig_closure=False, do
     )
     mode_unfolder.run_all_plots(show=show)
     mode_unfolder.plot_jk(show=show)
-    save_mode_artifacts(mode_name, mode_unfolder)
+    save_mode_artifacts(version_tag, mode_name, mode_unfolder)
     return mode_unfolder
 
 
-def use_unfolder(mode_name="ungroomed"):
+def use_unfolder(version_tag=DEFAULT_VERSION_TAG, mode_name="ungroomed"):
     global unfolder, groomed
-    unfolder = unfolders[mode_name]
+    unfolder = unfolders[version_tag][mode_name]
     groomed = mode_name == "groomed"
-    display(Markdown(f"Using `unfolder_{mode_name}` for follow-up cells."))
+    display(Markdown(f"Using `{version_tag}` / `{mode_name}` for follow-up cells."))
     return unfolder
 
 
-def run_master_rho(*, closure=False, herwig_closure=False, do_syst=True, show=False):
+def run_master_rho(*, version_tags=None, closure=False, herwig_closure=False, do_syst=True, show=False):
     global unfolders, unfolder_ungroomed, unfolder_groomed, unfolder
     global groomed, closure_state, herwig_closure_state
+    requested_tags = list(version_tags) if version_tags is not None else [tag for tag, _ in VERSION_CONFIGS]
+    specs_by_tag = dict(VERSION_CONFIGS)
     unfolders = {}
-    for mode_name, groomed_flag in MODE_CONFIGS:
-        unfolders[mode_name] = run_mode(
-            mode_name,
-            groomed_flag,
-            closure=closure,
-            herwig_closure=herwig_closure,
-            do_syst=do_syst,
-            show=show,
-        )
-    unfolder_ungroomed = unfolders["ungroomed"]
-    unfolder_groomed = unfolders["groomed"]
+    gallery_paths = {}
+    for version_tag in requested_tags:
+        spec = specs_by_tag[version_tag]
+        unfolders[version_tag] = {}
+        for mode_name, groomed_flag in MODE_CONFIGS:
+            unfolders[version_tag][mode_name] = run_mode(
+                version_tag,
+                spec,
+                mode_name,
+                groomed_flag,
+                closure=closure,
+                herwig_closure=herwig_closure,
+                do_syst=do_syst,
+                show=show,
+            )
+        gallery_paths[version_tag] = build_rho_gallery(version_tag)
+    default_tag = DEFAULT_VERSION_TAG if DEFAULT_VERSION_TAG in unfolders else requested_tags[0]
+    unfolder_ungroomed = unfolders[default_tag]["ungroomed"]
+    unfolder_groomed = unfolders[default_tag]["groomed"]
     unfolder = unfolder_ungroomed
     groomed = False
     closure_state = closure
     herwig_closure_state = herwig_closure
-    gallery_path = build_rho_gallery()
-    return gallery_path
+    return gallery_paths
 
 
 def validate_master_run_state():
+    expected_tags = {tag for tag, _ in VERSION_CONFIGS}
     expected_modes = {mode_name for mode_name, _ in MODE_CONFIGS}
     if not isinstance(globals().get("unfolders"), dict):
         raise RuntimeError("Master run did not create the unfolders dictionary.")
-    missing_modes = sorted(expected_modes.difference(unfolders))
-    if missing_modes:
-        raise RuntimeError(f"Master run finished without creating: {', '.join(missing_modes)}")
-    if globals().get("unfolder_ungroomed") is not unfolders.get("ungroomed"):
+    missing_tags = sorted(expected_tags.difference(unfolders))
+    if missing_tags:
+        raise RuntimeError(f"Master run finished without creating versions: {', '.join(missing_tags)}")
+    for version_tag in expected_tags:
+        missing_modes = sorted(expected_modes.difference(unfolders[version_tag]))
+        if missing_modes:
+            raise RuntimeError(f"{version_tag} finished without creating: {', '.join(missing_modes)}")
+    if globals().get("unfolder_ungroomed") is not unfolders[DEFAULT_VERSION_TAG].get("ungroomed"):
         raise RuntimeError("Master run did not expose unfolder_ungroomed.")
-    if globals().get("unfolder_groomed") is not unfolders.get("groomed"):
+    if globals().get("unfolder_groomed") is not unfolders[DEFAULT_VERSION_TAG].get("groomed"):
         raise RuntimeError("Master run did not expose unfolder_groomed.")
 
 
@@ -156,18 +189,24 @@ for stale_name in ["run_button", "open_button", "master_output", "master_control
 MASTER_UI_ID = uuid.uuid4().hex[:8]
 
 master_output = widgets.Output()
-run_button = widgets.Button(description="Run groomed + ungroomed", button_style="primary", icon="play")
-open_button = widgets.Button(description="Open rho gallery", button_style="success", icon="external-link")
+run_button = widgets.Button(description="Run both rho versions", button_style="primary", icon="play")
+open_button = widgets.Button(description="Open fixed_jec gallery", button_style="success", icon="external-link")
 run_button._master_id = MASTER_UI_ID
 open_button._master_id = MASTER_UI_ID
 open_button.disabled = not GALLERY_HTML.exists()
 status_html = widgets.HTML(
-    value=f"<b>Master runner</b> <code>{MASTER_UI_ID}</code>: builds ungroomed and groomed outputs, refreshes the rho gallery, and leaves <code>unfolder_ungroomed</code> / <code>unfolder_groomed</code> available for extra cells."
+    value=f"<b>Master runner</b> <code>{MASTER_UI_ID}</code>: builds original and fixed_jec rho outputs, refreshes each tagged gallery, and leaves fixed_jec <code>unfolder_ungroomed</code> / <code>unfolder_groomed</code> available for extra cells."
 )
 
 
 def show_gallery_link(gallery_path):
-    display(HTML(f'<a href="{gallery_path.resolve().as_uri()}" target="_blank">Open outputs/rho/index.html</a>'))
+    rel_path = gallery_path.relative_to(REPO_ROOT)
+    display(HTML(f'<a href="{gallery_path.resolve().as_uri()}" target="_blank">Open {rel_path}</a>'))
+
+
+def show_gallery_links(gallery_paths):
+    for version_tag, gallery_path in gallery_paths.items():
+        show_gallery_link(gallery_path)
 
 
 _master_run_active = False
@@ -184,17 +223,17 @@ def handle_run(btn):
     open_button.disabled = True
     with master_output:
         clear_output()
-        display(Markdown("Running ungroomed + groomed master workflow..."))
+        display(Markdown("Running original and fixed_jec ungroomed + groomed workflows..."))
         try:
             import contextlib
             import io
 
             log_buffer = io.StringIO()
             with contextlib.redirect_stdout(log_buffer), contextlib.redirect_stderr(log_buffer):
-                gallery_path = run_master_rho(show=False)
+                gallery_paths = run_master_rho(show=False)
             validate_master_run_state()
-            display(Markdown("Finished. Default `unfolder` now points to `unfolder_ungroomed`. Use `use_unfolder(\"groomed\")` if you want the groomed object in later cells."))
-            show_gallery_link(gallery_path)
+            display(Markdown("Finished. Default `unfolder` now points to fixed_jec `unfolder_ungroomed`. Use `use_unfolder(\"original\", \"groomed\")` or `use_unfolder(\"fixed_jec\", \"groomed\")` for later cells."))
+            show_gallery_links(gallery_paths)
             open_button.disabled = False
         except Exception:
             clear_output()
@@ -210,7 +249,7 @@ def handle_open(btn):
         return
     gallery_path = GALLERY_HTML
     if not gallery_path.exists():
-        gallery_path = build_rho_gallery()
+        gallery_path = build_rho_gallery(DEFAULT_VERSION_TAG)
     webbrowser.open(gallery_path.resolve().as_uri())
     with master_output:
         display(Markdown("Sent gallery URL to the local browser opener."))
@@ -238,11 +277,12 @@ unfolder_groomed.plot_systematic_fraction()
 
 ```python
 mosaic = unfolder.mosaic
-# save in a npz file
-np.savez("./outputs/unfolding_mosaic.npz", mosaic=mosaic)
+active_output_root = output_root_for(unfolder.spec)
+active_output_root.mkdir(parents=True, exist_ok=True)
+np.savez(active_output_root / "unfolding_mosaic.npz", mosaic=mosaic)
 
 mosaic_2d = unfolder.mosaic_2d
-np.savez("./outputs/unfolding_mosaic_2d.npz", mosaic_2d=mosaic_2d)
+np.savez(active_output_root / "unfolding_mosaic_2d.npz", mosaic_2d=mosaic_2d)
 ```
 
 ```python

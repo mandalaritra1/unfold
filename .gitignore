@@ -72,5 +72,6 @@ Thumbs.db
 *.pkl
 *.root
 test_output/
-outputs/*.pdf
+outputs/**/*.pdf
 outputs/rho/_previews/
+outputs/mass/_previews/
