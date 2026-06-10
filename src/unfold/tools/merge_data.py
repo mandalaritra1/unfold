@@ -18,7 +18,7 @@ the merged ``dataset`` axis is their union.
 Usage (from repo root, with the notebook venv):
 
     .venv/bin/python -m unfold.tools.merge_data \
-        --input-dir inputs/rhoInputs_2026_05_15 \
+        --input-dir inputs/zjet/rho/fixed_jec \
         --era-files minimal_rho_data_2016.pkl minimal_rho_data_2017.pkl minimal_rho_data_2018.pkl
 """
 

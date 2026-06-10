@@ -127,7 +127,7 @@ def main() -> None:
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("inputs/validation"),
+        default=Path("inputs/zjet/validation"),
         help="Directory containing validation_*.pkl inputs.",
     )
     parser.add_argument(

@@ -94,7 +94,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=ROOT / "inputs" / "validation",
+        default=ROOT / "inputs" / "zjet" / "validation",
         help="Directory containing validation_*.pkl inputs.",
     )
     parser.add_argument(

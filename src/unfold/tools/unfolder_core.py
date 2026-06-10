@@ -33,7 +33,7 @@ class ObservableSpec:
     gen_axis: str                   # histogram axis name on gen side
 
     # Input/output path conventions. Per-era files are joined with input_dir.
-    input_dir: str                  # e.g. "./inputs/massInputs/"
+    input_dir: str                  # e.g. "./inputs/zjet/mass/"
     mc_file: str                    # merged pythia pkl (no dir)
     data_file: str
     herwig_file: str
@@ -69,7 +69,7 @@ MASS_SPEC = ObservableSpec(
     name="mass",
     reco_axis="mreco",
     gen_axis="mgen",
-    input_dir="./inputs/massInputs/",
+    input_dir="./inputs/zjet/mass/",
     mc_file="mass_pythia_all.pkl",
     data_file="mass_data_all.pkl",
     herwig_file="mass_herwig_all.pkl",
@@ -122,7 +122,7 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
     name="rho",
     reco_axis="mpt_reco",
     gen_axis="mpt_gen",
-    input_dir="./inputs/rhoInputs_2026_05_15/",
+    input_dir="./inputs/zjet/rho/fixed_jec/",
     mc_file="pythia_all.pkl",
     data_file="data_all.pkl",
     herwig_file="herwig_all.pkl",
@@ -170,7 +170,7 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
 
 RHO_ORIGINAL_SPEC = replace(
     RHO_FIXED_JEC_SPEC,
-    input_dir="./inputs/rhoInputs/",
+    input_dir="./inputs/zjet/rho/original/",
     output_dir="outputs/rho/original/",
 )
 
@@ -179,8 +179,9 @@ RHO_SPECS = {
     "fixed_jec": RHO_FIXED_JEC_SPEC,
 }
 
-# Backward-compatible default: the current rho input set with fixed JEC.
-RHO_SPEC = RHO_FIXED_JEC_SPEC
+# Default rho spec: the "original" (pre-JEC-fix) input set. Select the
+# fixed-JEC set explicitly via RHO_SPECS["fixed_jec"] when needed.
+RHO_SPEC = RHO_ORIGINAL_SPEC
 
 JES_SYSTEMATICS = [
     "JES_AbsoluteMPFBiasUp", "JES_AbsoluteMPFBiasDown", "JES_AbsoluteScaleUp", "JES_AbsoluteScaleDown",
@@ -1805,7 +1806,7 @@ class Unfolder:
         print("Computing total systematic uncertainty...")
         # Compute total systematic uncertainty for each pt bin
         # load from file
-        #herwig_unc = np.load("./inputs/massInputs/herwig_closure_unc_mass_groomed.npy") if self.groomed else np.load("./inputs/massInputs/herwig_closure_unc_mass_ungroomed.npy")
+        #herwig_unc = np.load("./inputs/zjet/mass/herwig_closure_unc_mass_groomed.npy") if self.groomed else np.load("./inputs/zjet/mass/herwig_closure_unc_mass_ungroomed.npy")
         #self.herwig_unc = herwig_unc
         for i in range(len(self.normalized_results)):
             nominal = self.normalized_results[i]['unfolded']

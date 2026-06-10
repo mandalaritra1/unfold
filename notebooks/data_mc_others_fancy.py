@@ -49,11 +49,11 @@ run2_lumi = {
     "2018": 59.74,
 }
 
-with open("inputs/validation/validation_backgrounds_all.pkl", "rb") as f:
+with open("inputs/zjet/validation/validation_backgrounds_all.pkl", "rb") as f:
     bkg = pkl.load(f)
-with open("inputs/validation/validation_st_all.pkl", "rb") as f:
+with open("inputs/zjet/validation/validation_st_all.pkl", "rb") as f:
     st = pkl.load(f)
-with open("inputs/validation/validation_data.pkl", "rb") as f:
+with open("inputs/zjet/validation/validation_data.pkl", "rb") as f:
     data = pkl.load(f)
 
 print("Backgrounds:", bkg.keys())
@@ -81,9 +81,9 @@ def compute_total_unc(pythia_hist):
 
 
 def plot_data_mc(bkg, st, hist, field, era, data, file_id="", xmin=None, xmax = None, groomed=True, xlabel = "Undefined"):
-    with open(f"inputs/validation/validation_pythia_{era}.pkl", "rb") as f:
+    with open(f"inputs/zjet/validation/validation_pythia_{era}.pkl", "rb") as f:
         pythia = pkl.load(f)
-    # with open(f"inputs/validation/validation_data_data_{era}.pkl", "rb") as f:
+    # with open(f"inputs/zjet/validation/validation_data_data_{era}.pkl", "rb") as f:
     #     data = pkl.load(f)
 
     era_dic = {

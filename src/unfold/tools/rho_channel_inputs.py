@@ -150,7 +150,11 @@ def discover_rho_channel_files(
         raise ValueError(f"Unsupported channel {channel!r}; choose from {CHANNELS}")
 
     year = str(year)
-    channel_dir = Path(input_root) / channel
+    # Channel rho pickles live under inputs/<channel>/rho/. Fall back to the
+    # legacy flat inputs/<channel>/ layout if the rho/ subdir is absent.
+    channel_dir = Path(input_root) / channel / "rho"
+    if not channel_dir.is_dir():
+        channel_dir = Path(input_root) / channel
     data = channel_dir / f"minimal_rho_{channel}_data_{year}.pkl"
     mc = channel_dir / f"minimal_rho_{channel}_mg_pythia8_{year}.pkl"
     missing = [path for path in (data, mc) if not path.is_file()]
