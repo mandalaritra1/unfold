@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dijet Channel — rho dynamic bins</title>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --fg:#e6e6e6; --muted:#9aa0aa; --accent:#5aa0ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header.page { padding:24px 28px 8px; position:sticky; top:0; background:var(--bg);
+                border-bottom:1px solid #262b34; z-index:10; }
+  header.page h1 { margin:0; font-size:22px; }
+  header.page p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+  .binning { padding:18px 28px 4px; display:flex; gap:36px; flex-wrap:wrap; }
+  .binning h3 { margin:0 0 8px; font-size:14px; color:var(--muted); font-weight:600;
+                text-transform:uppercase; letter-spacing:.04em; }
+  table { border-collapse:collapse; font-size:13px; }
+  table th, table td { border:1px solid #2a3340; padding:5px 12px; text-align:center; }
+  table th { background:#1c2129; color:var(--accent); font-weight:600; }
+  table td:first-child { color:var(--muted); }
+  .channel { padding:8px 28px 40px; }
+  .channel > h2 { font-size:20px; color:var(--accent); border-bottom:2px solid #2a3340;
+                  padding-bottom:6px; margin:28px 0 4px; }
+  .section h3 { font-size:15px; margin:22px 0 8px; color:var(--fg); font-weight:600; }
+  .row { display:flex; flex-wrap:wrap; gap:14px; padding:6px 2px 10px; }
+  .card { flex:0 0 auto; background:var(--panel); border:1px solid #262b34;
+          border-radius:8px; padding:8px; }
+  .card.single { }
+  .card img { display:block; height:300px; width:auto; border-radius:4px; cursor:zoom-in; }
+  .card.single img { height:420px; }
+  .card .cap { color:var(--muted); font-size:11px; text-align:center; margin-top:6px; }
+  /* lightbox */
+  #lb { position:fixed; inset:0; background:rgba(0,0,0,.92); display:none;
+        align-items:center; justify-content:center; z-index:100; cursor:zoom-out; }
+  #lb img { max-width:96vw; max-height:96vh; }
+</style>
+</head>
+<body>
+<header class="page">
+  <h1>Dijet Channel — rho</h1>
+</header>
+
+<div class="binning">
+  <div>
+    <h3>pT bins (GeV)</h3>
+    <table>
+      <tr><th>bin</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr>
+      <tr><td>range</td><td>0–200</td><td>200–290</td><td>290–400</td><td>400–570</td><td>570–760</td><td>760–13000</td></tr>
+    </table>
+  </div>
+  <div>
+    <h3>rho merged tails</h3>
+    <table>
+      <tr><th>channel</th><th>low-rho tail</th><th>high-rho tail (low pT)</th><th>high-rho tail (high pT)</th><th>gen tail</th></tr>
+      <tr><td>groomed</td><td>[−10.0, −4.4]</td><td>[−0.6, 0.0]</td><td>[−0.8, 0.0]</td><td>[−0.8, 0.0]</td></tr>
+      <tr><td>ungroomed</td><td>[−10.0, −2.4]</td><td>[−0.6, 0.0]</td><td>[−0.8, 0.0]</td><td>[−0.8, 0.0]</td></tr>
+    </table>
+  </div>
+</div>
+
+<div id="root"></div>
+
+<div id="lb"><img alt=""></div>
+
+<script>
+const BASE = "file:///Users/aritra/Projects/unfold/outputs/gluonjetmass/all/rho_dynamic_bins/_previews/";
+const GEN_BASE = "file:///Users/aritra/Projects/unfold/outputs/gluonjetmass/all/rho/gen_compare/";
+const PT = [0,1,2,3,4];          // pt bins (underflow -1 omitted)
+const PT_INPUT = [0,1,2,3,4,5];  // input plots use 0..5
+const PT_GEN = [0,1,2,3,4,5];    // gen_compare plots use pt0..pt5
+
+// section builders return {title, files:[{src,cap}]} ; single=true => one big plot
+function sections(ch){
+  return [
+    { title:"Inputs",
+      files: PT_INPUT.map(i => ({src:`input_${ch}_${i}.png`, cap:`pt bin ${i}`})) },
+    { title:"Gen comparison",
+      files: PT_GEN.map(i => ({src:`${GEN_BASE}gen_rho_spline_${ch}_pt${i}.png`, abs:true, cap:`pt bin ${i}`})) },
+    { title:"Response matrix", single:true,
+      files: [{src:`unfold/response_${ch}.png`, cap:""}] },
+    { title:"Unfolded results",
+      files: PT.map(i => ({src:`unfold/${ch}_${i}.png`, cap:`pt bin ${i}`})) },
+    { title:"Summary", single:true,
+      files: [{src:`${ch}_summary.png`, cap:""}] },
+    { title:"Uncertainties",
+      files: PT.map(i => ({src:`uncertainties/summary_grouped_${ch}_${i}.png`, cap:`pt bin ${i}`})) },
+    { title:"Uncertainties (linear)",
+      files: PT.map(i => ({src:`uncertainties/summary_grouped_linear_${ch}_${i}.png`, cap:`pt bin ${i}`})) },
+  ];
+}
+
+function render(){
+  const root = document.getElementById("root");
+  for (const ch of ["groomed","ungroomed"]){
+    const wrap = document.createElement("div");
+    wrap.className = "channel";
+    wrap.innerHTML = `<h2>${ch[0].toUpperCase()+ch.slice(1)}</h2>`;
+    for (const sec of sections(ch)){
+      const s = document.createElement("div");
+      s.className = "section";
+      s.innerHTML = `<h3>${sec.title}</h3>`;
+      // split into two roughly-equal rows so all plots are visible when scrolling
+      const chunks = sec.single ? [sec.files]
+        : (() => { const half = Math.ceil(sec.files.length/2);
+                   return [sec.files.slice(0,half), sec.files.slice(half)]; })();
+      for (const chunk of chunks){
+        if (!chunk.length) continue;
+        const row = document.createElement("div");
+        row.className = "row";
+        for (const f of chunk){
+          const card = document.createElement("div");
+          card.className = "card" + (sec.single ? " single" : "");
+          card.innerHTML = `<img loading="lazy" src="${f.abs ? f.src : BASE+f.src}" alt="${f.src}">`
+                         + (f.cap ? `<div class="cap">${f.cap}</div>` : "");
+          row.appendChild(card);
+        }
+        s.appendChild(row);
+      }
+      wrap.appendChild(s);
+    }
+    root.appendChild(wrap);
+  }
+}
+
+// lightbox
+const lb = document.getElementById("lb"), lbImg = lb.querySelector("img");
+document.addEventListener("click", e => {
+  if (e.target.tagName === "IMG" && e.target.closest(".card")){
+    lbImg.src = e.target.src; lb.style.display = "flex";
+  } else if (e.target === lb || e.target === lbImg){
+    lb.style.display = "none"; lbImg.src = "";
+  }
+});
+document.addEventListener("keydown", e => { if (e.key==="Escape"){ lb.style.display="none"; lbImg.src=""; }});
+
+render();
+</script>
+</body>
+</html>

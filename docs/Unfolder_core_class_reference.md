@@ -20,6 +20,10 @@ u_rho_original = Unfolder(spec=RHO_SPECS["original"], groomed=False, do_syst=Tru
 u_rho_fixed_jec = Unfolder(spec=RHO_SPECS["fixed_jec"], groomed=False, do_syst=True, cms_label="Internal")
 ```
 
+Producer outputs that have already been schema-adapted use the additive
+`Unfolder.from_prepared_inputs(...)` classmethod. The dijet/trijet runner is
+the reference caller; the legacy constructor above is unchanged.
+
 ## Architecture update
 
 - `ObservableSpec`: declarative config for observable-dependent behavior:
@@ -53,7 +57,9 @@ When an object is created:
 | Method | Purpose |
 | --- | --- |
 | `__init__(spec, groomed, closure=False, herwig_closure=False, do_syst=False, cms_label="Internal")` | Main entry point. Runs full setup, unfolding, and uncertainty pipeline. |
+| `from_prepared_inputs(...)` | Runs the same TUnfold/normalization/systematic pipeline from role-aware in-memory histograms without requiring legacy merged-era, JK, or HERWIG files. |
 | `_setup_binning()` | Loads binning from `binning.bin_edges` using `spec` attribute names. |
+| `_setup_prepared_binning(analysis_binning)` | Installs an explicit producer-compatible binning object. |
 | `_configure_systematics(do_syst)` | Uses all `self.sys_matrix_dic` keys when enabled, else `["nominal"]`. |
 | `_load_pickle(filename)` | Reads pickle file. |
 | `_resolve_input_path(filename, *fallbacks)` | Returns first existing candidate path; raises `FileNotFoundError` if none exist. |
@@ -84,10 +90,11 @@ When an object is created:
 | Method | Purpose |
 | --- | --- |
 | `_compute_stat_unc()` | JK-based input and matrix statistical uncertainty propagation. |
+| `_compute_input_stat_unc_from_covariance()` | Uses TUnfold's propagated weighted-data covariance when prepared inputs have no JK samples; matrix-stat uncertainty is set to zero and reported unavailable. |
 | `_select_measured_spectrum(closure, herwig_closure, meas_flat)` | Chooses measured spectrum source for unfolding. |
 | `_apply_fake_correction(...)` | Applies fake correction unless in closure mode. |
 | `_build_root_binning()` | Builds `TUnfoldBinning` trees for truth/reco. |
-| `_fill_root_histogram(hist, values)` | Fills TH1 from flat array. |
+| `_fill_root_histogram(hist, values, variances=None)` | Fills TH1 content and optional weighted errors from flat arrays. |
 | `_fill_response_histogram(h_resp, resp_np, misses)` | Fills migration matrix + miss row. |
 | `_store_covariances(unfold, systematic)` | Extracts covariance matrices from TUnfold. |
 | `_store_unfold_result(...)` | Stores nominal/systematic or JK unfolding outputs. |

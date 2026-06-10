@@ -1,0 +1,15 @@
+hist==2.10.1
+mplhep==1.2.0
+matplotlib==3.10.9
+numpy==2.4.6
+scipy==1.17.1
+uproot==5.7.4
+awkward==2.9.0
+coffea==2026.5.0
+correctionlib==2.8.0
+vector==1.8.1
+pandas==3.0.3
+numba==0.65.1
+rich==15.0.0
+click==8.4.1
+pydantic==2.13.4

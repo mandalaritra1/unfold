@@ -1,0 +1,259 @@
+---
+comment: Normalized differential cross sections for the leading AK8 (anti-kT, R=0.8)
+  jet in Z(->ll)+jet events at sqrt(s)=13 TeV (CMS Run 2). The observable is log10(rho^2)
+  with rho = m/(pT R), measured separately for groomed (Soft Drop beta=0, zcut=0.1)
+  and ungroomed jet mass, in three leading-jet pT bins (200-290, 290-400, >400 GeV).
+  Each distribution is normalized to unit area within its pT bin. Statistical uncertainties
+  are from a 10-way jackknife; systematic uncertainties are the quadrature sum of
+  all sources. Bin-to-bin correlation matrices (statistical and total) are provided
+  as separate tables.
+---
+name: Groomed 200-290 GeV
+location: Normalized cross section vs log10(rho^2), groomed, pT 200-290 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the groomed leading AK8 jet, 200-290 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_groomed_pt0.yaml
+---
+name: Groomed 290-400 GeV
+location: Normalized cross section vs log10(rho^2), groomed, pT 290-400 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the groomed leading AK8 jet, 290-400 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_groomed_pt1.yaml
+---
+name: Groomed > 400 GeV
+location: Normalized cross section vs log10(rho^2), groomed, pT > 400 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the groomed leading AK8 jet, > 400 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_groomed_pt2.yaml
+---
+name: Groomed Statistical correlation
+location: Statistical bin-to-bin correlation matrix, groomed, all pT bins
+description: 'Statistical correlation matrix for the groomed normalized cross section,
+  flattened over the three pT bins (order: increasing pT, then increasing log10(rho^2)).
+  Self-describing bin labels included.'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_groomed_corr_statistical.yaml
+---
+name: Groomed Total correlation
+location: Total bin-to-bin correlation matrix, groomed, all pT bins
+description: 'Total correlation matrix for the groomed normalized cross section, flattened
+  over the three pT bins (order: increasing pT, then increasing log10(rho^2)). Self-describing
+  bin labels included.'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_groomed_corr_total.yaml
+---
+name: Ungroomed 200-290 GeV
+location: Normalized cross section vs log10(rho^2), ungroomed, pT 200-290 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the ungroomed leading AK8 jet, 200-290 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_ungroomed_pt0.yaml
+---
+name: Ungroomed 290-400 GeV
+location: Normalized cross section vs log10(rho^2), ungroomed, pT 290-400 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the ungroomed leading AK8 jet, 290-400 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_ungroomed_pt1.yaml
+---
+name: Ungroomed > 400 GeV
+location: Normalized cross section vs log10(rho^2), ungroomed, pT > 400 GeV
+description: 'Normalized differential cross section (1/sigma) dsigma/dlog10(rho^2)
+  for the ungroomed leading AK8 jet, > 400 GeV. rho = m/(pT R), R=0.8. Errors: stat
+  (jackknife) and sys (total).'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_ungroomed_pt2.yaml
+---
+name: Ungroomed Statistical correlation
+location: Statistical bin-to-bin correlation matrix, ungroomed, all pT bins
+description: 'Statistical correlation matrix for the ungroomed normalized cross section,
+  flattened over the three pT bins (order: increasing pT, then increasing log10(rho^2)).
+  Self-describing bin labels included.'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_ungroomed_corr_statistical.yaml
+---
+name: Ungroomed Total correlation
+location: Total bin-to-bin correlation matrix, ungroomed, all pT bins
+description: 'Total correlation matrix for the ungroomed normalized cross section,
+  flattened over the three pT bins (order: increasing pT, then increasing log10(rho^2)).
+  Self-describing bin labels included.'
+keywords:
+- name: reactions
+  values:
+  - P P --> Z0 < LEPTON+ LEPTON- > JET X
+- name: observables
+  values:
+  - DSIG/DLOG10(RHO**2)
+- name: cmenergies
+  values:
+  - 13000
+- name: phrases
+  values:
+  - Inclusive
+  - Z production
+  - Jet Production
+  - Jet mass
+  - Jet substructure
+  - Differential cross section
+data_file: table_ungroomed_corr_total.yaml

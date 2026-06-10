@@ -1,0 +1,989 @@
+independent_variables:
+- header:
+    name: Bin i (pT, log10(rho^2))
+  values:
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+- header:
+    name: Bin j (pT, log10(rho^2))
+  values:
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+  - value: pt[200-290] log10rho2[-10.0,-2.5]
+  - value: pt[200-290] log10rho2[-2.5,-2.0]
+  - value: pt[200-290] log10rho2[-2.0,-1.5]
+  - value: pt[200-290] log10rho2[-1.5,-1.0]
+  - value: pt[200-290] log10rho2[-1.0,-0.5]
+  - value: pt[200-290] log10rho2[-0.5,0.0]
+  - value: pt[290-400] log10rho2[-10.0,-2.5]
+  - value: pt[290-400] log10rho2[-2.5,-2.0]
+  - value: pt[290-400] log10rho2[-2.0,-1.5]
+  - value: pt[290-400] log10rho2[-1.5,-1.0]
+  - value: pt[290-400] log10rho2[-1.0,-0.5]
+  - value: pt[290-400] log10rho2[-0.5,0.0]
+  - value: pt[400-Inf] log10rho2[-10.0,-2.5]
+  - value: pt[400-Inf] log10rho2[-2.5,-2.0]
+  - value: pt[400-Inf] log10rho2[-2.0,-1.5]
+  - value: pt[400-Inf] log10rho2[-1.5,-1.0]
+  - value: pt[400-Inf] log10rho2[-1.0,-0.5]
+  - value: pt[400-Inf] log10rho2[-0.5,0.0]
+dependent_variables:
+- header:
+    name: Total correlation
+  qualifiers:
+  - name: SQRT(S)
+    value: 13000
+    units: GeV
+  - name: Grooming
+    value: ungroomed
+  values:
+  - value: 1.0
+  - value: -0.716651
+  - value: 0.668233
+  - value: -0.601355
+  - value: 0.283455
+  - value: 0.32205
+  - value: -0.442888
+  - value: 0.33367
+  - value: -0.277907
+  - value: 0.237133
+  - value: 0.0855568
+  - value: 0.122789
+  - value: 0.0640295
+  - value: -0.0581584
+  - value: 0.0436767
+  - value: -0.0245061
+  - value: -0.0129299
+  - value: -0.0146985
+  - value: -0.716651
+  - value: 1.0
+  - value: -0.73958
+  - value: 0.527043
+  - value: 0.0435397
+  - value: 0.202757
+  - value: 0.310864
+  - value: -0.45466
+  - value: 0.306953
+  - value: -0.209878
+  - value: -0.22736
+  - value: -0.321576
+  - value: -0.0492651
+  - value: 0.116019
+  - value: -0.0660174
+  - value: 0.0169214
+  - value: 0.036106
+  - value: 0.0499941
+  - value: 0.668233
+  - value: -0.73958
+  - value: 1.0
+  - value: -0.935739
+  - value: 0.366798
+  - value: 0.326754
+  - value: -0.190243
+  - value: 0.373074
+  - value: -0.398008
+  - value: 0.353659
+  - value: 0.154738
+  - value: 0.239514
+  - value: 0.0199873
+  - value: -0.115436
+  - value: 0.100988
+  - value: -0.0662567
+  - value: -0.0430229
+  - value: -0.061727
+  - value: -0.601355
+  - value: 0.527043
+  - value: -0.935739
+  - value: 1.0
+  - value: -0.661712
+  - value: -0.520397
+  - value: 0.146788
+  - value: -0.28279
+  - value: 0.364409
+  - value: -0.3649
+  - value: -0.0292478
+  - value: -0.145075
+  - value: -0.0126583
+  - value: 0.093204
+  - value: -0.0936888
+  - value: 0.0742981
+  - value: 0.0225405
+  - value: 0.0473771
+  - value: 0.283455
+  - value: 0.0435397
+  - value: 0.366798
+  - value: -0.661712
+  - value: 1.0
+  - value: 0.59829
+  - value: -0.0550992
+  - value: 0.00872044
+  - value: -0.126931
+  - value: 0.21425
+  - value: -0.257242
+  - value: -0.0964201
+  - value: 0.00459229
+  - value: -0.00832935
+  - value: 0.0300739
+  - value: -0.0485468
+  - value: 0.0382158
+  - value: 0.00819998
+  - value: 0.32205
+  - value: 0.202757
+  - value: 0.326754
+  - value: -0.520397
+  - value: 0.59829
+  - value: 1.0
+  - value: -0.0688674
+  - value: -0.0552144
+  - value: -0.109249
+  - value: 0.179505
+  - value: -0.148967
+  - value: -0.235711
+  - value: 0.00794707
+  - value: 0.00926787
+  - value: 0.0243741
+  - value: -0.045187
+  - value: 0.0173764
+  - value: 0.0321621
+  - value: -0.442888
+  - value: 0.310864
+  - value: -0.190243
+  - value: 0.146788
+  - value: -0.0550992
+  - value: -0.0688674
+  - value: 1.0
+  - value: -0.646508
+  - value: 0.491139
+  - value: -0.436168
+  - value: -0.0383172
+  - value: -0.0623233
+  - value: -0.278507
+  - value: 0.16057
+  - value: -0.0977079
+  - value: 0.0513289
+  - value: -0.0316686
+  - value: -0.0500193
+  - value: 0.33367
+  - value: -0.45466
+  - value: 0.373074
+  - value: -0.28279
+  - value: 0.00872044
+  - value: -0.0552144
+  - value: -0.646508
+  - value: 1.0
+  - value: -0.806079
+  - value: 0.624989
+  - value: 0.468168
+  - value: 0.699013
+  - value: 0.184488
+  - value: -0.344749
+  - value: 0.235529
+  - value: -0.107314
+  - value: -0.103574
+  - value: -0.153953
+  - value: -0.277907
+  - value: 0.306953
+  - value: -0.398008
+  - value: 0.364409
+  - value: -0.126931
+  - value: -0.109249
+  - value: 0.491139
+  - value: -0.806079
+  - value: 1.0
+  - value: -0.947011
+  - value: -0.268007
+  - value: -0.463047
+  - value: -0.115146
+  - value: 0.308065
+  - value: -0.309903
+  - value: 0.235735
+  - value: 0.108317
+  - value: 0.161666
+  - value: 0.237133
+  - value: -0.209878
+  - value: 0.353659
+  - value: -0.3649
+  - value: 0.21425
+  - value: 0.179505
+  - value: -0.436168
+  - value: 0.624989
+  - value: -0.947011
+  - value: 1.0
+  - value: -0.0361012
+  - value: 0.244612
+  - value: 0.0959488
+  - value: -0.247669
+  - value: 0.291297
+  - value: -0.26262
+  - value: -0.0404013
+  - value: -0.114772
+  - value: 0.0855568
+  - value: -0.22736
+  - value: 0.154738
+  - value: -0.0292478
+  - value: -0.257242
+  - value: -0.148967
+  - value: -0.0383172
+  - value: 0.468168
+  - value: -0.268007
+  - value: -0.0361012
+  - value: 1.0
+  - value: 0.61095
+  - value: 0.0067198
+  - value: -0.175444
+  - value: 0.103368
+  - value: 0.0227605
+  - value: -0.259239
+  - value: -0.17287
+  - value: 0.122789
+  - value: -0.321576
+  - value: 0.239514
+  - value: -0.145075
+  - value: -0.0964201
+  - value: -0.235711
+  - value: -0.0623233
+  - value: 0.699013
+  - value: -0.463047
+  - value: 0.244612
+  - value: 0.61095
+  - value: 1.0
+  - value: 0.00797309
+  - value: -0.261404
+  - value: 0.163893
+  - value: -0.0383958
+  - value: -0.165687
+  - value: -0.273562
+  - value: 0.0640295
+  - value: -0.0492651
+  - value: 0.0199873
+  - value: -0.0126583
+  - value: 0.00459229
+  - value: 0.00794707
+  - value: -0.278507
+  - value: 0.184488
+  - value: -0.115146
+  - value: 0.0959488
+  - value: 0.0067198
+  - value: 0.00797309
+  - value: 1.0
+  - value: -0.468201
+  - value: 0.255365
+  - value: -0.134446
+  - value: 0.204269
+  - value: 0.29831
+  - value: -0.0581584
+  - value: 0.116019
+  - value: -0.115436
+  - value: 0.093204
+  - value: -0.00832935
+  - value: 0.00926787
+  - value: 0.16057
+  - value: -0.344749
+  - value: 0.308065
+  - value: -0.247669
+  - value: -0.175444
+  - value: -0.261404
+  - value: -0.468201
+  - value: 1.0
+  - value: -0.800623
+  - value: 0.458672
+  - value: 0.38454
+  - value: 0.570744
+  - value: 0.0436767
+  - value: -0.0660174
+  - value: 0.100988
+  - value: -0.0936888
+  - value: 0.0300739
+  - value: 0.0243741
+  - value: -0.0977079
+  - value: 0.235529
+  - value: -0.309903
+  - value: 0.291297
+  - value: 0.103368
+  - value: 0.163893
+  - value: 0.255365
+  - value: -0.800623
+  - value: 1.0
+  - value: -0.880027
+  - value: -0.332131
+  - value: -0.49471
+  - value: -0.0245061
+  - value: 0.0169214
+  - value: -0.0662567
+  - value: 0.0742981
+  - value: -0.0485468
+  - value: -0.045187
+  - value: 0.0513289
+  - value: -0.107314
+  - value: 0.235735
+  - value: -0.26262
+  - value: 0.0227605
+  - value: -0.0383958
+  - value: -0.134446
+  - value: 0.458672
+  - value: -0.880027
+  - value: 1.0
+  - value: -0.00919995
+  - value: 0.226066
+  - value: -0.0129299
+  - value: 0.036106
+  - value: -0.0430229
+  - value: 0.0225405
+  - value: 0.0382158
+  - value: 0.0173764
+  - value: -0.0316686
+  - value: -0.103574
+  - value: 0.108317
+  - value: -0.0404013
+  - value: -0.259239
+  - value: -0.165687
+  - value: 0.204269
+  - value: 0.38454
+  - value: -0.332131
+  - value: -0.00919995
+  - value: 1.0
+  - value: 0.580584
+  - value: -0.0146985
+  - value: 0.0499941
+  - value: -0.061727
+  - value: 0.0473771
+  - value: 0.00819998
+  - value: 0.0321621
+  - value: -0.0500193
+  - value: -0.153953
+  - value: 0.161666
+  - value: -0.114772
+  - value: -0.17287
+  - value: -0.273562
+  - value: 0.29831
+  - value: 0.570744
+  - value: -0.49471
+  - value: 0.226066
+  - value: 0.580584
+  - value: 1.0

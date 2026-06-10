@@ -1,0 +1,61 @@
+GluonJetMass rho validation
+year: 2017
+data: inputs/gluonjetmass/2017/data/dijetHists_JetHT_all.pkl
+qcd files:
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_000_nominal.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_001_HEM.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_003_PileUp.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_006_RelativeStatHF_to_JMS.pkl
+herwig: none
+jk: pseudo
+systematics: 78
+pairs:
+  lumi: lumiUp, lumiDown
+  l1prefiring: l1prefiringUp, l1prefiringDown
+  pu: puUp, puDown
+  ISR: ISRUp, ISRDown
+  pdf: pdfUp, pdfDown
+  FSR: FSRUp, FSRDown
+  q2muR: q2muRUp, q2muRDown
+  q2muF: q2muFUp, q2muFDown
+  JER: JERUp, JERDown
+  JES_AbsoluteMPFBias: JES_AbsoluteMPFBiasUp, JES_AbsoluteMPFBiasDown
+  JES_AbsoluteScale: JES_AbsoluteScaleUp, JES_AbsoluteScaleDown
+  JES_AbsoluteStat: JES_AbsoluteStatUp, JES_AbsoluteStatDown
+  JES_FlavorQCD: JES_FlavorQCDUp, JES_FlavorQCDDown
+  JES_Fragmentation: JES_FragmentationUp, JES_FragmentationDown
+  JES_PileUpDataMC: JES_PileUpDataMCUp, JES_PileUpDataMCDown
+  JES_PileUpPtBB: JES_PileUpPtBBUp, JES_PileUpPtBBDown
+  JES_PileUpPtEC1: JES_PileUpPtEC1Up, JES_PileUpPtEC1Down
+  JES_PileUpPtEC2: JES_PileUpPtEC2Up, JES_PileUpPtEC2Down
+  JES_PileUpPtHF: JES_PileUpPtHFUp, JES_PileUpPtHFDown
+  JES_PileUpPtRef: JES_PileUpPtRefUp, JES_PileUpPtRefDown
+  JES_RelativeFSR: JES_RelativeFSRUp, JES_RelativeFSRDown
+  JES_RelativeJEREC1: JES_RelativeJEREC1Up, JES_RelativeJEREC1Down
+  JES_RelativeJEREC2: JES_RelativeJEREC2Up, JES_RelativeJEREC2Down
+  JES_RelativeJERHF: JES_RelativeJERHFUp, JES_RelativeJERHFDown
+  JES_RelativePtBB: JES_RelativePtBBUp, JES_RelativePtBBDown
+  JES_RelativePtEC1: JES_RelativePtEC1Up, JES_RelativePtEC1Down
+  JES_RelativePtEC2: JES_RelativePtEC2Up, JES_RelativePtEC2Down
+  JES_RelativePtHF: JES_RelativePtHFUp, JES_RelativePtHFDown
+  JES_RelativeBal: JES_RelativeBalUp, JES_RelativeBalDown
+  JES_RelativeSample: JES_RelativeSampleUp, JES_RelativeSampleDown
+  JES_RelativeStatEC: JES_RelativeStatECUp, JES_RelativeStatECDown
+  JES_RelativeStatFSR: JES_RelativeStatFSRUp, JES_RelativeStatFSRDown
+  JES_RelativeStatHF: JES_RelativeStatHFUp, JES_RelativeStatHFDown
+  JES_SinglePionECAL: JES_SinglePionECALUp, JES_SinglePionECALDown
+  JES_SinglePionHCAL: JES_SinglePionHCALUp, JES_SinglePionHCALDown
+  JES_TimePtEta: JES_TimePtEtaUp, JES_TimePtEtaDown
+  JMR: JMRUp, JMRDown
+  JMS: JMSUp, JMSDown
+singles:
+  HEM
+ungroomed reco edges: [-10.0, -2.4, -2.2, -2.0, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0]
+ungroomed gen edges: [-10.0, -2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0.0]
+ungroomed: nominal unfolded sum=1.20001e+11; systematics run=77
+groomed reco edges: [-10.0, -4.4, -4.2, -4.0, -3.8, -3.6, -3.4, -3.2, -3.0, -2.8, -2.6, -2.4, -2.2, -2.0, -1.8, -1.6, -1.4, -1.2, -1.0, -0.8, -0.6, -0.4, -0.2, 0.0]
+groomed gen edges: [-10.0, -4.4, -4.0, -3.6, -3.2, -2.8, -2.4, -2.0, -1.6, -1.2, -0.8, -0.4, 0.0]
+groomed: nominal unfolded sum=1.18169e+11; systematics run=77

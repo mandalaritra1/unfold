@@ -1,0 +1,4 @@
+Merged low-rho GluonJetMass rho validation
+groomed reco/gen low-rho merge edge: -4.4, first bin [-10, -4.4]
+ungroomed reco/gen low-rho merge edge: -2.4, first bin [-10, -2.4]
+Generated reco input PDFs, response PNG/PDF, JMS systematic PNG/PDF, and minimal unfolded PNG/PDF.

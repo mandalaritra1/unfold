@@ -1,0 +1,25 @@
+GluonJetMass rho production plot suite
+year: 2017
+output: outputs/gluonjetmass/2017/rho
+data: inputs/gluonjetmass/2017/data/dijetHists_JetHT_all.pkl
+qcd files:
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_000_nominal.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_001_HEM.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_003_PileUp.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_006_RelativeStatHF_to_JMS.pkl
+herwig: none
+jk: pseudo
+systematics: 78
+ungroomed: nominal unfolded sum=1.20001e+11; systematics=77
+ungroomed skipped/notes:
+  plot_herwig_systematic: skipped because no Herwig input is available
+  plot_systematic_frac_indiv(['herwig']): skipped because no Herwig input is available
+  plot_systematic_frac_indiv(['ElectronSF','MuonSF']): skipped; no lepton SF systematics in GluonJetMass QCD input
+groomed: nominal unfolded sum=1.18169e+11; systematics=77
+groomed skipped/notes:
+  plot_herwig_systematic: skipped because no Herwig input is available
+  plot_systematic_frac_indiv(['herwig']): skipped because no Herwig input is available
+  plot_systematic_frac_indiv(['ElectronSF','MuonSF']): skipped; no lepton SF systematics in GluonJetMass QCD input

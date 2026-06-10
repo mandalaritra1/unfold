@@ -1,0 +1,132 @@
+independent_variables:
+- header:
+    name: $\log_{10}(\rho^2)$, $\rho = m/(p_T R)$
+  values:
+  - low: -10.0
+    high: -4.5
+  - low: -4.5
+    high: -4.0
+  - low: -4.0
+    high: -3.5
+  - low: -3.5
+    high: -3.0
+  - low: -3.0
+    high: -2.5
+  - low: -2.5
+    high: -2.0
+  - low: -2.0
+    high: -1.5
+  - low: -1.5
+    high: -1.0
+  - low: -1.0
+    high: -0.5
+  - low: -0.5
+    high: 0.0
+dependent_variables:
+- header:
+    name: $(1/\sigma)\, d\sigma/d\log_{10}(\rho^2)$
+  qualifiers: &id001
+  - name: SQRT(S)
+    value: 13000
+    units: GeV
+  - name: Jet $p_T$
+    value: '> 400 GeV'
+  - name: Grooming
+    value: groomed
+  - name: Jet algorithm
+    value: anti-$k_T$, R=0.8
+  values:
+  - value: 0.0110005
+    errors:
+    - label: stat
+      symerror: 0.000565747
+    - label: sys
+      asymerror:
+        plus: 0.0013888
+        minus: -0.00144157
+  - value: 0.173186
+    errors:
+    - label: stat
+      symerror: 0.0131739
+    - label: sys
+      asymerror:
+        plus: 0.0190024
+        minus: -0.0178737
+  - value: 0.265369
+    errors:
+    - label: stat
+      symerror: 0.0135996
+    - label: sys
+      asymerror:
+        plus: 0.0209107
+        minus: -0.024138
+  - value: 0.301119
+    errors:
+    - label: stat
+      symerror: 0.0089663
+    - label: sys
+      asymerror:
+        plus: 0.0252004
+        minus: -0.0316133
+  - value: 0.211618
+    errors:
+    - label: stat
+      symerror: 0.00448173
+    - label: sys
+      asymerror:
+        plus: 0.0152252
+        minus: -0.0155248
+  - value: 0.177331
+    errors:
+    - label: stat
+      symerror: 0.00259396
+    - label: sys
+      asymerror:
+        plus: 0.00391505
+        minus: -0.00478426
+  - value: 0.221414
+    errors:
+    - label: stat
+      symerror: 0.00264676
+    - label: sys
+      asymerror:
+        plus: 0.00231567
+        minus: -0.0023092
+  - value: 0.289879
+    errors:
+    - label: stat
+      symerror: 0.00226609
+    - label: sys
+      asymerror:
+        plus: 0.0138244
+        minus: -0.0139494
+  - value: 0.230035
+    errors:
+    - label: stat
+      symerror: 0.00189583
+    - label: sys
+      asymerror:
+        plus: 0.0299985
+        minus: -0.0300546
+  - value: 0.00904382
+    errors:
+    - label: stat
+      symerror: 0.00055656
+    - label: sys
+      asymerror:
+        plus: 0.00464882
+        minus: -0.00462491
+- header:
+    name: PYTHIA8 (prediction)
+  qualifiers: *id001
+  values:
+  - value: 0.0154781
+  - value: 0.244539
+  - value: 0.256852
+  - value: 0.18797
+  - value: 0.162285
+  - value: 0.196965
+  - value: 0.245579
+  - value: 0.288947
+  - value: 0.24007
+  - value: 0.00653482

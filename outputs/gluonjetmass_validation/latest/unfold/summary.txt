@@ -1,0 +1,14 @@
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt0.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt1.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt2.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt3.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt4.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_ungroomed_pt5.png
+ungroomed: y_unf sum=1.21034e+11, y_true sum=3.61363e+10, response_shape=(192, 96), perm=[3, 2, 1, 0]
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt0.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt1.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt2.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt3.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt4.png
+outputs/gluonjetmass_validation/latest/unfold/unfolded_minimal_groomed_pt5.png
+groomed: y_unf sum=1.18119e+11, y_true sum=3.61254e+10, response_shape=(192, 96), perm=[3, 2, 1, 0]

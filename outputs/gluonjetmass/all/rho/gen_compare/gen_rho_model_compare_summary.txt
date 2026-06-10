@@ -1,0 +1,26 @@
+GluonJetMass gen-level rho model comparison
+output: outputs/gluonjetmass/all/rho/gen_compare
+pythia files:
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_000_nominal.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_001_HEM.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_003_PileUp.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_006_RelativeStatHF_to_JMS.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_000_nominal.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_001_HEM.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_003_PileUp.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_006_RelativeStatHF_to_JMS.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_000_nominal.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_001_HEM.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_003_PileUp.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_006_RelativeStatHF_to_JMS.pkl
+herwig files:
+  dijetHists_QCD_herwig_all.pkl

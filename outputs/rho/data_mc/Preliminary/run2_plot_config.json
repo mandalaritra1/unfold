@@ -1,0 +1,61 @@
+{
+  "command": "/Users/aritra/Projects/unfold/.venv/bin/python /Users/aritra/Projects/unfold/notebooks/data_mc_rho_fancy.py --input-production-tag validation",
+  "input_production_tag": "validation",
+  "input_directory": "inputs/validation",
+  "input_files": {
+    "validation_backgrounds_all.pkl": {
+      "sha256": "733b6a59117b5c642027fc6ad5a06d5faf8bd59c0365f21da3582f1f0b1efcde"
+    },
+    "validation_st_all.pkl": {
+      "sha256": "6995fa9e011574d334861069700b0ddaeb266767cdc1fdb5795618c76d51e3a0"
+    },
+    "validation_data.pkl": {
+      "sha256": "acd62aa132e96638438d521110704f58b3812817cbaa32760cf5f15214ccd869"
+    },
+    "validation_pythia_2016APV.pkl": {
+      "sha256": "7367bc782785b54397d7a74f150a87a824f1b1c9efc9669262239c7472370165"
+    },
+    "validation_pythia_2016.pkl": {
+      "sha256": "05629902936df4378ec9f1ace7d5fdb74380f30740470cb04e20a27ce8677f21"
+    },
+    "validation_pythia_2017.pkl": {
+      "sha256": "39924dd4334cbce5e2447de712d53c392df6ae4f2a4be047504426d7451de872"
+    },
+    "validation_pythia_2018.pkl": {
+      "sha256": "28505e2ff314f45cafe78cff5a37f456835b0ce695c8daaeebca05729c0b5d04"
+    }
+  },
+  "configuration": {
+    "eras": [
+      "2016APV",
+      "2016",
+      "2017",
+      "2018"
+    ],
+    "integrated_luminosity_fb-1": 138.0,
+    "center_of_mass_energy_TeV": 13,
+    "reco_pt_range_GeV": [
+      200,
+      290
+    ],
+    "rho_ranges": {
+      "ungroomed": [
+        -2.5,
+        0.0
+      ],
+      "groomed": [
+        -4.5,
+        0.0
+      ]
+    },
+    "mc_normalization": "absolute luminosity normalization from input histograms",
+    "total_mc_uncertainty": "DY systematic Up/Down shifts added in quadrature with statistical variances from all stacked MC processes",
+    "background_systematics": "not available in validation background inputs; nominal MC statistical uncertainties are included"
+  },
+  "outputs": [
+    "outputs/rho/data_mc/data_mc_rho_ungroomed_run2.pdf",
+    "outputs/rho/data_mc/Preliminary/data_mc_rho_ungroomed_run2.pdf",
+    "outputs/rho/data_mc/data_mc_rho_groomed_run2.pdf",
+    "outputs/rho/data_mc/Preliminary/data_mc_rho_groomed_run2.pdf"
+  ]
+}

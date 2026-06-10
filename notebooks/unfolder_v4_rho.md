@@ -52,7 +52,7 @@ if str(REPO_ROOT / "src") not in sys.path:
 
 OUTPUTS_ROOT = REPO_ROOT / "outputs" / "rho"
 GALLERY_SCRIPT = REPO_ROOT / "outputs" / "build_rho_gallery.py"
-DEFAULT_VERSION_TAG = "fixed_jec"
+DEFAULT_VERSION_TAG = "original"
 GALLERY_HTML = OUTPUTS_ROOT / DEFAULT_VERSION_TAG / "index.html"
 
 from unfold.tools.unfolder_core import Unfolder, RHO_SPEC, RHO_SPECS
@@ -78,7 +78,6 @@ MODE_CONFIGS = [
 
 VERSION_CONFIGS = [
     ("original", RHO_SPECS["original"]),
-    ("fixed_jec", RHO_SPECS["fixed_jec"]),
 ]
 
 
@@ -189,13 +188,13 @@ for stale_name in ["run_button", "open_button", "master_output", "master_control
 MASTER_UI_ID = uuid.uuid4().hex[:8]
 
 master_output = widgets.Output()
-run_button = widgets.Button(description="Run both rho versions", button_style="primary", icon="play")
-open_button = widgets.Button(description="Open fixed_jec gallery", button_style="success", icon="external-link")
+run_button = widgets.Button(description="Run original rho", button_style="primary", icon="play")
+open_button = widgets.Button(description="Open original gallery", button_style="success", icon="external-link")
 run_button._master_id = MASTER_UI_ID
 open_button._master_id = MASTER_UI_ID
 open_button.disabled = not GALLERY_HTML.exists()
 status_html = widgets.HTML(
-    value=f"<b>Master runner</b> <code>{MASTER_UI_ID}</code>: builds original and fixed_jec rho outputs, refreshes each tagged gallery, and leaves fixed_jec <code>unfolder_ungroomed</code> / <code>unfolder_groomed</code> available for extra cells."
+    value=f"<b>Master runner</b> <code>{MASTER_UI_ID}</code>: builds original rho outputs, refreshes the original gallery, and leaves original <code>unfolder_ungroomed</code> / <code>unfolder_groomed</code> available for extra cells."
 )
 
 
@@ -223,7 +222,7 @@ def handle_run(btn):
     open_button.disabled = True
     with master_output:
         clear_output()
-        display(Markdown("Running original and fixed_jec ungroomed + groomed workflows..."))
+        display(Markdown("Running original rho ungroomed + groomed workflows..."))
         try:
             import contextlib
             import io
@@ -232,7 +231,7 @@ def handle_run(btn):
             with contextlib.redirect_stdout(log_buffer), contextlib.redirect_stderr(log_buffer):
                 gallery_paths = run_master_rho(show=False)
             validate_master_run_state()
-            display(Markdown("Finished. Default `unfolder` now points to fixed_jec `unfolder_ungroomed`. Use `use_unfolder(\"original\", \"groomed\")` or `use_unfolder(\"fixed_jec\", \"groomed\")` for later cells."))
+            display(Markdown("Finished. Default `unfolder` now points to original `unfolder_ungroomed`. Use `use_unfolder(\"original\", \"groomed\")` for later cells."))
             show_gallery_links(gallery_paths)
             open_button.disabled = False
         except Exception:

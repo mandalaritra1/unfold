@@ -159,13 +159,13 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
         "reco": "ptjet_rhojet_u_reco",
         "gen": "ptjet_rhojet_u_gen",
     },
-    x_label_groomed=r"Groomed $\rho = \ln(m^2/p_T^2)$",
-    x_label_ungroomed=r"Ungroomed $\rho = \ln(m^2/p_T^2)$",
-    short_label_groomed=r"$\rho$, Groomed",
-    short_label_ungroomed=r"$\rho$, Ungroomed",
+    x_label_groomed=r"$\log_{10}(\rho^2)$, Groomed",
+    x_label_ungroomed=r"$\log_{10}(\rho^2)$, Ungroomed",
+    short_label_groomed=r"$\log_{10}(\rho^2)$, Groomed",
+    short_label_ungroomed=r"$\log_{10}(\rho^2)$, Ungroomed",
     xlim_lower_groomed=-4.5,
     xlim_lower_ungroomed=-2.5,
-    normalized_ylabel=r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d\rho\,dp_T}$",
+    normalized_ylabel=r"$\frac{1}{d\sigma/dp_T}\frac{d\sigma}{d\log_{10}(\rho^2)\,dp_T}$",
 )
 
 RHO_ORIGINAL_SPEC = replace(
@@ -214,6 +214,13 @@ class Unfolder:
         self.gen_axis = spec.gen_axis
         self.groomed = groomed
         self.cms_label = cms_label
+        self.lumi = 138.0
+        self.com = 13.0
+        self.has_jackknife = True
+        self.has_herwig = True
+        self.has_validation_inputs = True
+        self.response_matrix_stat_available = True
+        self.first_reported_pt_bin = 0
         self.closure = closure
         self.herwig_closure = herwig_closure
         self.y_unf_dict = {}
@@ -233,6 +240,61 @@ class Unfolder:
         self._normalize_result()
         self._compute_total_systematic()
 
+    @classmethod
+    def from_prepared_inputs(
+        cls,
+        spec,
+        groomed,
+        *,
+        mc_inputs,
+        data_inputs,
+        analysis_binning,
+        systematics,
+        cms_label="Internal",
+        lumi=59.7,
+        com=13.0,
+    ):
+        """Run the core unfolding from already adapted in-memory histograms.
+
+        This entry point is intended for producer outputs that do not use the
+        legacy merged-era pickle layout. It deliberately excludes jackknife
+        and alternate-generator inputs unless a future caller provides a
+        separately validated implementation for those uncertainty sources.
+        """
+
+        self = cls.__new__(cls)
+        self.spec = spec
+        self.reco_axis = spec.reco_axis
+        self.gen_axis = spec.gen_axis
+        self.groomed = groomed
+        self.cms_label = cms_label
+        self.lumi = float(lumi)
+        self.com = float(com)
+        self.closure = False
+        self.herwig_closure = False
+        self.has_jackknife = False
+        self.has_herwig = False
+        self.has_validation_inputs = False
+        self.response_matrix_stat_available = False
+        self.first_reported_pt_bin = 1
+        self.stat_uncertainty_method = "TUnfold input covariance"
+        self.y_unf_dict = {}
+        self.y_unf_jk_input_list = []
+        self.y_unf_jk_matrix_list = []
+        self._ensure_output_dirs()
+        self._setup_prepared_binning(analysis_binning)
+        self._load_prepared_inputs(mc_inputs, data_inputs, systematics)
+
+        self._perform_unfold(systematic="nominal")
+        for systematic in self.systematics:
+            if systematic != "nominal":
+                self._perform_unfold(systematic=systematic)
+
+        self._compute_input_stat_unc_from_covariance()
+        self._normalize_result()
+        self._compute_total_systematic()
+        return self
+
     def _ensure_output_dirs(self):
         output_dir = Path(self.spec.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -247,6 +309,18 @@ class Unfolder:
         self.reco_edges_by_pt = getattr(self.bins, self.spec.reco_edges_by_pt_attr)
         self.gen_edges_by_pt = getattr(self.bins, self.spec.gen_edges_by_pt_attr)
         self.pt_edges = self.bins.pt_edges
+
+    def _setup_prepared_binning(self, analysis_binning):
+        self.bins = analysis_binning
+        self.edges = list(analysis_binning.rho_edges)
+        self.edges_gen = list(analysis_binning.rho_edges_gen)
+        self.reco_edges_by_pt = [
+            list(edges) for edges in analysis_binning.reco_rho_edges_by_pt
+        ]
+        self.gen_edges_by_pt = [
+            list(edges) for edges in analysis_binning.gen_rho_edges_by_pt
+        ]
+        self.pt_edges = list(analysis_binning.pt_edges)
 
     def _configure_systematics(self, do_syst):
         available_systematics = list(self.sys_matrix_dic.keys())
@@ -280,6 +354,35 @@ class Unfolder:
 
     def _cms_extra_label(self):
         return f" {self.cms_label}" if self.cms_label and not self.cms_label.startswith(" ") else self.cms_label
+
+    def _reported_pt_indices(self):
+        return range(
+            getattr(self, "first_reported_pt_bin", 0),
+            len(self.pt_edges) - 1,
+        )
+
+    def _reported_matrix_view(self, matrix):
+        first_pt_bin = getattr(self, "first_reported_pt_bin", 0)
+        reco_offset = sum(
+            len(edges) - 1 for edges in self.reco_edges_by_pt[:first_pt_bin]
+        )
+        gen_offset = sum(
+            len(edges) - 1 for edges in self.gen_edges_by_pt[:first_pt_bin]
+        )
+        return (
+            np.asarray(matrix)[reco_offset:, gen_offset:],
+            self.reco_edges_by_pt[first_pt_bin:],
+            self.gen_edges_by_pt[first_pt_bin:],
+            self.pt_edges[first_pt_bin:],
+        )
+
+    def _has_systematic(self, *prefixes):
+        lowered = tuple(prefix.lower() for prefix in prefixes)
+        return any(
+            systematic.lower().startswith(lowered)
+            for systematic in self.systematics
+            if systematic != "nominal"
+        )
 
     def _observable_label(self):
         return self.spec.x_label_groomed if self.groomed else self.spec.x_label_ungroomed
@@ -443,6 +546,159 @@ class Unfolder:
             )
         return np.clip(fake_fraction, 0.0, 1.0)
 
+    def _select_nominal_histogram(self, h_obj):
+        if "systematic" in h_obj.axes.name:
+            return h_obj[{"systematic": "nominal"}]
+        return h_obj
+
+    def _flatten_prepared_2d(self, h_obj, mass_edges, edges_by_pt, axes):
+        projected = h_obj.project(*axes)
+        values, _ = reorder_to_expected_2d(
+            projected.values(flow=False),
+            mass_edges,
+            self.pt_edges,
+        )
+        flat_values = merge_mass_flat(values, mass_edges, edges_by_pt)
+
+        variances = projected.variances(flow=False)
+        flat_variances = None
+        if variances is not None:
+            reordered_variances, _ = reorder_to_expected_2d(
+                variances,
+                mass_edges,
+                self.pt_edges,
+            )
+            flat_variances = merge_mass_flat(
+                reordered_variances,
+                mass_edges,
+                edges_by_pt,
+            )
+        return flat_values, flat_variances
+
+    def _prepared_response_mosaic(self, response_hist, systematic):
+        selected = response_hist
+        if "systematic" in selected.axes.name:
+            selected = selected[{"systematic": systematic}]
+        projected = selected.project(
+            "ptgen",
+            self.gen_axis,
+            "ptreco",
+            self.reco_axis,
+        )
+        response_reordered, _ = reorder_to_expected(
+            projected.values(flow=False),
+            self.edges,
+            self.pt_edges,
+            self.edges_gen,
+        )
+        mosaic, _ = mosaic_no_padding(
+            response_reordered,
+            self.edges,
+            self.edges_gen,
+            self.reco_edges_by_pt,
+            self.gen_edges_by_pt,
+        )
+        return response_reordered, mosaic
+
+    def _load_prepared_inputs(self, mc_inputs, data_inputs, systematics):
+        """Populate the state used by the existing TUnfold implementation."""
+
+        keys = self._histogram_keys()
+        response_hist = mc_inputs[keys["response"]]
+        mc_reco_hist = mc_inputs[keys["reco"]]
+        mc_gen_hist = mc_inputs[keys["gen"]]
+        data_reco_hist = data_inputs[keys["reco"]]
+
+        available_response_systematics = list(response_hist.axes["systematic"])
+        requested_systematics = list(systematics)
+        missing = [
+            name for name in requested_systematics
+            if name not in available_response_systematics
+        ]
+        if missing:
+            raise ValueError(
+                f"Prepared response is missing requested systematics: {missing}"
+            )
+        self.systematics = requested_systematics
+        self.mosaic_dict = {}
+        self.M_np_2d_dict = {}
+        for systematic in self.systematics:
+            reordered, mosaic = self._prepared_response_mosaic(
+                response_hist,
+                systematic,
+            )
+            self.M_np_2d_dict[systematic] = reordered
+            self.mosaic_dict[systematic] = mosaic
+
+        self.M_np_2d = self.M_np_2d_dict["nominal"]
+        self.mosaic = self.mosaic_dict["nominal"]
+        nominal_data = self._select_nominal_histogram(data_reco_hist)
+        nominal_mc_reco = self._select_nominal_histogram(mc_reco_hist)
+        nominal_mc_gen = self._select_nominal_histogram(mc_gen_hist)
+
+        self.mosaic_2d, self.measured_variances = self._flatten_prepared_2d(
+            nominal_data,
+            self.edges,
+            self.reco_edges_by_pt,
+            ("ptreco", self.reco_axis),
+        )
+        reco_mc_flat, _ = self._flatten_prepared_2d(
+            nominal_mc_reco,
+            self.edges,
+            self.reco_edges_by_pt,
+            ("ptreco", self.reco_axis),
+        )
+        gen_mc_flat, _ = self._flatten_prepared_2d(
+            nominal_mc_gen,
+            self.edges_gen,
+            self.gen_edges_by_pt,
+            ("ptgen", self.gen_axis),
+        )
+
+        matched_reco = self.mosaic.sum(axis=1)
+        matched_gen = self.mosaic.sum(axis=0)
+        self.fakes_2d = reco_mc_flat - matched_reco
+        self.misses_2d = gen_mc_flat - matched_gen
+        self.fake_fraction_2d = self._compute_fake_fraction(
+            self.fakes_2d,
+            matched_reco,
+        )
+
+        self.input_data = data_reco_hist
+        self.data_2d = data_reco_hist
+        self.pythia_2d = mc_reco_hist
+        self.pythia_4d = response_hist
+        self.y_true_herwig = None
+
+    def _compute_input_stat_unc_from_covariance(self):
+        """Use TUnfold's propagated data covariance when JK inputs are absent."""
+
+        input_variance = np.clip(np.diag(self.cov_data_np), 0.0, None)
+        input_std = np.sqrt(input_variance)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            self.input_stat_unc_frac = np.abs(
+                np.divide(
+                    input_std,
+                    self.y_unf,
+                    out=np.zeros_like(input_std),
+                    where=self.y_unf != 0,
+                )
+            )
+        self.matrix_stat_unc_frac = np.zeros_like(self.input_stat_unc_frac)
+        self.stat_unc_frac = np.array(self.input_stat_unc_frac, copy=True)
+        self.input_stat_unc_pt_binned = unflatten_gen_by_pt(
+            self.input_stat_unc_frac,
+            self.gen_edges_by_pt,
+        )
+        self.matrix_stat_unc_pt_binned = unflatten_gen_by_pt(
+            self.matrix_stat_unc_frac,
+            self.gen_edges_by_pt,
+        )
+        self.stat_unc_pt_binned = unflatten_gen_by_pt(
+            self.stat_unc_frac,
+            self.gen_edges_by_pt,
+        )
+
     def _finalize_reco_views(self, mass_edges_reco, reco_mass_edges_by_pt):
         self.M_np_2d = self.M_np_2d_dict["nominal"]
         self.mosaic = self.mosaic_dict["nominal"]
@@ -598,23 +854,37 @@ class Unfolder:
         #print("reco_mass_edges_by_pt:", reco_mass_edges_by_pt)
         #print("len reco_mass_edges_by_pt:", len(reco_mass_edges_by_pt))
     def plot_fakes_misses(self, show=True):
-        title_list = ["",r"200 $<$ $p_T$ $<$ 290 GeV", r"290 $<$ $p_T$ $<$ 400 GeV", r"400 $<$ $p_T$ $< \, \infty$  GeV"]
+        title_list = [""]
+        npt = len(self.pt_edges) - 1
+        for i in range(1, npt):
+            lo = int(self.pt_edges[i])
+            if i + 1 < npt:
+                hi = int(self.pt_edges[i + 1])
+                title_list.append(rf"{lo} $<$ $p_T$ $<$ {hi} GeV")
+            else:
+                title_list.append(rf"{lo} $<$ $p_T$ $< \, \infty$ GeV")
 
-        fakerate = self.fakes_2d/self.mosaic_2d
-
-        fakerate = np.nan_to_num(fakerate, nan=0.0)# posinf=0.0, neginf=0.0)
+        # Use the same MC fake fraction used by the unfolding fake correction.
+        # Dividing by data here can produce infinities in sparse rho tail bins.
+        fakerate = np.asarray(self.fake_fraction_2d, dtype=float)
         efficiency = 1 - (self.misses_2d/(self.misses_2d + self.mosaic.sum(axis=0)))
         efficiency_pt_binned = unflatten_gen_by_pt(efficiency, self.gen_edges_by_pt)
         fakerate_pt_binned = unflatten_gen_by_pt(fakerate, self.reco_edges_by_pt)
 
-        for i in range(4):
-            plt.stairs(1-fakerate_pt_binned[i], self.reco_edges_by_pt[i], label = f"Fake rate", lw = 1.5)
+        for i in self._reported_pt_indices():
+            plt.stairs(1-fakerate_pt_binned[i], self.reco_edges_by_pt[i], label = "1 - fake rate", lw = 1.5)
             plt.stairs(efficiency_pt_binned[i],self.gen_edges_by_pt[i], label = f"Efficiency", lw = 1.5)
             plt.legend(title = title_list[i])
             plt.xlabel(self._observable_short_label())
             plt.xlim(*self._observable_xlim(i))
             plt.ylim(0,1.05)
-            hep.cms.label("Internal", data = False, lumi = 138, fontsize = 20)
+            hep.cms.label(
+                self.cms_label,
+                data=False,
+                lumi=self.lumi,
+                com=self.com,
+                fontsize=20,
+            )
             if self.groomed:
                 save_path = f"./{self.spec.output_dir}fakerates_groomed_{i-1}.pdf"
             else:
@@ -782,17 +1052,30 @@ class Unfolder:
 
         return truth_root, reco_root
 
-    def _fill_root_histogram(self, hist, values):
+    def _fill_root_histogram(self, hist, values, variances=None):
         for index, value in enumerate(values, 1):
             hist.SetBinContent(index, float(value))
+            if variances is not None:
+                hist.SetBinError(index, float(np.sqrt(max(variances[index - 1], 0.0))))
 
-    def _fill_response_histogram(self, h_resp, resp_np, misses):
+    def _fill_response_histogram(
+        self,
+        h_resp,
+        resp_np,
+        misses,
+        *,
+        include_bin_errors=True,
+    ):
         n_reco, n_true = resp_np.shape
         for i_reco in range(n_reco):
             for j_true in range(n_true):
                 h_resp.SetBinContent(j_true + 1, i_reco + 1, resp_np[i_reco, j_true])
+                if not include_bin_errors:
+                    h_resp.SetBinError(j_true + 1, i_reco + 1, 0.0)
         for j_true in range(n_true):
             h_resp.SetBinContent(j_true + 1, 0, misses[j_true])
+            if not include_bin_errors:
+                h_resp.SetBinError(j_true + 1, 0, 0.0)
 
     def _store_covariances(self, unfold, systematic):
         if systematic == "nominal":
@@ -856,6 +1139,7 @@ class Unfolder:
             self.y_unf_dict[systematic] = y_unf
 
     def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False, resp_np = None, jk_target = "input"):
+        uses_default_measurement = meas_flat is None and not closure and not herwig_closure
         if resp_np is None:
             resp_np = self.mosaic_dict[systematic]
         meas_flat = self._select_measured_spectrum(closure, herwig_closure, meas_flat)
@@ -870,8 +1154,30 @@ class Unfolder:
         h_resp = ROOT.TUnfoldBinning.CreateHistogramOfMigrations(truth_root, reco_root, "hResponse")
 
         misses = self.misses_2d_herwig if systematic in {"herwigUp", "herwigDown"} else self.misses_2d
-        self._fill_response_histogram(h_resp, resp_np, misses)
-        self._fill_root_histogram(h_meas, meas_flat)
+        self._fill_response_histogram(
+            h_resp,
+            resp_np,
+            misses,
+            include_bin_errors=getattr(
+                self,
+                "response_matrix_stat_available",
+                True,
+            ),
+        )
+        measured_variances = (
+            self.measured_variances
+            if uses_default_measurement and hasattr(self, "measured_variances")
+            else None
+        )
+        if measured_variances is not None:
+            fake_survival = 1.0 - np.asarray(self.fake_fraction_2d, dtype=float)
+            measured_variances = measured_variances * np.square(fake_survival)
+            if systematic == "nominal":
+                self.corrected_measured_variances = np.array(
+                    measured_variances,
+                    copy=True,
+                )
+        self._fill_root_histogram(h_meas, meas_flat, measured_variances)
         self._fill_root_histogram(h_true, true_flat)
         self.h_resp = h_resp
 
@@ -929,7 +1235,7 @@ class Unfolder:
         folded_pt_binned = unflatten_gen_by_pt(self.x_folded, self.reco_edges_by_pt)
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.reco_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.reco_edges_by_pt)
-        for i in range(len(self.pt_edges)-1):
+        for i in self._reported_pt_indices():
             bin_widths_reco = np.diff(self.reco_edges_by_pt[i])
             # two-panel plot: main + ratio
             fig, (ax_top, ax_bot) = plt.subplots(2, 1, sharex=True, gridspec_kw={'height_ratios': [3, 1]})
@@ -961,11 +1267,11 @@ class Unfolder:
             if self.groomed:
                 #plt.xlim(0,250)
                 plt.xlim(*self._observable_xlim(i))
-                hep.cms.label(self.cms_label, data = True,lumi = 138, com = 13, fontsize = 20)
+                hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
             #plt.ylim(0,0.02)
             if not self.groomed:
                 plt.xlim(*self._observable_xlim(i))
-                hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
+                hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
             save_path = f"./{self.spec.output_dir}unfold/folded_groomed_{i-1}.pdf" if self.groomed else f"./{self.spec.output_dir}unfold/folded_ungroomed_{i-1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
     
@@ -1049,7 +1355,7 @@ class Unfolder:
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.reco_edges_by_pt)
         
         #now plot the ratio of unfolded to true and measured to reco mc in the same axis, just the ratio plot (no main panel)
-        for i in range(len(self.pt_edges)-1):
+        for i in self._reported_pt_indices():
             # two-panel plot: main + ratio
             error = self.normalized_results[i]['stat_unc']/self.normalized_results[i]['unfolded']
             fig, ax = plt.subplots(figsize=(12, 9))
@@ -1074,21 +1380,40 @@ class Unfolder:
             plt.xlabel(self._observable_label())
             title = f"pT bin: {int(self.pt_edges[i])}-{int(self.pt_edges[i+1]) if i+1 < len(self.pt_edges)-1 else '∞'} GeV"
             plt.legend(title = title) 
-            hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
+            hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
             save_path = f"./{self.spec.output_dir}bottom_line_groomed_{i-1}.pdf" if self.groomed else f"./{self.spec.output_dir}bottom_line_ungroomed_{i-1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
     def plot_unfolded_fancy(self, log=False, show=True):
         markers = ['o', 's', '^', 'D', 'v', '*', 'x', '+']
         npt = len(self.pt_edges)-1
-        title_list = ["",r"200$<$$p_T$$<$290 GeV", r"290 $<$$p_T$$<$400 GeV", r"400 $<$$p_T$$< \, \infty$  GeV"]
-        true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.gen_edges_by_pt)
+        has_herwig = getattr(self, "has_herwig", True)
+        stat_label = "Stat. Unc." if self.response_matrix_stat_available else "Input Stat. Unc."
+        total_label = (
+            r"Syst. $\oplus$ Stat. Unc."
+            if self.response_matrix_stat_available and has_herwig
+            else r"Partial Syst. $\oplus$ Stat. Unc."
+        )
+        title_list = []
         for i in range(npt):
+            lo = int(self.pt_edges[i])
+            if i + 1 < npt:
+                hi = int(self.pt_edges[i + 1])
+                title_list.append(rf"{lo}$<$$p_T$$<${hi} GeV")
+            else:
+                title_list.append(rf"{lo}$<$$p_T$$< \, \infty$  GeV")
+        true_herwig_pt_binned = (
+            unflatten_gen_by_pt(self.y_true_herwig, self.gen_edges_by_pt)
+            if has_herwig
+            else None
+        )
+        for i in self._reported_pt_indices():
             fig, (ax_main, ax_ratio) = plt.subplots(
                 2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=(12, 10)
             )
             bin_widths = np.diff(self.gen_edges_by_pt[i])
-            herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
+            if has_herwig:
+                herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
             stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
             syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
@@ -1099,32 +1424,34 @@ class Unfolder:
             plt.stairs( unfolded + syst_up,
                 self.gen_edges_by_pt[i],
                 baseline = unfolded - syst_down,
-                fill = True, color = "yellowgreen" , label = r"Syst. $\oplus$ Stat. Unc.")
+                fill = True, color = "yellowgreen" , label = total_label)
             plt.stairs( unfolded + stat_unc,
                 self.gen_edges_by_pt[i],
                 baseline = unfolded - stat_unc,
-                fill = True, color = "darkgreen" , label = "Stat. Unc.")
+                fill = True, color = "darkgreen" , label = stat_label)
             plt.stairs(self.normalized_results[i]['true'], self.gen_edges_by_pt[i], label = 'PYTHIA8', color = 'b', ls = 'dotted', lw = 3)
-            plt.stairs(herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
+            if has_herwig:
+                plt.stairs(herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
             plt.plot(centers, unfolded, color='k', lw=0, marker=markers[i], markersize=8, label='Unfolded')
 
             plt.legend(title = title_list[i], fontsize=14, title_fontsize=15)
-            hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
+            hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
             plt.ylabel(self._normalized_ylabel())
 
             # Ratio Plot
             plt.sca(ax_ratio)
             plt.axhline(1.0, color='gray', ls='--')
             ratio_pythia = np.divide(unfolded, self.normalized_results[i]['true'])
-            ratio_herwig = np.divide(unfolded, herwig_norm)
             stat_frac = np.divide(stat_unc, unfolded, out=np.zeros_like(stat_unc), where=unfolded != 0)
             total_frac_up = np.divide(syst_up, unfolded, out=np.zeros_like(syst_up), where=unfolded != 0)
             total_frac_down = np.divide(syst_down, unfolded, out=np.zeros_like(syst_down), where=unfolded != 0)
 
-            plt.stairs(1.0 + total_frac_up, self.gen_edges_by_pt[i], baseline=1.0 - total_frac_down, fill=True, color="yellowgreen", label=r"Syst. $\oplus$ Stat. Unc.")
-            plt.stairs(1.0 + stat_frac, self.gen_edges_by_pt[i], baseline=1.0 - stat_frac, fill=True, color="darkgreen", label="Stat. Unc.")
+            plt.stairs(1.0 + total_frac_up, self.gen_edges_by_pt[i], baseline=1.0 - total_frac_down, fill=True, color="yellowgreen", label=total_label)
+            plt.stairs(1.0 + stat_frac, self.gen_edges_by_pt[i], baseline=1.0 - stat_frac, fill=True, color="darkgreen", label=stat_label)
             plt.stairs(ratio_pythia, self.gen_edges_by_pt[i], color='b', ls='dotted', lw=2, label='Data / PYTHIA8')
-            plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='r', ls='dashdot', lw=2, label='Data / HERWIG7')
+            if has_herwig:
+                ratio_herwig = np.divide(unfolded, herwig_norm)
+                plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='r', ls='dashdot', lw=2, label='Data / HERWIG7')
             plt.ylim(0, 2)
             plt.xlabel(self._observable_label())
             plt.ylabel(r"$\frac{Data}{Simulation}$")
@@ -1137,7 +1464,7 @@ class Unfolder:
         
         # Now also plot a summary plot, with all of them together, but shifted on y axis for visibility
 
-        for i in range(1, npt):
+        for i in range(max(1, self.first_reported_pt_bin), npt):
             exponent = 2 * i - 1
             scale = 10 ** exponent
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
@@ -1145,7 +1472,8 @@ class Unfolder:
             syst_down = np.array(self.normalized_results[i]['syst_unc']['down'], dtype=float)
             stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
             bin_widths = np.diff(self.gen_edges_by_pt[i])
-            herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
+            if has_herwig:
+                herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
 
             y_syst_up = scale * (unfolded + syst_up)
             y_syst_down = scale * (unfolded - syst_down)
@@ -1153,9 +1481,10 @@ class Unfolder:
             y_stat_up = scale * (unfolded + stat_unc)
             y_stat_down = scale * (unfolded - stat_unc)
             plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.gen_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3)
-            plt.stairs(scale * herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
-            plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=r"Syst. $\oplus$ Stat. Unc.", alpha = 0.8)
-            plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
+            if has_herwig:
+                plt.stairs(scale * herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
+            plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
+            plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
             rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
             plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
@@ -1178,7 +1507,7 @@ class Unfolder:
         plt.legend(fontsize=13)
         plt.xlabel(self._observable_label())
         plt.ylabel(self._normalized_ylabel())
-        hep.cms.label(self.cms_label, data = True, lumi = 138, com = 13, fontsize = 20)
+        hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
         plt.xlim(*self._observable_xlim())
 
         save_path = f"./{self.spec.output_dir}groomed_summary.pdf" if self.groomed else f"./{self.spec.output_dir}ungroomed_summary.pdf"
@@ -1187,10 +1516,23 @@ class Unfolder:
     def plot_unfolded_summary_linear(self, show=True):
         markers = ['o', 's', '^', 'D', 'v', '*', 'x', '+']
         npt = len(self.pt_edges) - 1
-        title_list = ["", r"200$<$$p_T$$<$290 GeV", r"290 $<$$p_T$$<$400 GeV", r"400 $<$$p_T$$< \, \infty$  GeV"]
+        stat_label = "Stat. Unc." if self.response_matrix_stat_available else "Input Stat. Unc."
+        total_label = (
+            r"Syst. $\oplus$ Stat. Unc."
+            if self.response_matrix_stat_available and self.has_herwig
+            else r"Partial Syst. $\oplus$ Stat. Unc."
+        )
+        title_list = []
+        for i in range(npt):
+            lo = int(self.pt_edges[i])
+            if i + 1 < npt:
+                hi = int(self.pt_edges[i + 1])
+                title_list.append(rf"{lo}$<$$p_T$$<${hi} GeV")
+            else:
+                title_list.append(rf"{lo}$<$$p_T$$< \, \infty$  GeV")
 
         fig = plt.figure(figsize=(12, 10))
-        for i in range(1, npt):
+        for i in range(max(1, self.first_reported_pt_bin), npt):
             exponent = 2 * i - 1
             scale = 10 ** exponent
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
@@ -1203,9 +1545,9 @@ class Unfolder:
             y_stat_up = scale * (unfolded + stat_unc)
             y_stat_down = scale * (unfolded - stat_unc)
 
-            plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.gen_edges_by_pt[i], label='PYTHIA7', color='b', ls='dotted', lw=3)
-            plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=r"Syst. $\oplus$ Stat. Unc.", alpha=0.8)
-            plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label="Stat. Unc.")
+            plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.gen_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3)
+            plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha=0.8)
+            plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
             rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
             plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
@@ -1224,7 +1566,7 @@ class Unfolder:
         plt.legend(fontsize=15)
         plt.xlabel(self._observable_label())
         plt.ylabel(self._normalized_ylabel())
-        hep.cms.label(self.cms_label, data=True, lumi=138, com=13, fontsize=20)
+        hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
         plt.xlim(*self._observable_xlim())
 
         save_path = f"./{self.spec.output_dir}groomed_summary_linear.pdf" if self.groomed else f"./{self.spec.output_dir}ungroomed_summary_linear.pdf"
@@ -1340,12 +1682,16 @@ class Unfolder:
         measured_pt_binned = unflatten_gen_by_pt(self.y_meas, self.reco_edges_by_pt)
         reco_mc_pt_binned = unflatten_gen_by_pt(self.mosaic.sum(axis = 1), self.reco_edges_by_pt)
         true_pt_binned = unflatten_gen_by_pt(self.y_true, self.gen_edges_by_pt)
-        true_herwig_pt_binned = unflatten_gen_by_pt(self.y_true_herwig, self.gen_edges_by_pt) 
+        true_herwig_pt_binned = (
+            unflatten_gen_by_pt(self.y_true_herwig, self.gen_edges_by_pt)
+            if getattr(self, "has_herwig", True)
+            else None
+        )
         #error_pt_binned = unflatten_gen_by_pt(self.ye_unf, self.gen_edges_by_pt)
         self.normalized_herwig = []
         #print("Herwig pt Binned", true_herwig_pt_binned)
         self.herwig_closure_unc = []
-        for i in range(len(self.pt_edges)-1):
+        for i in self._reported_pt_indices():
             yerr = self.normalized_results[i]['syst_unc']['up']
             bin_widths = np.diff(self.gen_edges_by_pt[i])
             bin_widths_reco = np.diff(self.reco_edges_by_pt[i])
@@ -1523,7 +1869,8 @@ class Unfolder:
             self.normalized_results[i]['stat_unc'] = stat_unc
 
     def plot_statistical_fraction(self, show=True):
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             plt.figure()
             pt_bin = result['pt_bin']
             input_stat_fraction = result['input_stat_unc_frac']
@@ -1535,12 +1882,13 @@ class Unfolder:
                 label="Input statistical Uncertainty",
                 ls="--",
             )
-            hep.histplot(
-                matrix_stat_fraction[1:],
-                self.gen_edges_by_pt[i][1:],
-                label="Matrix uncertainty",
-                ls="-.",
-            )
+            if self.response_matrix_stat_available:
+                hep.histplot(
+                    matrix_stat_fraction[1:],
+                    self.gen_edges_by_pt[i][1:],
+                    label="Matrix uncertainty",
+                    ls="-.",
+                )
 
             if pt_bin[1] == float('inf') or pt_bin[1] > 100000:
                 pt_bin_label = f"{pt_bin[0]}–∞"
@@ -1548,7 +1896,7 @@ class Unfolder:
                 pt_bin_label = f"{pt_bin[0]}–{pt_bin[1]}"
 
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV")
-            hep.cms.label(self.cms_label, data=True, lumi=138, com=13, fontsize=20)
+            hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
             plt.xlim(*self._observable_xlim(i))
             plt.xlabel(self._observable_label())
             plt.ylabel("Fractional Uncertainty")
@@ -1729,7 +2077,8 @@ class Unfolder:
             "Total": {"color": "k", "ls": "-", "lw": 3},
         }
 
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             fig = plt.figure(figsize=(12, 8))
             pt_bin = result["pt_bin"]
             syst_fraction_dict = self._build_syst_fraction_dict(i)
@@ -1813,7 +2162,7 @@ class Unfolder:
                     bbox_to_anchor=(1.01, 0.5),
                     borderaxespad=0.0,
                 )
-            hep.cms.label(self._cms_extra_label(), data=True, lumi=138, com=13, fontsize=20, ax=ax)
+            hep.cms.label(self._cms_extra_label(), data=True, lumi=self.lumi, com=self.com, fontsize=20, ax=ax)
             if log:
                 plt.ylim(10e-5, 1)
             else:
@@ -1880,7 +2229,8 @@ class Unfolder:
         return matched_up, matched_down
 
     def plot_nominal_minus_variation(self, syst_names=["pu"], show=True):
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             fig, ax = plt.subplots(figsize=(12, 8))
             nominal = result["unfolded"]
             pt_bin = result["pt_bin"]
@@ -1974,7 +2324,8 @@ class Unfolder:
 
         # First, collect all values to determine global y-range
         all_values = []
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             raw_syst_fraction_dict = result.get('syst_fraction_dict', {})
             syst_fraction_dict = build_plot_fraction_dict(raw_syst_fraction_dict)
             for syst in syst_names:
@@ -1986,7 +2337,8 @@ class Unfolder:
 
 
         # Now plot with fixed y-range
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             raw_syst_fraction_dict = result.get('syst_fraction_dict', {})
             syst_fraction_dict = build_plot_fraction_dict(raw_syst_fraction_dict)
             #plt.figure(figsize=(12, 8))
@@ -2019,7 +2371,7 @@ class Unfolder:
             # if ylim is not None:
             #     plt.ylim(ylim)
             plt.legend(title=rf"$p_T$  {pt_bin_label} GeV", fontsize = 15)#loc='center left', bbox_to_anchor=(1, 0.5))
-            hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
+            hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
 
             if self.groomed:
                 plt.xlim(*self._observable_xlim(i))
@@ -2211,6 +2563,11 @@ class Unfolder:
 
     def plot_correlation(self, show=True):
         cov_matrix = self.cov_uncorr_np + self.cov_data_np
+        first_pt_bin = getattr(self, "first_reported_pt_bin", 0)
+        gen_offset = sum(
+            len(edges) - 1 for edges in self.gen_edges_by_pt[:first_pt_bin]
+        )
+        cov_matrix = cov_matrix[gen_offset:, gen_offset:]
         std_devs = np.sqrt(np.diag(cov_matrix))
 
         # Avoid division by zero by replacing zeros with a small number
@@ -2248,7 +2605,8 @@ class Unfolder:
         
         # ---- Add grid lines and labels for pt bins ----
         # Get bin structure from gen_mass_edges_by_pt and pt_edges
-        ncols_by_gp = [len(e)-1 for e in self.gen_edges_by_pt]
+        reported_gen_edges = self.gen_edges_by_pt[first_pt_bin:]
+        ncols_by_gp = [len(e)-1 for e in reported_gen_edges]
         x_bounds = np.r_[0, np.cumsum(ncols_by_gp)]
         # Draw dashed lines at pt bin boundaries
         for x in x_bounds[1:-1]:
@@ -2260,7 +2618,7 @@ class Unfolder:
         plt.grid(which="minor", color="w", alpha=0.15, lw=0.5)
         # Tick labels at block centers
         x_centers = (x_bounds[:-1] + x_bounds[1:] - 1) / 2.0
-        pt_edges = self.pt_edges
+        pt_edges = self.pt_edges[first_pt_bin:]
         x_labels = [f"{int(pt_edges[i])}–{int(pt_edges[i+1]) if i+1 < len(pt_edges)-1 else '∞'}" for i in range(len(pt_edges)-1)]
         plt.xticks(x_centers, x_labels)
         plt.yticks(x_centers, x_labels, rotation=90, va="center")
@@ -2270,16 +2628,22 @@ class Unfolder:
 
         cbar = plt.colorbar(img, ticks=bounds, boundaries=bounds, fraction=0.046, pad=0.04)
         cbar.set_label("Correlation (Groomed)" if self.groomed else "Correlation (Ungroomed)")
-        hep.cms.label(self.cms_label, data=True, lumi = 138, com = 13, fontsize = 20)
+        hep.cms.label(self.cms_label, data=True, lumi=self.lumi, com=self.com, fontsize=20)
         save_path = f'{self.spec.output_dir}unfold/correlation_groomed.pdf' if self.groomed else f'{self.spec.output_dir}unfold/correlation_ungroomed.pdf'
         self._finalize_plot(save_path=save_path, show=show)
     def plot_response_matrix(self, probability=True, log=False, show=True):
+        (
+            reported_mosaic,
+            reported_reco_edges,
+            reported_gen_edges,
+            reported_pt_edges,
+        ) = self._reported_matrix_view(self.mosaic)
         fig, ax = self._plot_response_mosaic_cms(
-            self.mosaic,
-            reco_mass_edges_by_pt=self.reco_edges_by_pt,
-            gen_mass_edges_by_pt=self.gen_edges_by_pt,
-            reco_pt_edges=self.pt_edges,
-            gen_pt_edges=self.pt_edges,
+            reported_mosaic,
+            reco_mass_edges_by_pt=reported_reco_edges,
+            gen_mass_edges_by_pt=reported_gen_edges,
+            reco_pt_edges=reported_pt_edges,
+            gen_pt_edges=reported_pt_edges,
             probability = probability,
             mask_zeros=True,
             log=log,                              # set False for linear
@@ -2305,7 +2669,8 @@ class Unfolder:
             "Total",
         ]
 
-        for i, result in enumerate(self.normalized_results):
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
             syst_fraction_dict = self._build_syst_fraction_dict(i)
             grouped_dict = self._group_syst_fraction_dict(syst_fraction_dict, grouped=True)
 
@@ -2388,7 +2753,7 @@ class Unfolder:
 
             ax.set_xlabel(self._observable_label(), fontsize=12)
             ax.set_title(rf"Uncertainty budget  |  $p_T$: {pt_bin_label}", fontsize=13, pad=8)
-            hep.cms.label(self._cms_extra_label(), data=True, lumi=138, com=13,
+            hep.cms.label(self._cms_extra_label(), data=True, lumi=self.lumi, com=self.com,
                           fontsize=16, ax=ax)
 
             plt.tight_layout()
@@ -2397,19 +2762,37 @@ class Unfolder:
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
     def run_all_plots(self, show=False):
+        # Initialize the shared style before the first figure. Otherwise the
+        # first mode can use Matplotlib defaults until a later plot sets CMS.
+        hep.style.use("CMS")
         self.plot_unfolded_fancy(show=show)
         self.plot_unfolded_summary_linear(show=show)
         self.plot_statistical_fraction(show=show)
         self.plot_systematic_fraction(show=show)
         self.plot_systematic_fraction_grouped(show=show)
         self.plot_systematic_fraction_grouped(show=show, log=False)
-        self.plot_herwig_systematic(show=show)
-        self.plot_systematic_frac_indiv(["JES", "JER"], show=show)
-        self.plot_systematic_frac_indiv(["JMS", "JMR"], show=show)
-        self.plot_systematic_frac_indiv(["q2", "pdf", "pu", "l1prefiring"], show=show)
-        self.plot_systematic_frac_indiv(["herwig"], show=show)
-        self.plot_systematic_frac_indiv(["ElectronSF", "MuonSF"], show=show)
-        self.plot_systematic_frac_indiv(["isr", "fsr"], show=show)
+        if self.has_herwig:
+            self.plot_herwig_systematic(show=show)
+        q2_group = (
+            ["q2"]
+            if any(name in self.systematics for name in ("q2Up", "q2Down"))
+            else ["q2muR", "q2muF"]
+        )
+        for systematic_group in (
+            ["JES", "JER"],
+            ["JMS", "JMR"],
+            [*q2_group, "pdf"],
+            ["pu", "l1prefiring", "lumi"],
+            ["ElectronSF", "MuonSF"],
+            ["isr", "fsr"],
+        ):
+            available_group = [
+                name for name in systematic_group if self._has_systematic(name)
+            ]
+            if available_group:
+                self.plot_systematic_frac_indiv(available_group, show=show)
+        if self.has_herwig and self._has_systematic("herwig"):
+            self.plot_systematic_frac_indiv(["herwig"], show=show)
         self.plot_correlation(show=show)
         self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
@@ -2417,7 +2800,8 @@ class Unfolder:
         self.plot_folded(show=show)
         self.plot_bottom_line(show=show)
         self.plot_fakes_misses(show=show)
-        self.plot_input_data_mc(show=show)
+        if self.has_validation_inputs:
+            self.plot_input_data_mc(show=show)
     def _plot_response_mosaic_cms(
         self,
         mosaic,

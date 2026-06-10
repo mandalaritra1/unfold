@@ -1,0 +1,37 @@
+GluonJetMass rho production plot suite
+data label: all
+data discovery year: 2017
+response years: 2016APV, 2017, 2018
+output: outputs/gluonjetmass/all/rho_dynamic_bins
+data: inputs/gluonjetmass/2017/data/dijetHists_JetHT_all.pkl
+qcd files:
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_000_nominal.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_001_HEM.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_003_PileUp.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2016APV/qcd/dijetHists_QCD_MG_2016APV_006_RelativeStatHF_to_JMS.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_000_nominal.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_001_HEM.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_003_PileUp.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2017/qcd/dijetHists_QCD_MG_2017_006_RelativeStatHF_to_JMS.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_000_nominal.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_001_HEM.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_002_JER_to_Fragmentation.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_003_PileUp.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_004_RelativeFSR_to_RelativePtEC1.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_005_RelativePtEC2_to_RelativeStatFSR.pkl
+  inputs/gluonjetmass/2018/qcd/dijetHists_QCD_MG_2018_006_RelativeStatHF_to_JMS.pkl
+herwig: dijetHists_QCD_herwig_all.pkl
+jk: pseudo
+systematics: 78
+ungroomed: nominal unfolded sum=9.02781e+10; systematics=79
+ungroomed skipped/notes:
+  plot_systematic_frac_indiv(['ElectronSF','MuonSF']): skipped; no lepton SF systematics in GluonJetMass QCD input
+groomed: nominal unfolded sum=8.87566e+10; systematics=79
+groomed skipped/notes:
+  plot_systematic_frac_indiv(['ElectronSF','MuonSF']): skipped; no lepton SF systematics in GluonJetMass QCD input

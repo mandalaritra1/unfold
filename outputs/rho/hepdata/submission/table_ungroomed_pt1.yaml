@@ -1,0 +1,88 @@
+independent_variables:
+- header:
+    name: $\log_{10}(\rho^2)$, $\rho = m/(p_T R)$
+  values:
+  - low: -10.0
+    high: -2.5
+  - low: -2.5
+    high: -2.0
+  - low: -2.0
+    high: -1.5
+  - low: -1.5
+    high: -1.0
+  - low: -1.0
+    high: -0.5
+  - low: -0.5
+    high: 0.0
+dependent_variables:
+- header:
+    name: $(1/\sigma)\, d\sigma/d\log_{10}(\rho^2)$
+  qualifiers: &id001
+  - name: SQRT(S)
+    value: 13000
+    units: GeV
+  - name: Jet $p_T$
+    value: 290-400 GeV
+  - name: Grooming
+    value: ungroomed
+  - name: Jet algorithm
+    value: anti-$k_T$, R=0.8
+  values:
+  - value: -9.73132e-05
+    errors:
+    - label: stat
+      symerror: 0.000244227
+    - label: sys
+      asymerror:
+        plus: 0.00205193
+        minus: -0.00111489
+  - value: 0.0737708
+    errors:
+    - label: stat
+      symerror: 0.00716291
+    - label: sys
+      asymerror:
+        plus: 0.0300262
+        minus: -0.0382807
+  - value: 0.655335
+    errors:
+    - label: stat
+      symerror: 0.00757546
+    - label: sys
+      asymerror:
+        plus: 0.0381209
+        minus: -0.042597
+  - value: 0.892618
+    errors:
+    - label: stat
+      symerror: 0.00486486
+    - label: sys
+      asymerror:
+        plus: 0.0225515
+        minus: -0.0255938
+  - value: 0.373293
+    errors:
+    - label: stat
+      symerror: 0.00184474
+    - label: sys
+      asymerror:
+        plus: 0.029028
+        minus: -0.0292608
+  - value: 0.00644235
+    errors:
+    - label: stat
+      symerror: 0.000417177
+    - label: sys
+      asymerror:
+        plus: 0.00915574
+        minus: -0.00885285
+- header:
+    name: PYTHIA8 (prediction)
+  qualifiers: *id001
+  values:
+  - value: 0.000220348
+  - value: 0.0749935
+  - value: 0.600679
+  - value: 0.943481
+  - value: 0.367749
+  - value: 0.00979241
