@@ -183,6 +183,70 @@ RHO_SPECS = {
 # fixed-JEC set explicitly via RHO_SPECS["fixed_jec"] when needed.
 RHO_SPEC = RHO_ORIGINAL_SPEC
 
+
+# ---------------------------------------------------------------------------
+# Channel / observable registry
+#
+# Makes (channel, observable, tag) a first-class lookup. The zjet specs are
+# full ObservableSpec instances usable directly with Unfolder. The dijet and
+# trijet rho channels are produced through unfold.tools.rho_channel_inputs
+# (prepared inputs) rather than an ObservableSpec; they are registered here as
+# available so callers can introspect the full matrix.
+# ---------------------------------------------------------------------------
+
+# zjet ObservableSpec instances, keyed by (observable, tag).
+ZJET_SPECS = {
+    ("rho", "original"): RHO_ORIGINAL_SPEC,
+    ("rho", "fixed_jec"): RHO_FIXED_JEC_SPEC,
+    ("mass", "nominal"): MASS_SPEC,
+}
+
+# Default tag for each (channel, observable).
+DEFAULT_TAGS = {
+    ("zjet", "rho"): "original",
+    ("zjet", "mass"): "nominal",
+    ("dijet", "rho"): "2018",
+    ("trijet", "rho"): "2018",
+}
+
+# How each (channel, observable) is produced:
+#   "spec"           -> get_spec(...) returns an ObservableSpec for Unfolder
+#   "channel_inputs" -> use unfold.tools.rho_channel_inputs +
+#                       scripts/run_rho_unfolding.py (prepared inputs)
+#   None             -> not currently available
+CHANNEL_OBSERVABLES = {
+    ("zjet", "rho"): "spec",
+    ("zjet", "mass"): "spec",          # code ready; inputs/zjet/mass/ must be regenerated
+    ("dijet", "rho"): "channel_inputs",
+    ("trijet", "rho"): "channel_inputs",
+    ("dijet", "mass"): None,
+    ("trijet", "mass"): None,
+}
+
+
+def get_spec(channel="zjet", observable="rho", tag=None):
+    """Return the ObservableSpec for a (channel, observable[, tag]).
+
+    Only zjet currently exposes ObservableSpec instances. dijet/trijet rho are
+    produced via unfold.tools.rho_channel_inputs (see CHANNEL_OBSERVABLES), so
+    requesting a spec for them raises KeyError with a pointer to the right path.
+    """
+    if channel != "zjet":
+        raise KeyError(
+            f"No ObservableSpec for channel {channel!r}; {channel} rho is "
+            "produced via unfold.tools.rho_channel_inputs "
+            "(scripts/run_rho_unfolding.py). See CHANNEL_OBSERVABLES."
+        )
+    if tag is None:
+        tag = DEFAULT_TAGS.get((channel, observable))
+    try:
+        return ZJET_SPECS[(observable, tag)]
+    except KeyError:
+        available = ", ".join(f"{obs}/{t}" for (obs, t) in ZJET_SPECS)
+        raise KeyError(
+            f"No spec for zjet {observable!r} tag {tag!r}; available: {available}"
+        ) from None
+
 JES_SYSTEMATICS = [
     "JES_AbsoluteMPFBiasUp", "JES_AbsoluteMPFBiasDown", "JES_AbsoluteScaleUp", "JES_AbsoluteScaleDown",
     "JES_AbsoluteStatUp", "JES_AbsoluteStatDown", "JES_FlavorQCDUp", "JES_FlavorQCDDown", "JES_FragmentationUp",

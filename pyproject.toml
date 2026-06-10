@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unfold"
+version = "0.1.0"
+description = "Jet substructure unfolding (rho and mass) for the zjet, dijet, and trijet channels."
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+# NOTE: PyROOT is provided externally by a ROOT build (ROOTSYS), not via pip.
+# Activate it with `source scripts/setup_root.sh` before running anything that
+# imports ROOT (the unfolding itself). The dependencies below are the pip-only
+# packages and are kept in sync with requirements.txt.
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+unfold = ["py.typed"]
