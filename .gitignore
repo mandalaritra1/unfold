@@ -73,5 +73,5 @@ Thumbs.db
 *.root
 test_output/
 outputs/**/*.pdf
-outputs/rho/_previews/
-outputs/mass/_previews/
+outputs/zjet/rho/_previews/
+outputs/zjet/mass/_previews/

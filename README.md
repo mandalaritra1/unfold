@@ -7,10 +7,10 @@ Use the latest shared unfolder implementation in `src/unfold/tools/unfolder_core
 
 For the rho workflow:
 
-- Run `notebooks/unfolder_v4_rho.ipynb` to produce tagged rho outputs under `outputs/rho/original/` and `outputs/rho/fixed_jec/`.
+- Run `notebooks/unfolder_v4_rho.ipynb` to produce tagged rho outputs under `outputs/zjet/rho/original/` and `outputs/zjet/rho/fixed_jec/`.
 - Review saved plots in `notebooks/rho_review.ipynb`.
-- Build static scrollable galleries with `python3 outputs/build_rho_gallery.py --root outputs/rho/original` and `python3 outputs/build_rho_gallery.py --root outputs/rho/fixed_jec`.
-- Open `outputs/rho/original/index.html` or `outputs/rho/fixed_jec/index.html` in a browser when you want a fast overview of many plots.
+- Build static scrollable galleries with `python3 outputs/build_rho_gallery.py --root outputs/zjet/rho/original` and `python3 outputs/build_rho_gallery.py --root outputs/zjet/rho/fixed_jec`.
+- Open `outputs/zjet/rho/original/index.html` or `outputs/zjet/rho/fixed_jec/index.html` in a browser when you want a fast overview of many plots.
 
 ## Environment
 
@@ -63,7 +63,7 @@ Create the combined 2016--2018 data/MC plots with:
     --input-production-tag validation
 ```
 
-The CMS Internal PDFs are written to `outputs/rho/data_mc/`, with matching
-CMS Preliminary versions in `outputs/rho/data_mc/Preliminary/`. The generated
+The CMS Internal PDFs are written to `outputs/zjet/rho/data_mc/`, with matching
+CMS Preliminary versions in `outputs/zjet/rho/data_mc/Preliminary/`. The generated
 `run2_plot_config.json` records the command, phase-space configuration, input
 production tag, and SHA-256 hash of every input pickle.

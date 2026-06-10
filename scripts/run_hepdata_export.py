@@ -18,7 +18,7 @@ from unfold.tools.hepdata_export import export_all  # noqa: E402
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--spec", default="fixed_jec", choices=list(RHO_SPECS))
-    ap.add_argument("--out", default="outputs/rho/hepdata")
+    ap.add_argument("--out", default="outputs/zjet/rho/hepdata")
     args = ap.parse_args()
 
     spec = RHO_SPECS[args.spec]

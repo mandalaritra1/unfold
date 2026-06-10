@@ -100,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=ROOT / "outputs" / "rho" / "data_mc",
+        default=ROOT / "outputs" / "zjet" / "rho" / "data_mc",
         help="Directory for the CMS Internal plots and provenance JSON.",
     )
     parser.add_argument(

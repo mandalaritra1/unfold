@@ -1,13 +1,13 @@
 """Generate a HEPData submission directory + archive from the exporter .npz files.
 
-Reads ``outputs/rho/hepdata/hepdata_export_{groomed,ungroomed}.npz`` (and the
+Reads ``outputs/zjet/rho/hepdata/hepdata_export_{groomed,ungroomed}.npz`` (and the
 JSON manifests) and writes a ``submission/`` directory containing
 ``submission.yaml`` plus one YAML table per (grooming, pT bin) measurement and
 per (grooming, kind) correlation matrix, then packs it into
 ``hepdata_submission.tar.gz``.
 
 Usage:
-    .venv/bin/python scripts/build_hepdata_submission.py [--root outputs/rho/hepdata]
+    .venv/bin/python scripts/build_hepdata_submission.py [--root outputs/zjet/rho/hepdata]
 """
 import argparse
 import json
@@ -117,7 +117,7 @@ def matrix_table(matrix, labels, kind, grooming):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="outputs/rho/hepdata")
+    ap.add_argument("--root", default="outputs/zjet/rho/hepdata")
     ap.add_argument("--out", default=None, help="submission dir (default <root>/submission)")
     args = ap.parse_args()
 

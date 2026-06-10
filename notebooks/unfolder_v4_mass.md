@@ -218,7 +218,7 @@ status_html = widgets.HTML(
 def show_gallery_link(gallery_path):
     display(
         HTML(
-            f'<a href="{gallery_path.resolve().as_uri()}" target="_blank">Open outputs/mass/index.html</a>'
+            f'<a href="{gallery_path.resolve().as_uri()}" target="_blank">Open outputs/zjet/mass/index.html</a>'
         )
     )
 

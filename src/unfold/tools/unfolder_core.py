@@ -43,7 +43,7 @@ class ObservableSpec:
     era_prefix: str                 # prefix stripped from per-era stems
     # Fallback list for the reweighted/herwig-model file used in _make_inputs_numpy
     reweighted_fallback_files: list
-    output_dir: str                 # e.g. "outputs/mass/"
+    output_dir: str                 # e.g. "outputs/zjet/mass/"
 
     # Bin accessors: names of attributes on binning.bin_edges objects
     edges_reco_attr: str
@@ -93,7 +93,7 @@ MASS_SPEC = ObservableSpec(
         "mass_herwig_all.pkl",
         "herwig_all.pkl",
     ],
-    output_dir="outputs/mass/",
+    output_dir="outputs/zjet/mass/",
     edges_reco_attr="mass_edges_reco",
     edges_gen_attr="mass_edges_gen",
     reco_edges_by_pt_attr="reco_mass_edges_by_pt",
@@ -144,7 +144,7 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
         "pythia_reweighted_all.pkl",
         "herwig_all.pkl",
     ],
-    output_dir="outputs/rho/fixed_jec/",
+    output_dir="outputs/zjet/rho/fixed_jec/",
     edges_reco_attr="rho_edges",
     edges_gen_attr="rho_edges_gen",
     reco_edges_by_pt_attr="reco_rho_edges_by_pt",
@@ -171,7 +171,7 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
 RHO_ORIGINAL_SPEC = replace(
     RHO_FIXED_JEC_SPEC,
     input_dir="./inputs/zjet/rho/original/",
-    output_dir="outputs/rho/original/",
+    output_dir="outputs/zjet/rho/original/",
 )
 
 RHO_SPECS = {

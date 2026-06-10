@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path(__file__).resolve().parent / "rho",
+        default=Path(__file__).resolve().parent / "zjet" / "rho",
         help="Folder containing saved rho outputs.",
     )
     parser.add_argument(

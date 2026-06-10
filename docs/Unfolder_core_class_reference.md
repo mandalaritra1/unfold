@@ -33,8 +33,8 @@ the reference caller; the legacy constructor above is unchanged.
   - bin-edge attribute names
   - labels, axis limits, normalized y-axis text
 - `MASS_SPEC`, `RHO_SPEC`, and explicit `RHO_SPECS` entries are concrete instances passed into `Unfolder`.
-- `RHO_SPECS["original"]` reads `inputs/rhoInputs/` and writes `outputs/rho/original/`; `RHO_SPECS["fixed_jec"]` reads `inputs/rhoInputs_2026_05_15/` and writes `outputs/rho/fixed_jec/`.
-- `RHO_SPEC` remains a backward-compatible alias for `RHO_SPECS["fixed_jec"]`.
+- `RHO_SPECS["original"]` reads `inputs/zjet/rho/original/` and writes `outputs/zjet/rho/original/`; `RHO_SPECS["fixed_jec"]` reads `inputs/zjet/rho/fixed_jec/` and writes `outputs/zjet/rho/fixed_jec/`.
+- `RHO_SPEC` is the default rho spec and now aliases `RHO_SPECS["original"]` (the pre-JEC-fix set); select `RHO_SPECS["fixed_jec"]` explicitly for the JEC-fixed set.
 - One `Unfolder` implementation now supports both observables.
 
 ## High-level constructor flow

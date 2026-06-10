@@ -7,8 +7,8 @@ from build_rho_gallery import build_html, parse_args
 
 def main() -> None:
     args = parse_args()
-    if args.root == Path(__file__).resolve().parent / "rho":
-        args.root = Path(__file__).resolve().parent / "mass"
+    if args.root == Path(__file__).resolve().parent / "zjet" / "rho":
+        args.root = Path(__file__).resolve().parent / "zjet" / "mass"
     if args.output is None:
         args.output = args.root / "index.html"
     build_html(
@@ -17,7 +17,7 @@ def main() -> None:
         args.dpi,
         page_title="Jet Mass Plot gallery",
         hero_title="Jet Mass Plot gallery",
-        hero_copy="Quick review of plots stored in <code>/unfold/output/mass/</code>",
+        hero_copy="Quick review of plots stored in <code>/unfold/outputs/zjet/mass/</code>",
     )
 
 
