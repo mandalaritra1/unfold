@@ -3,32 +3,31 @@
 The generic rho runner consumes the minimal producer outputs in:
 
 ```text
-inputs/<channel>/
+inputs/<channel>/rho/
   minimal_rho_<channel>_data_<year>.pkl
   minimal_rho_<channel>_mg_pythia8_<year>.pkl
 ```
 
-Supported channels are `dijet` and `trijet`.
+Supported channels are `dijet` and `trijet`. The discovery helper also falls
+back to the legacy flat `inputs/<channel>/` layout when no `rho/` subdir exists.
 
 ## Run
 
-ROOT must be sourced before starting the venv Python:
+ROOT must be sourced first. After `pip install -e .` the `unfold` package is
+importable without `PYTHONPATH=src` (the scripts also add `src/` to `sys.path`
+as a fallback):
 
 ```bash
 source scripts/setup_root.sh
 
-PYTHONPATH=src .venv/bin/python scripts/run_rho_unfolding.py \
-  --channel dijet \
-  --year 2018
+# via the unified runner (delegates to run_rho_unfolding.py)
+python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018
+python scripts/run_unfolding.py --channel trijet --observable rho --year 2018
 
-PYTHONPATH=src .venv/bin/python scripts/run_rho_unfolding.py \
-  --channel trijet \
-  --year 2018
+# or directly
+python scripts/run_rho_unfolding.py --channel dijet  --year 2018
+python scripts/run_rho_unfolding.py --channel trijet --year 2018
 ```
-
-The runner bootstraps both `src/` and `$ROOTSYS/lib`, so the commands remain
-valid even though the explicit `PYTHONPATH=src` replaces the value set by
-ROOT's `thisroot.sh`.
 
 The runner does not define a separate plotting implementation. After adapting
 the channel inputs and installing the channel binning, it calls the shared

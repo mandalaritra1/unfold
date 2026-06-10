@@ -1,69 +1,166 @@
-Use the latest shared unfolder implementation in `src/unfold/tools/unfolder_core.py`.
+# unfold
 
-## Documentation
+Jet substructure unfolding for the CMS Z+jet / dijet / trijet analyses. The
+repository unfolds two observables — **rho** (`log10(rho^2)`) and **jet mass** —
+each for three channels: **zjet**, **dijet**, **trijet**.
 
-- Core class reference: [docs/Unfolder_core_class_reference.md](docs/Unfolder_core_class_reference.md)
-- Dijet/trijet rho runner: [docs/rho_channel_unfolding.md](docs/rho_channel_unfolding.md)
+A single shared implementation, `Unfolder` in
+[`src/unfold/tools/unfolder_core.py`](src/unfold/tools/unfolder_core.py), drives
+every cell. An `ObservableSpec` parameterizes it per observable, and a
+`(channel, observable, tag)` registry (`CHANNEL_OBSERVABLES`, `get_spec`) makes
+the full matrix first-class.
 
-For the rho workflow:
+## The matrix
 
-- Run `notebooks/unfolder_v4_rho.ipynb` to produce tagged rho outputs under `outputs/zjet/rho/original/` and `outputs/zjet/rho/fixed_jec/`.
-- Review saved plots in `notebooks/rho_review.ipynb`.
-- Build static scrollable galleries with `python3 outputs/build_rho_gallery.py --root outputs/zjet/rho/original` and `python3 outputs/build_rho_gallery.py --root outputs/zjet/rho/fixed_jec`.
-- Open `outputs/zjet/rho/original/index.html` or `outputs/zjet/rho/fixed_jec/index.html` in a browser when you want a fast overview of many plots.
+| Channel \ Observable | rho | mass |
+|---|---|---|
+| **zjet** | ✅ `RHO_SPECS["original"]` (default) + `["fixed_jec"]` | ⚙️ `MASS_SPEC` — code ready, **inputs must be regenerated** |
+| **dijet** | ✅ 2018, prepared channel inputs | — not available |
+| **trijet** | ✅ 2018, prepared channel inputs | — not available |
+
+- **zjet** rho/mass run from merged-era pickles (`inputs/zjet/...`) via the spec
+  path (`Unfolder(spec, groomed).run_all_plots()`), interactively from notebooks
+  or from the CLI.
+- **dijet/trijet** rho run from prepared per-channel inputs
+  (`inputs/<channel>/rho/`) and intentionally omit jackknife response statistics
+  and HERWIG/model uncertainty; detector-level validation is deferred until
+  dedicated validation inputs exist.
+
+## Repository layout
+
+```
+src/unfold/tools/
+  unfolder_core.py     # Unfolder class, ObservableSpec, specs + registry
+  binning.py           # binning helpers
+  rho_channel_inputs.py# dijet/trijet input discovery + adaptation
+  hepdata_export.py    # HEPData export
+  merge_data.py        # per-era pickle merger
+src/unfold/utils/      # integrate_and_rebin, merge_helpers
+scripts/               # run_unfolding.py (unified), run_rho_unfolding.py, hepdata, purity
+notebooks/             # interactive runners (unfolder_v4_{rho,mass}, data_mc_rho_fancy)
+inputs/                # gitignored data; see inputs/README.md for the layout
+  zjet/{rho/{original,fixed_jec},mass,validation}/
+  {dijet,trijet}/rho/
+  _archive/
+outputs/               # plots + artifacts, mirrors inputs by channel
+  zjet/{rho/{original,fixed_jec},mass,validation}/
+  {dijet,trijet}/<year>/rho/
+  _archive/
+docs/                  # reference docs (see Documentation below)
+```
+
+Input pickles are gitignored — [`inputs/README.md`](inputs/README.md) is the
+tracked record of the expected files and their provenance.
 
 ## Environment
 
-Activate the project venv from the repository root:
+Activate the project venv from the repository root; the activation hook sources
+`scripts/setup_root.sh` (ROOT defaults to `/Users/aritra/opt/root-6.40.00-rc1`):
 
 ```bash
 source .venv/bin/activate
-```
-
-The activation hook sources `scripts/setup_root.sh`, which defaults ROOT to
-`/Users/aritra/opt/root-6.40.00-rc1`.  To source it manually in an existing
-terminal:
-
-```bash
+# or, in an existing shell:
 source scripts/setup_root.sh
 ```
 
-## Dijet/trijet rho unfolding
+Install the package so `unfold` is importable without `PYTHONPATH=src`:
 
-Run the producer-compatible 2018 workflows with:
+```bash
+pip install -e .            # deps come from requirements.txt; PyROOT stays external
+```
+
+`import ROOT` is required for an actual unfolding run and is provided by the
+external ROOT build, not pip. The scripts also fall back to adding `src/` to
+`sys.path`, so they work even without the editable install.
+
+## Running
+
+### Unified runner
+
+[`scripts/run_unfolding.py`](scripts/run_unfolding.py) is the single entrypoint:
 
 ```bash
 source scripts/setup_root.sh
 
-PYTHONPATH=src .venv/bin/python scripts/run_rho_unfolding.py \
-    --channel dijet --year 2018
+# zjet rho (default tag = original); use --tag fixed_jec for the JEC-fixed set
+python scripts/run_unfolding.py --channel zjet  --observable rho
+python scripts/run_unfolding.py --channel zjet  --observable rho --tag fixed_jec
 
-PYTHONPATH=src .venv/bin/python scripts/run_rho_unfolding.py \
-    --channel trijet --year 2018
+# dijet / trijet rho (delegates to run_rho_unfolding.py)
+python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018
+python scripts/run_unfolding.py --channel trijet --observable rho --year 2018
+
+# zjet mass (requires regenerated inputs/zjet/mass/ pickles)
+python scripts/run_unfolding.py --channel zjet --observable mass
 ```
 
-Outputs are separated under
-`outputs/<channel>/<year>/rho/unfolding/`. These runs intentionally omit
-jackknife response statistics and HERWIG/model uncertainty. Dijet/trijet
-detector-level validation is deferred until dedicated validation inputs are
-available. Plot definitions and formatting come from the same
-`Unfolder.run_all_plots()` methods used by the Z+jet workflow.
+`run_unfolding.py --help` works without ROOT. Unavailable combinations
+(dijet/mass, trijet/mass) exit with a clear message.
 
-The dijet groomed result uses a studied variable low-rho binning in the
-400-570 and 570-760 GeV intervals. Trijet and legacy Z+jet binning are
-unchanged; details are in
-[docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md).
+### Notebooks (interactive)
+
+- [`notebooks/unfolder_v4_rho.ipynb`](notebooks/unfolder_v4_rho.ipynb) — produces
+  tagged zjet rho outputs under `outputs/zjet/rho/original/` and
+  `outputs/zjet/rho/fixed_jec/`.
+- [`notebooks/unfolder_v4_mass.ipynb`](notebooks/unfolder_v4_mass.ipynb) — zjet
+  mass workflow.
+
+### Dijet/trijet direct runner
+
+The unified runner delegates to the producer-compatible path, which can also be
+called directly:
+
+```bash
+python scripts/run_rho_unfolding.py --channel dijet  --year 2018
+python scripts/run_rho_unfolding.py --channel trijet --year 2018
+```
+
+Outputs go to `outputs/<channel>/<year>/rho/unfolding/` (plots, NPZ artifacts,
+a run manifest, and a text summary). The dijet groomed result uses a studied
+variable low-rho binning in the 400–570 and 570–760 GeV intervals; trijet and
+legacy zjet binning are unchanged
+([docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md)).
+
+## Galleries
+
+Build static scrollable HTML galleries of the saved plots:
+
+```bash
+python outputs/build_rho_gallery.py  --root outputs/zjet/rho/original
+python outputs/build_rho_gallery.py  --root outputs/zjet/rho/fixed_jec
+python outputs/build_mass_gallery.py --root outputs/zjet/mass
+```
+
+Then open the generated `index.html` in the chosen `--root`.
+
+> The external `unfold-rho-compare` app syncs committed PNG previews from
+> `outputs/zjet/rho/{original,fixed_jec}/_previews/` (moved from `outputs/rho/...`
+> in the channel reorganization — update the app's sync config to match).
 
 ## Run 2 detector-level rho validation
 
-Create the combined 2016--2018 data/MC plots with:
-
 ```bash
-.venv/bin/python notebooks/data_mc_rho_fancy.py \
-    --input-production-tag validation
+python notebooks/data_mc_rho_fancy.py --input-production-tag validation
 ```
 
-The CMS Internal PDFs are written to `outputs/zjet/rho/data_mc/`, with matching
-CMS Preliminary versions in `outputs/zjet/rho/data_mc/Preliminary/`. The generated
-`run2_plot_config.json` records the command, phase-space configuration, input
-production tag, and SHA-256 hash of every input pickle.
+CMS Internal PDFs are written to `outputs/zjet/rho/data_mc/`, CMS Preliminary
+versions to `outputs/zjet/rho/data_mc/Preliminary/`. A `run2_plot_config.json`
+records the command, phase-space configuration, input production tag, and a
+SHA-256 hash of every input pickle. Inputs come from `inputs/zjet/validation/`.
+
+## HEPData export
+
+```bash
+python scripts/run_hepdata_export.py --spec fixed_jec        # -> outputs/zjet/rho/hepdata
+python scripts/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
+```
+
+## Documentation
+
+- [docs/Unfolder_core_class_reference.md](docs/Unfolder_core_class_reference.md)
+  — `Unfolder` / `ObservableSpec` reference.
+- [docs/rho_channel_unfolding.md](docs/rho_channel_unfolding.md) — dijet/trijet
+  rho runner details.
+- [docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md)
+  — the dijet groomed low-rho binning study.
+- [inputs/README.md](inputs/README.md) — input file layout and provenance.

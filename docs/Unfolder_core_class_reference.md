@@ -37,6 +37,24 @@ the reference caller; the legacy constructor above is unchanged.
 - `RHO_SPEC` is the default rho spec and now aliases `RHO_SPECS["original"]` (the pre-JEC-fix set); select `RHO_SPECS["fixed_jec"]` explicitly for the JEC-fixed set.
 - One `Unfolder` implementation now supports both observables.
 
+## Channel / observable registry
+
+`unfolder_core` exposes a `(channel, observable, tag)` view of the full matrix:
+
+- `ZJET_SPECS` maps `(observable, tag)` to the zjet `ObservableSpec` instances
+  (`("rho","original")`, `("rho","fixed_jec")`, `("mass","nominal")`).
+- `DEFAULT_TAGS` gives the default tag per `(channel, observable)` (zjet rho →
+  `original`).
+- `CHANNEL_OBSERVABLES` records how each cell is produced: `"spec"` (zjet, via
+  `get_spec` + `Unfolder`), `"channel_inputs"` (dijet/trijet rho, via
+  `unfold.tools.rho_channel_inputs` + `scripts/run_rho_unfolding.py`), or
+  `None` (dijet/mass, trijet/mass — not available).
+- `get_spec(channel="zjet", observable="rho", tag=None)` returns the matching
+  `ObservableSpec`, applying the default tag when `tag` is omitted. It raises
+  `KeyError` (with guidance) for non-zjet channels, which have no `ObservableSpec`.
+
+`scripts/run_unfolding.py` is the unified CLI built on this registry.
+
 ## High-level constructor flow
 
 When an object is created:
