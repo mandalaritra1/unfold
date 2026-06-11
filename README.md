@@ -86,6 +86,29 @@ source scripts/setup_root.sh
 python scripts/run_unfolding.py --channel zjet  --observable rho
 python scripts/run_unfolding.py --channel zjet  --observable rho --tag fixed_jec
 
+# Every tag has a "<tag>_jacobian" twin (same inputs) whose normalized-result
+# statistics are propagated through the normalization Jacobian: error bars and
+# the correlation matrix describe the normalized spectrum, and a
+# normalized_covariance_{groomed,ungroomed}.npz (stat + rank-1 systematic
+# covariances) is written under unfold/. Outputs land in a sibling dir
+# (e.g. outputs/zjet/rho/original_jacobian/) for comparison-app pairing.
+python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_jacobian
+
+# "<tag>_jacobian_reg" additionally enables ratio-curvature regularization:
+# custom L rows penalize the curvature of x/x_MC per pT slice (zero penalty
+# for spectra proportional to the MC prior), tau from an L-curve scan on the
+# nominal data unfold and frozen for systematic/jackknife re-unfolds.
+# Validation: scripts/study_regularization_rho.py (exact self-closure, <1%
+# added HERWIG-closure bias, roughly halved input-stat uncertainties).
+python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_jacobian_reg
+
+# The same options are available as flags for ANY channel/observable/tag;
+# flag runs auto-suffix the output dir (_jacobian/_reg) so the baseline
+# outputs are never overwritten. --tau fixes the strength (skips the scan).
+python scripts/run_unfolding.py --channel zjet  --observable mass --jacobian --regularization ratio_curvature
+python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --jacobian --regularization ratio_curvature
+# -> outputs/dijet/2018/rho/unfolding_jacobian_reg/ (settings + per-mode tau in run_manifest.json)
+
 # dijet / trijet rho (delegates to run_rho_unfolding.py)
 python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018
 python scripts/run_unfolding.py --channel trijet --observable rho --year 2018
@@ -134,8 +157,19 @@ python outputs/build_mass_gallery.py --root outputs/zjet/mass
 Then open the generated `index.html` in the chosen `--root`.
 
 > The external `unfold-rho-compare` app syncs committed PNG previews from
-> `outputs/zjet/rho/{original,fixed_jec}/_previews/` (moved from `outputs/rho/...`
-> in the channel reorganization — update the app's sync config to match).
+> `outputs/zjet/rho/{original,fixed_jec,original_jacobian}/_previews/`; its
+> sync script handles the channel-reorganized layout and takes
+> `--unfold-root` / `--versions` arguments.
+
+To combine selected PNG/JPEG plots into a configurable slide-ready grid:
+
+```bash
+python scripts/serve_image_grid.py
+```
+
+The local webpage supports folder selection, thumbnail filtering and
+selection, drag reordering, adjustable columns/spacing/padding, and copying or
+downloading the rendered grid as a PNG.
 
 ## Run 2 detector-level rho validation
 
@@ -147,6 +181,8 @@ CMS Internal PDFs are written to `outputs/zjet/rho/data_mc/`, CMS Preliminary
 versions to `outputs/zjet/rho/data_mc/Preliminary/`. A `run2_plot_config.json`
 records the command, phase-space configuration, input production tag, and a
 SHA-256 hash of every input pickle. Inputs come from `inputs/zjet/validation/`.
+The plotting command also refreshes `outputs/zjet/rho/data_mc/index.html` and
+its cached PNG previews; pass `--no-gallery` to skip that step.
 
 ## HEPData export
 

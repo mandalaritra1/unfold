@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Z+jet validation plot gallery</title>
+  <style>
+    :root {
+      --bg: #10151d;
+      --bg-deep: #0b1017;
+      --panel: rgba(24, 31, 42, 0.92);
+      --panel-strong: rgba(31, 40, 54, 0.98);
+      --ink: #edf1f7;
+      --muted: #aab4c3;
+      --line: rgba(153, 175, 201, 0.18);
+      --accent: #ff8a57;
+      --accent-soft: rgba(255, 138, 87, 0.14);
+      --gold: #f0ba58;
+      --sage: #7fc5aa;
+      --rose: #f28aa5;
+      --sky: #8cb7ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(255, 138, 87, 0.18), transparent 24rem),
+        radial-gradient(circle at top left, rgba(140, 183, 255, 0.12), transparent 22rem),
+        linear-gradient(180deg, #17202b 0%, var(--bg) 45%, var(--bg-deep) 100%);
+    }
+    .shell {
+      max-width: 1920px;
+      margin: 0 auto;
+      padding: 24px 24px 40px;
+    }
+    .hero {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 0 0 24px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+      background:
+        linear-gradient(135deg, rgba(27, 35, 48, 0.92), rgba(18, 24, 34, 0.88));
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+      border-radius: 0 0 22px 22px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 700;
+      color: #fff3ed;
+    }
+    .hero-copy {
+      color: var(--muted);
+      margin-bottom: 14px;
+      max-width: 70rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: minmax(16rem, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(14, 19, 27, 0.92);
+      font: inherit;
+      color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+    .count {
+      color: var(--muted);
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .section {
+      margin: 30px 0 0;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+      text-transform: capitalize;
+      color: #e7edf8;
+    }
+    .section-header span {
+      color: #d2d9e5;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+    }
+    .card {
+      background:
+        linear-gradient(180deg, rgba(30, 39, 54, 0.98), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+      transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.34);
+      border-color: rgba(255, 138, 87, 0.38);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .card-meta {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+    .card-type {
+      color: #f6ead8;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: linear-gradient(135deg, rgba(240, 186, 88, 0.22), rgba(255, 138, 87, 0.16));
+      border: 1px solid rgba(255, 138, 87, 0.18);
+      border-radius: 999px;
+      padding: 4px 9px;
+      height: fit-content;
+    }
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .preview-link {
+      display: block;
+    }
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
+    }
+    .btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: linear-gradient(180deg, rgba(255, 138, 87, 0.18), rgba(255, 138, 87, 0.09));
+    }
+    .section[data-folder="."] .section-header h2 { color: var(--accent); }
+    .section[data-folder="unfold"] .section-header h2 { color: var(--rose); }
+    .section[data-folder="uncertainties"] .section-header h2 { color: var(--sky); }
+    .section[data-folder="data_mc"] .section-header h2 { color: var(--sage); }
+    .hidden {
+      display: none !important;
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      background: rgba(5, 8, 14, 0.82);
+      backdrop-filter: blur(8px);
+    }
+    .lightbox[hidden] {
+      display: none;
+    }
+    .lightbox-dialog {
+      position: relative;
+      max-width: min(94vw, 1800px);
+      max-height: 92vh;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(24, 31, 42, 0.98), rgba(16, 21, 29, 0.98));
+      box-shadow: 0 28px 64px rgba(0, 0, 0, 0.42);
+    }
+    .lightbox-image {
+      display: block;
+      max-width: min(90vw, 1720px);
+      max-height: calc(92vh - 32px);
+      width: auto;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(12, 17, 24, 0.82);
+      color: var(--ink);
+      font: inherit;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .lightbox-close:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    @media (max-width: 1200px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="hero">
+      <h1>Z+jet validation plot gallery</h1>
+      <div class="hero-copy">
+        Static review view for plots already written under <code>/Users/aritra/Projects/unfold/outputs/zjet/validation</code>. PDF previews are cached in <code>/Users/aritra/Projects/unfold/outputs/zjet/validation/_previews</code>.
+      </div>
+      <div class="controls">
+        <input id="filter" type="search" placeholder="Filter by file name or folder">
+        <div class="count"><span id="visible-count">20</span> / 20 visible</div>
+      </div>
+    </div>
+    
+            <section class="section" data-folder=".">
+              <div class="section-header">
+                <h2>root</h2>
+                <span>10 files</span>
+              </div>
+              <div class="grid">
+                
+    <article class="card" data-folder="." data-name="input_stat_amplification_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">input stat amplification groomed</div>
+          <div class="card-meta">input_stat_amplification_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/input_stat_amplification_groomed.png" data-preview-src="_previews/input_stat_amplification_groomed.png" data-preview-alt="input stat amplification groomed preview"><img src="_previews/input_stat_amplification_groomed.png" alt="input stat amplification groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="input_stat_amplification_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="input_stat_amplification_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="input_stat_amplification_groomed.png">
+      <div class="card-header">
+        <div>
+          <div class="card-title">input stat amplification groomed</div>
+          <div class="card-meta">input_stat_amplification_groomed.png</div>
+        </div>
+        <div class="card-type">png</div>
+      </div>
+      <a class="preview-link" href="input_stat_amplification_groomed.png" data-preview-src="input_stat_amplification_groomed.png" data-preview-alt="input stat amplification groomed preview"><img src="input_stat_amplification_groomed.png" alt="input stat amplification groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="input_stat_amplification_groomed.png" target="_blank" rel="noreferrer">Open Image</a>
+        <a class="btn" href="input_stat_amplification_groomed.png" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="input_stat_toy_validation_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">input stat toy validation groomed</div>
+          <div class="card-meta">input_stat_toy_validation_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/input_stat_toy_validation_groomed.png" data-preview-src="_previews/input_stat_toy_validation_groomed.png" data-preview-alt="input stat toy validation groomed preview"><img src="_previews/input_stat_toy_validation_groomed.png" alt="input stat toy validation groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="input_stat_toy_validation_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="input_stat_toy_validation_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="input_stat_toy_validation_groomed.png">
+      <div class="card-header">
+        <div>
+          <div class="card-title">input stat toy validation groomed</div>
+          <div class="card-meta">input_stat_toy_validation_groomed.png</div>
+        </div>
+        <div class="card-type">png</div>
+      </div>
+      <a class="preview-link" href="input_stat_toy_validation_groomed.png" data-preview-src="input_stat_toy_validation_groomed.png" data-preview-alt="input stat toy validation groomed preview"><img src="input_stat_toy_validation_groomed.png" alt="input stat toy validation groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="input_stat_toy_validation_groomed.png" target="_blank" rel="noreferrer">Open Image</a>
+        <a class="btn" href="input_stat_toy_validation_groomed.png" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_bias_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization bias groomed</div>
+          <div class="card-meta">regularization_bias_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/regularization_bias_groomed.png" data-preview-src="_previews/regularization_bias_groomed.png" data-preview-alt="regularization bias groomed preview"><img src="_previews/regularization_bias_groomed.png" alt="regularization bias groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_bias_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="regularization_bias_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_bias_groomed.png">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization bias groomed</div>
+          <div class="card-meta">regularization_bias_groomed.png</div>
+        </div>
+        <div class="card-type">png</div>
+      </div>
+      <a class="preview-link" href="regularization_bias_groomed.png" data-preview-src="regularization_bias_groomed.png" data-preview-alt="regularization bias groomed preview"><img src="regularization_bias_groomed.png" alt="regularization bias groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_bias_groomed.png" target="_blank" rel="noreferrer">Open Image</a>
+        <a class="btn" href="regularization_bias_groomed.png" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_selfclosure_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization selfclosure groomed</div>
+          <div class="card-meta">regularization_selfclosure_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/regularization_selfclosure_groomed.png" data-preview-src="_previews/regularization_selfclosure_groomed.png" data-preview-alt="regularization selfclosure groomed preview"><img src="_previews/regularization_selfclosure_groomed.png" alt="regularization selfclosure groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_selfclosure_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="regularization_selfclosure_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_selfclosure_groomed.png">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization selfclosure groomed</div>
+          <div class="card-meta">regularization_selfclosure_groomed.png</div>
+        </div>
+        <div class="card-type">png</div>
+      </div>
+      <a class="preview-link" href="regularization_selfclosure_groomed.png" data-preview-src="regularization_selfclosure_groomed.png" data-preview-alt="regularization selfclosure groomed preview"><img src="regularization_selfclosure_groomed.png" alt="regularization selfclosure groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_selfclosure_groomed.png" target="_blank" rel="noreferrer">Open Image</a>
+        <a class="btn" href="regularization_selfclosure_groomed.png" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_stat_unc_groomed.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization stat unc groomed</div>
+          <div class="card-meta">regularization_stat_unc_groomed.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/regularization_stat_unc_groomed.png" data-preview-src="_previews/regularization_stat_unc_groomed.png" data-preview-alt="regularization stat unc groomed preview"><img src="_previews/regularization_stat_unc_groomed.png" alt="regularization stat unc groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_stat_unc_groomed.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="regularization_stat_unc_groomed.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="." data-name="regularization_stat_unc_groomed.png">
+      <div class="card-header">
+        <div>
+          <div class="card-title">regularization stat unc groomed</div>
+          <div class="card-meta">regularization_stat_unc_groomed.png</div>
+        </div>
+        <div class="card-type">png</div>
+      </div>
+      <a class="preview-link" href="regularization_stat_unc_groomed.png" data-preview-src="regularization_stat_unc_groomed.png" data-preview-alt="regularization stat unc groomed preview"><img src="regularization_stat_unc_groomed.png" alt="regularization stat unc groomed preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="regularization_stat_unc_groomed.png" target="_blank" rel="noreferrer">Open Image</a>
+        <a class="btn" href="regularization_stat_unc_groomed.png" download>Download</a>
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+            <section class="section" data-folder="systematic_variations">
+              <div class="section-header">
+                <h2>systematic_variations</h2>
+                <span>10 files</span>
+              </div>
+              <div class="grid">
+                
+    <article class="card" data-folder="systematic_variations" data-name="mass_jet0_jms_jmr_jer_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">mass jet0 JMS JMR JER run2</div>
+          <div class="card-meta">mass_jet0_JMS_JMR_JER_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/mass_jet0_JMS_JMR_JER_run2.png" data-preview-src="_previews/systematic_variations/mass_jet0_JMS_JMR_JER_run2.png" data-preview-alt="mass jet0 JMS JMR JER run2 preview"><img src="_previews/systematic_variations/mass_jet0_JMS_JMR_JER_run2.png" alt="mass jet0 JMS JMR JER run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/mass_jet0_JMS_JMR_JER_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/mass_jet0_JMS_JMR_JER_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="mass_jet0_jms_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">mass jet0 JMS run2</div>
+          <div class="card-meta">mass_jet0_JMS_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/mass_jet0_JMS_run2.png" data-preview-src="_previews/systematic_variations/mass_jet0_JMS_run2.png" data-preview-alt="mass jet0 JMS run2 preview"><img src="_previews/systematic_variations/mass_jet0_JMS_run2.png" alt="mass jet0 JMS run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/mass_jet0_JMS_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/mass_jet0_JMS_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="mass_jet0_isr_fsr_pu_q2_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">mass jet0 isr fsr pu q2 run2</div>
+          <div class="card-meta">mass_jet0_isr_fsr_pu_q2_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/mass_jet0_isr_fsr_pu_q2_run2.png" data-preview-src="_previews/systematic_variations/mass_jet0_isr_fsr_pu_q2_run2.png" data-preview-alt="mass jet0 isr fsr pu q2 run2 preview"><img src="_previews/systematic_variations/mass_jet0_isr_fsr_pu_q2_run2.png" alt="mass jet0 isr fsr pu q2 run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/mass_jet0_isr_fsr_pu_q2_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/mass_jet0_isr_fsr_pu_q2_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="mass_jet0_isr_fsr_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">mass jet0 isr fsr run2</div>
+          <div class="card-meta">mass_jet0_isr_fsr_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/mass_jet0_isr_fsr_run2.png" data-preview-src="_previews/systematic_variations/mass_jet0_isr_fsr_run2.png" data-preview-alt="mass jet0 isr fsr run2 preview"><img src="_previews/systematic_variations/mass_jet0_isr_fsr_run2.png" alt="mass jet0 isr fsr run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/mass_jet0_isr_fsr_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/mass_jet0_isr_fsr_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="pt_jet0_jms_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pt jet0 JMS run2</div>
+          <div class="card-meta">pt_jet0_JMS_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/pt_jet0_JMS_run2.png" data-preview-src="_previews/systematic_variations/pt_jet0_JMS_run2.png" data-preview-alt="pt jet0 JMS run2 preview"><img src="_previews/systematic_variations/pt_jet0_JMS_run2.png" alt="pt jet0 JMS run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/pt_jet0_JMS_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/pt_jet0_JMS_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="pt_jet0_isr_fsr_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">pt jet0 isr fsr run2</div>
+          <div class="card-meta">pt_jet0_isr_fsr_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/pt_jet0_isr_fsr_run2.png" data-preview-src="_previews/systematic_variations/pt_jet0_isr_fsr_run2.png" data-preview-alt="pt jet0 isr fsr run2 preview"><img src="_previews/systematic_variations/pt_jet0_isr_fsr_run2.png" alt="pt jet0 isr fsr run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/pt_jet0_isr_fsr_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/pt_jet0_isr_fsr_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="ptjet_rhojet_g_reco_isr_fsr_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ptjet rhojet g reco isr fsr run2</div>
+          <div class="card-meta">ptjet_rhojet_g_reco_isr_fsr_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2.png" data-preview-src="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2.png" data-preview-alt="ptjet rhojet g reco isr fsr run2 preview"><img src="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2.png" alt="ptjet rhojet g reco isr fsr run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="ptjet_rhojet_g_reco_isr_fsr_run2_linear.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ptjet rhojet g reco isr fsr run2 linear</div>
+          <div class="card-meta">ptjet_rhojet_g_reco_isr_fsr_run2_linear.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2_linear.png" data-preview-src="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2_linear.png" data-preview-alt="ptjet rhojet g reco isr fsr run2 linear preview"><img src="_previews/systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2_linear.png" alt="ptjet rhojet g reco isr fsr run2 linear preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2_linear.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/ptjet_rhojet_g_reco_isr_fsr_run2_linear.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="ptjet_rhojet_u_reco_isr_fsr_run2.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ptjet rhojet u reco isr fsr run2</div>
+          <div class="card-meta">ptjet_rhojet_u_reco_isr_fsr_run2.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2.png" data-preview-src="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2.png" data-preview-alt="ptjet rhojet u reco isr fsr run2 preview"><img src="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2.png" alt="ptjet rhojet u reco isr fsr run2 preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2.pdf" download>Download</a>
+      </div>
+    </article>
+    
+    <article class="card" data-folder="systematic_variations" data-name="ptjet_rhojet_u_reco_isr_fsr_run2_linear.pdf">
+      <div class="card-header">
+        <div>
+          <div class="card-title">ptjet rhojet u reco isr fsr run2 linear</div>
+          <div class="card-meta">ptjet_rhojet_u_reco_isr_fsr_run2_linear.pdf</div>
+        </div>
+        <div class="card-type">pdf</div>
+      </div>
+      <a class="preview-link" href="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2_linear.png" data-preview-src="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2_linear.png" data-preview-alt="ptjet rhojet u reco isr fsr run2 linear preview"><img src="_previews/systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2_linear.png" alt="ptjet rhojet u reco isr fsr run2 linear preview" loading="lazy"></a>
+      <div class="card-actions">
+        <a class="btn" href="systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2_linear.pdf" target="_blank" rel="noreferrer">Open PDF</a>
+        <a class="btn" href="systematic_variations/ptjet_rhojet_u_reco_isr_fsr_run2_linear.pdf" download>Download</a>
+      </div>
+    </article>
+    
+              </div>
+            </section>
+            
+  </div>
+  <div class="lightbox" id="lightbox" hidden>
+    <div class="lightbox-dialog" role="dialog" aria-modal="true" aria-label="Expanded preview">
+      <button class="lightbox-close" id="lightbox-close" type="button" aria-label="Close preview">&times;</button>
+      <img class="lightbox-image" id="lightbox-image" alt="">
+    </div>
+  </div>
+  <script>
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const sections = Array.from(document.querySelectorAll('.section'));
+    const count = document.getElementById('visible-count');
+    const filter = document.getElementById('filter');
+    const previewLinks = Array.from(document.querySelectorAll('.preview-link'));
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    function update() {
+      const term = filter.value.trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        const text = `${card.dataset.folder} ${card.dataset.name}`;
+        const show = !term || text.includes(term);
+        card.classList.toggle('hidden', !show);
+        if (show) visible += 1;
+      }
+      for (const section of sections) {
+        const hasVisible = section.querySelector('.card:not(.hidden)');
+        section.classList.toggle('hidden', !hasVisible);
+      }
+      count.textContent = String(visible);
+    }
+
+    function closeLightbox() {
+      lightbox.hidden = true;
+      lightboxImage.removeAttribute('src');
+      lightboxImage.alt = '';
+      document.body.style.overflow = '';
+    }
+
+    function openLightbox(src, alt) {
+      lightboxImage.src = src;
+      lightboxImage.alt = alt;
+      lightbox.hidden = false;
+      document.body.style.overflow = 'hidden';
+    }
+
+    for (const link of previewLinks) {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        openLightbox(link.dataset.previewSrc, link.dataset.previewAlt || 'Expanded preview');
+      });
+    }
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (event) => {
+      if (event.target === lightbox) {
+        closeLightbox();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !lightbox.hidden) {
+        closeLightbox();
+      }
+    });
+
+    filter.addEventListener('input', update);
+    update();
+  </script>
+</body>
+</html>

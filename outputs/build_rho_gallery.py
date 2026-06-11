@@ -41,6 +41,11 @@ def parse_args() -> argparse.Namespace:
         default=PDF_DPI,
         help="DPI used for first-page PDF previews.",
     )
+    parser.add_argument(
+        "--title",
+        default=None,
+        help="Optional page and hero title.",
+    )
     return parser.parse_args()
 
 
@@ -535,7 +540,7 @@ def main() -> None:
     root = args.root.resolve()
     output = args.output.resolve() if args.output else root / "index.html"
     tag = root.name if root.parent.name == "rho" else None
-    title = f"rho plot gallery: {tag}" if tag else "rho plot gallery"
+    title = args.title or (f"rho plot gallery: {tag}" if tag else "rho plot gallery")
     build_html(root=root, output=output, dpi=args.dpi, page_title=title, hero_title=title)
 
 

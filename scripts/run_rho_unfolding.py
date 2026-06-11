@@ -43,7 +43,36 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cms-label", default="Internal")
     parser.add_argument("--lumi", type=float, default=59.7)
     parser.add_argument("--com", type=float, default=13.0)
-    return parser.parse_args()
+    parser.add_argument(
+        "--jacobian",
+        action="store_true",
+        help=(
+            "Propagate normalized-result statistics through the normalization "
+            "Jacobian (errors + correlation of the normalized spectrum). The "
+            "default output dir gets a '_jacobian' suffix."
+        ),
+    )
+    parser.add_argument(
+        "--regularization",
+        choices=("none", "ratio_curvature"),
+        default="none",
+        help=(
+            "Unfolding regularization; 'ratio_curvature' penalizes the "
+            "curvature of x/x_MC per pT slice (zero penalty for spectra "
+            "proportional to the MC prior). tau from an L-curve scan unless "
+            "--tau is given. The default output dir gets a '_reg' suffix."
+        ),
+    )
+    parser.add_argument(
+        "--tau",
+        type=float,
+        default=None,
+        help="Fixed regularization strength (skips the L-curve scan).",
+    )
+    args = parser.parse_args()
+    if args.tau is not None and args.regularization == "none":
+        parser.error("--tau requires --regularization ratio_curvature")
+    return args
 
 
 def file_sha256(path: Path) -> str:
@@ -137,6 +166,11 @@ def build_gallery(output_dir: Path) -> Path:
 
 def main() -> None:
     args = parse_args()
+    # Option runs get suffixed default dirs so they never overwrite the
+    # baseline outputs (mirrors the zjet '<tag>_jacobian[_reg]' convention).
+    option_suffix = ("_jacobian" if args.jacobian else "") + (
+        "_reg" if args.regularization != "none" else ""
+    )
     output_dir = (
         args.output_dir
         if args.output_dir is not None
@@ -145,7 +179,7 @@ def main() -> None:
         / args.channel
         / str(args.year)
         / "rho"
-        / "unfolding"
+        / f"unfolding{option_suffix}"
     )
     output_dir = output_dir.resolve()
     unfolder_output_dir = os.path.relpath(output_dir, REPO_ROOT) + "/"
@@ -166,12 +200,16 @@ def main() -> None:
     prepared = build_prepared_rho_inputs(files)
     summaries = []
     artifacts = []
+    resolved_taus = {}
 
     ROOT.gErrorIgnoreLevel = ROOT.kError
     for mode, groomed in (("ungroomed", False), ("groomed", True)):
         spec = replace(
             RHO_FIXED_JEC_SPEC,
             output_dir=unfolder_output_dir,
+            stat_propagation="jacobian" if args.jacobian else RHO_FIXED_JEC_SPEC.stat_propagation,
+            regularization=args.regularization,
+            tau=args.tau,
             xlim_lower_groomed=(
                 prepared.binning[mode].gen_rho_edges_by_pt[0][0]
                 if args.channel == "dijet" and groomed
@@ -194,6 +232,7 @@ def main() -> None:
         unfolder.run_all_plots(show=False)
         artifacts.append(write_artifact(unfolder, mode, output_dir))
         summaries.append(mode_summary(unfolder, mode))
+        resolved_taus[mode] = float(unfolder.tau or 0.0)
 
     gallery_path = build_gallery(output_dir)
     input_paths = [files.data, files.mc]
@@ -213,6 +252,9 @@ def main() -> None:
         "cms_label": args.cms_label,
         "integrated_luminosity_fb-1": args.lumi,
         "center_of_mass_energy_TeV": args.com,
+        "stat_propagation": "jacobian" if args.jacobian else "legacy",
+        "regularization": args.regularization,
+        "tau": {"requested": args.tau, "resolved_by_mode": resolved_taus},
         "root_version": ROOT.gROOT.GetVersion(),
         "plotting": {
             "implementation": "Unfolder.run_all_plots",

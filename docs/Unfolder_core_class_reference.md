@@ -109,11 +109,18 @@ When an object is created:
 | --- | --- |
 | `_compute_stat_unc()` | JK-based input and matrix statistical uncertainty propagation. |
 | `_compute_input_stat_unc_from_covariance()` | Uses TUnfold's propagated weighted-data covariance when prepared inputs have no JK samples; matrix-stat uncertainty is set to zero and reported unavailable. |
+| `_normalization_jacobian()` | Jacobian of the per-pT-slice bin-width + sum normalization (block diagonal across pT slices). |
+| `_absolute_stat_covariances()` | TUnfold input-data and response-MC-stat covariances of the absolute spectrum (full rank, unlike a 10-replica JK covariance). |
+| `_compute_normalized_stat_covariance()` | Propagates the stat covariances through the normalization Jacobian; stores `norm_cov_input/matrix/stat`. Always computed; drives errors and the correlation plot when `spec.stat_propagation == "jacobian"`. |
+| `get_systematic_covariance()` | Rank-1 systematic covariance of the normalized result from the offset shifts ((up − down)/2 symmetrized). |
+| `get_total_covariance()` | Normalized-result total covariance: Jacobian-propagated stat + rank-1 systematics. |
+| `save_normalized_covariance()` | Writes `unfold/normalized_covariance_{groomed,ungroomed}.npz` (stat/syst/total covariances + normalized spectrum). |
 | `_select_measured_spectrum(closure, herwig_closure, meas_flat)` | Chooses measured spectrum source for unfolding. |
 | `_apply_fake_correction(...)` | Applies fake correction unless in closure mode. |
 | `_build_root_binning()` | Builds `TUnfoldBinning` trees for truth/reco. |
 | `_fill_root_histogram(hist, values, variances=None)` | Fills TH1 content and optional weighted errors from flat arrays. |
 | `_fill_response_histogram(h_resp, resp_np, misses)` | Fills migration matrix + miss row. |
+| `_add_ratio_curvature_conditions(unfold, prior_flat)` | Registers (1/m0, -2/m1, 1/m2) curvature-of-ratio L rows per pT slice for `spec.regularization == "ratio_curvature"`; zero penalty for spectra proportional to the nominal MC prior. tau is L-curve-scanned on the nominal data unfold and frozen for systematic/JK re-unfolds. NB: the legacy constructor's `"signal"` regularisation distribution names an axis-less node and creates zero conditions (harmless at tau=0). |
 | `_store_covariances(unfold, systematic)` | Extracts covariance matrices from TUnfold. |
 | `_store_unfold_result(...)` | Stores nominal/systematic or JK unfolding outputs. |
 | `_perform_unfold(...)` | Runs `ROOT.TUnfoldDensity` and stores outputs. |
@@ -162,6 +169,8 @@ When an object is created:
 | `plot_purity_stability(show=True)` | Nominal purity/stability per pt + global-bin view. |
 | `plot_purity_stability_herwig(show=True)` | Side-by-side Pythia vs Herwig purity/stability. |
 | `plot_correlation(show=True)` | Correlation matrix from covariance components. |
+| `plot_lcurve(show=True)` | L-curve of the nominal-data tau scan (regularized runs only); saved to `unfold/lcurve_{suffix}.pdf`. |
+| `plot_purity_stability(show=True)` | Per-gen-bin purity (diag/reco total) and stability (diag/gen total) of the matched response, reco compressed to gen binning via `_gen_binned_migration()`; saved to `purity_stability_{suffix}_{i}.pdf`. Replaces an older shadowed implementation that had the denominators swapped. |
 | `plot_response_matrix(probability=True, log=False, show=True)` | Wrapper around response mosaic renderer. |
 | `plot_uncertainty_heatmap(show=True)` | Heatmap of grouped fractional uncertainties per mass bin. |
 | `run_all_plots(show=False)` | Batch runner for full plotting suite (includes `plot_input_data_mc`). |

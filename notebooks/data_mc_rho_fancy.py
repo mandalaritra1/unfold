@@ -13,6 +13,7 @@ import hashlib
 import json
 import pickle as pkl
 import shlex
+import subprocess
 import sys
 from pathlib import Path
 
@@ -113,6 +114,11 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=138.0,
         help="Integrated luminosity displayed on the plots in fb^-1.",
+    )
+    parser.add_argument(
+        "--no-gallery",
+        action="store_true",
+        help="Do not refresh <output-dir>/index.html and cached PNG previews.",
     )
     return parser.parse_args()
 
@@ -360,6 +366,23 @@ def write_provenance(args, input_paths, output_paths):
             handle.write("\n")
 
 
+def build_gallery(output_dir: Path) -> Path:
+    """Build the same static PDF-preview gallery used by the rho outputs."""
+    gallery_path = output_dir / "index.html"
+    subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "outputs" / "build_rho_gallery.py"),
+            "--root",
+            str(output_dir),
+            "--title",
+            "Z+jet data/MC validation gallery",
+        ],
+        check=True,
+    )
+    return gallery_path
+
+
 def main() -> None:
     args = parse_args()
     input_paths = [
@@ -465,6 +488,9 @@ def main() -> None:
         )
 
     write_provenance(args, input_paths, output_paths)
+    if not args.no_gallery:
+        gallery_path = build_gallery(args.output_dir)
+        print(f"Gallery: {gallery_path}")
     for output_path in output_paths:
         print(output_path)
 

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image Grid Composer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Local slide helper</p>
+      <h1>Image Grid Composer</h1>
+      <p class="intro">
+        Select plots, arrange their order, and copy one clean PNG into your slides.
+        Images stay in this browser tab.
+      </p>
+    </div>
+    <div class="source-actions">
+      <label class="button primary">
+        Select folder
+        <input id="folder-input" type="file" accept="image/*" webkitdirectory multiple>
+      </label>
+      <label class="button">
+        Select images
+        <input id="file-input" type="file" accept="image/*" multiple>
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel controls-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">1. Choose plots</p>
+          <h2>Image browser</h2>
+        </div>
+        <span id="source-summary" class="summary">No images loaded</span>
+      </div>
+
+      <div class="library-tools">
+        <input id="search-input" type="search" placeholder="Filter by filename or subfolder">
+        <button id="select-visible-button" type="button">Select visible</button>
+        <button id="clear-selection-button" type="button">Clear selection</button>
+      </div>
+      <div id="image-library" class="image-library empty-state">
+        Select a folder containing PNG, JPEG, GIF, or WebP images.
+      </div>
+    </section>
+
+    <section class="panel layout-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">2. Arrange</p>
+          <h2>Selected images</h2>
+        </div>
+        <span id="selection-summary" class="summary">0 selected</span>
+      </div>
+
+      <p class="hint">Drag thumbnails to change their left-to-right, top-to-bottom order.</p>
+      <div id="selected-images" class="selected-images empty-state">
+        Click images above to add them to the grid.
+      </div>
+
+      <div class="settings">
+        <label>
+          <span>Columns</span>
+          <input id="columns-input" type="number" min="1" max="8" value="2">
+        </label>
+        <label>
+          <span>Spacing <output id="spacing-output">24 px</output></span>
+          <input id="spacing-input" type="range" min="0" max="160" value="24">
+        </label>
+        <label>
+          <span>Outer padding <output id="padding-output">24 px</output></span>
+          <input id="padding-input" type="range" min="0" max="160" value="24">
+        </label>
+        <label>
+          <span>Image width</span>
+          <select id="image-width-input">
+            <option value="400">400 px</option>
+            <option value="600">600 px</option>
+            <option value="800" selected>800 px</option>
+            <option value="1000">1000 px</option>
+            <option value="1200">1200 px</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel output-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">3. Use it</p>
+          <h2>Composite image</h2>
+        </div>
+        <span id="canvas-summary" class="summary">Waiting for images</span>
+      </div>
+
+      <div class="output-actions">
+        <button id="copy-button" class="button primary" type="button" disabled>Copy PNG</button>
+        <button id="download-button" class="button" type="button" disabled>Download PNG</button>
+        <span id="status-message" role="status" aria-live="polite"></span>
+      </div>
+
+      <div class="canvas-frame">
+        <canvas id="output-canvas" width="1" height="1"></canvas>
+        <div id="canvas-placeholder">Your combined image will appear here.</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js?v=4"></script>
+</body>
+</html>

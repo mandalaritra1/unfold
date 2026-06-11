@@ -41,7 +41,48 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--tag",
         default=None,
-        help="zjet rho tag: original|fixed_jec (default: original). Ignored elsewhere.",
+        help=(
+            "zjet spec tag, e.g. rho: original|fixed_jec|fixed_miss, mass: "
+            "nominal (defaults per DEFAULT_TAGS). Every tag also has a "
+            "'<tag>_jacobian' twin with Jacobian-propagated normalized "
+            "statistics, and a '<tag>_jacobian_reg' twin that additionally "
+            "turns on ratio-curvature regularization (L-curve tau). Each "
+            "writes to a sibling output dir. Ignored elsewhere."
+        ),
+    )
+    parser.add_argument(
+        "--jacobian",
+        action="store_true",
+        help=(
+            "Propagate the normalized-result statistics through the "
+            "normalization Jacobian (errors + correlation matrix of the "
+            "normalized spectrum). Equivalent to picking the '<tag>_jacobian' "
+            "twin; the output dir gets a '_jacobian' suffix when this flag "
+            "changes the spec."
+        ),
+    )
+    parser.add_argument(
+        "--regularization",
+        choices=("none", "ratio_curvature"),
+        default=None,
+        help=(
+            "Unfolding regularization. 'ratio_curvature' penalizes the "
+            "curvature of x/x_MC per pT slice (zero penalty for spectra "
+            "proportional to the MC prior); tau from an L-curve scan unless "
+            "--tau is given. The output dir gets a '_reg' suffix when this "
+            "flag changes the spec. Default: whatever the tag specifies."
+        ),
+    )
+    parser.add_argument(
+        "--tau",
+        type=float,
+        default=None,
+        help=(
+            "Fixed regularization strength, skipping the L-curve scan "
+            "(requires a regularized spec or --regularization). Does not "
+            "change the output dir; combine with --output-dir to keep "
+            "scanned-tau results."
+        ),
     )
     parser.add_argument("--year", default="2018", help="dijet/trijet only")
     parser.add_argument("--output-dir", type=Path, default=None)
@@ -64,19 +105,51 @@ def build_gallery(output_dir: Path, observable: str) -> None:
     )
 
 
+def resolve_zjet_spec(args: argparse.Namespace):
+    """Resolve the tag to a spec and apply the option flags.
+
+    Flags that change the spec also suffix the output dir (mirroring the
+    '<tag>_jacobian' / '<tag>_jacobian_reg' registry twins) so option runs
+    never overwrite the base tag's outputs. An explicit --output-dir wins.
+    """
+    from dataclasses import replace
+
+    from unfold.tools.unfolder_core import get_spec
+
+    spec = get_spec("zjet", args.observable, args.tag)
+
+    suffix = ""
+    if args.jacobian and spec.stat_propagation != "jacobian":
+        spec = replace(spec, stat_propagation="jacobian")
+        suffix += "_jacobian"
+    if args.regularization is not None and spec.regularization != args.regularization:
+        spec = replace(spec, regularization=args.regularization)
+        # suffix in both directions so option runs never overwrite the tag's
+        # own outputs (e.g. '..._jacobian_reg' run with --regularization none)
+        suffix += "_reg" if args.regularization != "none" else "_noreg"
+    if args.tau is not None:
+        if spec.regularization == "none":
+            sys.exit("--tau requires a regularized spec (use --regularization "
+                     "ratio_curvature or a '<tag>_jacobian_reg' tag).")
+        spec = replace(spec, tau=args.tau)
+    if suffix:
+        spec = replace(spec, output_dir=spec.output_dir.rstrip("/") + suffix + "/")
+
+    if args.output_dir is not None:
+        rel = os.path.relpath(args.output_dir.resolve(), REPO_ROOT) + "/"
+        spec = replace(spec, output_dir=rel)
+    return spec
+
+
 def run_zjet(args: argparse.Namespace) -> Path:
     """Run the zjet spec-input path for both grooming modes."""
     import matplotlib
 
     matplotlib.use("Agg")
-    from dataclasses import replace
 
-    from unfold.tools.unfolder_core import Unfolder, get_spec
+    from unfold.tools.unfolder_core import Unfolder
 
-    spec = get_spec("zjet", args.observable, args.tag)
-    if args.output_dir is not None:
-        rel = os.path.relpath(args.output_dir.resolve(), REPO_ROOT) + "/"
-        spec = replace(spec, output_dir=rel)
+    spec = resolve_zjet_spec(args)
     output_dir = (REPO_ROOT / spec.output_dir).resolve()
 
     for mode, groomed in (("ungroomed", False), ("groomed", True)):
@@ -108,6 +181,12 @@ def run_channel(args: argparse.Namespace) -> None:
         cmd += ["--lumi", str(args.lumi)]
     if args.output_dir is not None:
         cmd += ["--output-dir", str(args.output_dir)]
+    if args.jacobian:
+        cmd += ["--jacobian"]
+    if args.regularization is not None:
+        cmd += ["--regularization", args.regularization]
+    if args.tau is not None:
+        cmd += ["--tau", str(args.tau)]
     subprocess.run(cmd, cwd=REPO_ROOT, check=True)
 
 
