@@ -2811,17 +2811,18 @@ class Unfolder:
         print(f"Saved 2D unfolded output to {save_path}")
 
     def plot_unfolded_unrolled_2d(self, show=True):
-        """Full unrolled (mass x pT) unfolded data vs PYTHIA gen, 2D-normalized.
+        """Full unrolled (mass x pT) unfolded data vs PYTHIA gen, absolute.
 
         Mirrors the reco-level input overlay, but at gen level: the unfolded
-        result and the PYTHIA truth are shown in the global 2D-normalized units
-        from ``_compute_2d_normalized_result`` (pT shape preserved), with a
-        Data/MC ratio pad and dotted pT-slice dividers.
+        result and the PYTHIA truth are shown at their original (un-normalized)
+        absolute values on a linear y-axis, with a Data/MC ratio pad and dotted
+        pT-slice dividers. The 2D-normalized arrays are still computed/saved by
+        ``_compute_2d_normalized_result`` / ``save_2d_unfolded``.
         """
         hep.style.use("CMS")
-        unf = np.asarray(self.unfolded_2dnorm_flat, dtype=float)
-        unf_err = np.asarray(self.unfolded_2dnorm_err_flat, dtype=float)
-        true = np.asarray(self.true_2dnorm_flat, dtype=float)
+        unf = np.asarray(self.unfolded_abs_flat, dtype=float)
+        unf_err = np.asarray(self.unfolded_abs_err_flat, dtype=float)
+        true = np.asarray(self.y_true, dtype=float)
         n = len(unf)
         x = np.arange(n)
 
@@ -2833,8 +2834,8 @@ class Unfolder:
             x, unf, yerr=unf_err, fmt="o", ms=3, color="black", lw=0.8,
             label="Unfolded data",
         )
-        ax.set_yscale("log")
-        ax.set_ylabel(r"$\frac{1}{\sigma}\,\frac{d^2\sigma}{dm\,dp_T}$  (2D-normalized)")
+        ax.set_ylabel("Unfolded events (absolute)")
+        ax.set_ylim(bottom=0)
         ax.legend(loc="upper right", fontsize=13)
         hep.cms.label(
             self.cms_label, data=True, lumi=self._lumi_label(),
