@@ -1088,6 +1088,10 @@ class Unfolder:
         self.pythia_2d = pythia2d
         self.pythia_4d = pythia4d
         self.herwig_2d = herwig2d
+        # Kept so the HERWIG bias test (plot_herwig_bias_test) can build the
+        # HERWIG reco mosaic on demand even when no herwig systematic was run.
+        self.herwig_4d = herwig4d
+        self.herwig_4d_gen = herwig4d_gen
         self.data_2d = data2d
 
         print("Loaded pkl files and rebinned histograms.")
@@ -2493,6 +2497,197 @@ class Unfolder:
             #     plt.xlim(20,250)
             #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
             # plt.show()
+
+    def _ensure_herwig_bias_inputs(self):
+        """Build the HERWIG reco mosaic needed for the bias test, on demand.
+
+        ``mosaic_herwig_2d`` (the HERWIG matched-reco spectrum, used as the
+        measured input of the bias test) is normally only assembled when a
+        herwig systematic is requested. The bias test needs it regardless, so
+        build it here from the HERWIG response stored in ``_load_data``.
+        """
+        if getattr(self, "mosaic_herwig_2d", None) is not None:
+            return
+        self._prepare_herwig_inputs(
+            self.herwig_4d,
+            self.herwig_4d_gen,
+            self.fakes_herwig,
+            self.misses_herwig,
+            self.edges,
+            self.edges_gen,
+            self.pt_edges,
+            self.reco_edges_by_pt,
+            self.gen_edges_by_pt,
+        )
+        self.mosaic_herwig_2d = merge_mass_flat(
+            self.h2d_herwig, self.edges, self.reco_edges_by_pt
+        )
+
+    def _unfold_herwig_through_pythia(self):
+        """Unfold the HERWIG reco spectrum through the PYTHIA response matrix.
+
+        Returns ``(y_unf, ye_unf)``: the flattened unfolded result and TUnfold's
+        propagated per-bin uncertainty on it. Runs a one-off nominal unfold in
+        ``herwig_closure`` mode (measured = HERWIG reco, response = nominal
+        PYTHIA, prior = PYTHIA truth) and restores the nominal data result so
+        the rest of ``run_all_plots`` is unaffected. tau is already frozen from
+        the nominal data unfold, so no re-scan happens here.
+        """
+        snapshot_attrs = (
+            "y_meas", "ye_meas", "y_unf", "ye_unf", "y_true", "x_folded", "L",
+            "h_resp", "cov", "cov_uncorr", "cov_uncorr_data", "cov_total",
+            "cov_np", "cov_uncorr_np", "cov_data_np",
+        )
+        sentinel = object()
+        saved = {name: getattr(self, name, sentinel) for name in snapshot_attrs}
+        try:
+            self._perform_unfold(systematic="nominal", herwig_closure=True)
+            return np.array(self.y_unf, copy=True), np.array(self.ye_unf, copy=True)
+        finally:
+            for name, value in saved.items():
+                if value is sentinel:
+                    if hasattr(self, name):
+                        delattr(self, name)
+                else:
+                    setattr(self, name, value)
+
+    def plot_herwig_bias_test(self, show=True):
+        """HERWIG bias (non-closure) test: PYTHIA matrix unfolds HERWIG reco.
+
+        Unfolds the HERWIG reco spectrum with the nominal PYTHIA response and
+        compares the result to HERWIG gen. Each panel shows:
+
+          * Unfolded HERWIG as a dashed line.
+          * HERWIG gen with its MC-stat uncertainty drawn as a band.
+          * a ratio panel with the per-bin |HERWIG - Unfolded| / HERWIG and the
+            HERWIG gen MC-stat uncertainty as a shaded envelope.
+
+        The per-bin |HERWIG - Unfolded| / HERWIG is also saved as the
+        model-dependence uncertainty input (``herwig_closure_unc_*.npy``).
+        """
+        if not getattr(self, "has_herwig", True) or self.y_true_herwig is None:
+            return
+
+        hep.style.use("CMS")
+        self._ensure_herwig_bias_inputs()
+        y_unf_herwig, _ = self._unfold_herwig_through_pythia()
+
+        unfolded_pt_binned = unflatten_gen_by_pt(y_unf_herwig, self.gen_edges_by_pt)
+        true_herwig_pt_binned = unflatten_gen_by_pt(
+            self.y_true_herwig, self.gen_edges_by_pt
+        )
+        # HERWIG gen MC-stat error per flattened gen bin (sqrt of sumw2), or
+        # None when the input pkls carry no variances.
+        herwig_gen_err = (
+            np.sqrt(np.clip(self.herwig_gen_var_flat, 0.0, None))
+            if getattr(self, "herwig_gen_var_flat", None) is not None
+            else None
+        )
+        herwig_gen_err_pt_binned = (
+            unflatten_gen_by_pt(herwig_gen_err, self.gen_edges_by_pt)
+            if herwig_gen_err is not None
+            else None
+        )
+
+        def _rel(num, den):
+            with np.errstate(divide="ignore", invalid="ignore"):
+                return np.abs(
+                    np.divide(num, den, out=np.zeros_like(den, dtype=float), where=den != 0)
+                )
+
+        groomed_tag = "groomed" if self.groomed else "ungroomed"
+        self.herwig_closure_unc = []
+        for i in self._reported_pt_indices():
+            edges = np.asarray(self.gen_edges_by_pt[i], dtype=float)
+            bin_widths = np.diff(edges)
+
+            herwig_sum = true_herwig_pt_binned[i].sum()
+            unfolded_sum = unfolded_pt_binned[i].sum()
+            herwig = true_herwig_pt_binned[i] / bin_widths / herwig_sum
+            unfolded = unfolded_pt_binned[i] / bin_widths / unfolded_sum
+
+            # HERWIG gen MC-stat (bin-width and per-slice normalization cancel
+            # in the ratio, so apply the relative error to the density directly).
+            # NB: TUnfold's propagated "unfolding uncertainty" on the HERWIG
+            # pseudo-data is intentionally NOT drawn here -- closure mode feeds
+            # no measured variances, so it is the sqrt(weighted-content) Poisson
+            # error of weighted MC propagated through the unregularized inverse,
+            # which is meaningless (and ~100%+) for a bias test.
+            if herwig_gen_err_pt_binned is not None:
+                herwig_rel = _rel(herwig_gen_err_pt_binned[i], true_herwig_pt_binned[i])
+            else:
+                herwig_rel = np.zeros_like(herwig)
+            herwig_band = herwig * herwig_rel
+
+            closure_unc = _rel(herwig - unfolded, herwig)
+            self.herwig_closure_unc.append(closure_unc)
+
+            fig, (ax, ax_ratio) = plt.subplots(
+                2, 1, figsize=(10, 10), sharex=True,
+                gridspec_kw={"height_ratios": [3, 1]},
+            )
+
+            # HERWIG gen + MC-stat band
+            hep.histplot(
+                herwig, edges, ax=ax, color="#964a8b",
+                label="Herwig (gen)", alpha=0.9, ls="dotted", lw=2,
+            )
+            if np.any(herwig_band > 0):
+                ax.fill_between(
+                    edges, np.r_[herwig - herwig_band, (herwig - herwig_band)[-1]],
+                    np.r_[herwig + herwig_band, (herwig + herwig_band)[-1]],
+                    step="post", color="#964a8b", alpha=0.2, lw=0,
+                    label="Herwig stat. unc.",
+                )
+
+            # Unfolded HERWIG. The TUnfold uncertainty is intentionally omitted;
+            # see the note above where the HERWIG MC-stat band is constructed.
+            hep.histplot(
+                unfolded, edges, ax=ax, color="k", ls="--", lw=2,
+                label="Unfolded Herwig",
+            )
+
+            title = (
+                f" {int(self.pt_edges[i])}-"
+                f"{int(self.pt_edges[i + 1]) if i + 1 < len(self.pt_edges) - 1 else '∞'} GeV"
+            )
+            ax.legend(title=title, fontsize=15)
+            ax.set_ylabel(self._normalized_ylabel())
+            hep.cms.label(
+                self.cms_label, data=False, lumi=self._lumi_label(),
+                com=self._com_label(), fontsize=20, ax=ax,
+            )
+
+            # Ratio panel: compare the observed non-closure with HERWIG gen
+            # MC statistics only.
+            if np.any(herwig_rel > 0):
+                ax_ratio.fill_between(
+                    edges, 0.0, np.r_[herwig_rel, herwig_rel[-1]],
+                    step="post", color="#964a8b", alpha=0.2, lw=0,
+                    label="Herwig stat. unc.",
+                )
+            ax_ratio.stairs(
+                closure_unc, edges, color="#7a21dd", lw=2,
+                label="|Herwig - Unfolded| / Herwig",
+            )
+            ax_ratio.set_ylim(0, 1)
+            ax_ratio.set_ylabel("Rel. diff.")
+            ax_ratio.set_xlim(*self._observable_xlim(i))
+            ax_ratio.set_xlabel(self._observable_label())
+            ax_ratio.legend(fontsize=11, loc="upper left")
+
+            save_path = (
+                f"./{self.spec.output_dir}unfold/"
+                f"herwig_bias_test_{groomed_tag}_{i - 1}.pdf"
+            )
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
+        # Persist the non-closure as the model-dependence systematic input.
+        np.save(
+            f"{self.spec.input_dir}herwig_closure_unc_{self.spec.name}_{groomed_tag}.npy",
+            np.array(self.herwig_closure_unc, dtype=object),
+        )
+
     def _normalize_result(self):
         print("Normalizing results...")
         self.normalized_results = []
@@ -3638,6 +3833,8 @@ class Unfolder:
         self.save_normalized_covariance()
         self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
+        if self.has_herwig:
+            self.plot_herwig_bias_test(show=show)
         self.plot_response_matrix(probability=True, show=show)
         self.plot_folded(show=show)
         self.plot_bottom_line(show=show)
