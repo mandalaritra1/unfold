@@ -2791,21 +2791,30 @@ class Unfolder:
         normalized result). Each entry is a ``hist.Hist`` over (pt, obs) (or a
         per-pT list when the binning is ragged, e.g. mass):
           - "unfolded_abs": absolute unfolded output (Weight, value + TUnfold
-            stat variance).
+            stat variance), in counts.
           - "unfolded_2dnorm": globally (2D) normalized unfolded spectrum
-            (Weight, value + stat variance).
+            (Weight, value + stat variance), summing to 1 over the whole plane.
           - "true_2dnorm": PYTHIA gen truth in the same 2D-normalized units.
           - "layout": "2d" or "per_pt"; "pt_edges".
+
+        The 2D-normalized entries are sum-normalized (not divided by bin width);
+        recover the density with hist/mplhep ``binwnorm`` at plot time.
         """
         suffix = "groomed" if self.groomed else "ungroomed"
+        # Undo the per-bin-width division so the stored 2D-normalized spectrum is
+        # sum-normalized (sums to 1 over the plane); apply binwnorm for density.
+        widths_flat = np.concatenate(
+            [np.diff(np.asarray(e, dtype=float)) for e in self.gen_edges_by_pt]
+        )
         summary = {
             "unfolded_abs": self._hist_from_flat(
                 self.unfolded_abs_flat, self.unfolded_abs_err_flat
             ),
             "unfolded_2dnorm": self._hist_from_flat(
-                self.unfolded_2dnorm_flat, self.unfolded_2dnorm_err_flat
+                self.unfolded_2dnorm_flat * widths_flat,
+                self.unfolded_2dnorm_err_flat * widths_flat,
             ),
-            "true_2dnorm": self._hist_from_flat(self.true_2dnorm_flat),
+            "true_2dnorm": self._hist_from_flat(self.true_2dnorm_flat * widths_flat),
             "layout": "2d" if self._slices_share_binning() else "per_pt",
             "pt_edges": np.asarray(self.pt_edges, dtype=float),
         }
@@ -2908,6 +2917,11 @@ class Unfolder:
         same in every pT slice (rho), or a list of per-pT 1D ``hist.Hist`` when
         it differs per slice (mass). Requires a full ``do_syst=True`` run for the
         systematic content (otherwise the syst hists are zero).
+
+        Values are sum-normalized per pT slice (each slice integrates to 1, i.e.
+        .project("pt") == 1), NOT divided by bin width; recover the density
+        (dN/dx) at plot time with hist/mplhep ``binwnorm``. Raw spectra are
+        absolute counts.
 
         Dict keys:
           - "unfolded": Weight hist of the per-pT-normalized unfolded result
@@ -3016,6 +3030,29 @@ class Unfolder:
         hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
             herwig_abs * hw_scale_flat, hw_var_scaled
         )
+
+        # Store sum-normalized (per-bin) values, NOT densities: each pT slice
+        # integrates to 1 over its bins, so .project("pt") == 1. Recover the
+        # density (dN/dx) at plot time with hist/mplhep binwnorm. The normalized
+        # quantities above carry a 1/bin_width from _normalize_result/_ptnorm_flat,
+        # so multiply it back out here. Raw/absolute spectra are left untouched.
+        widths_flat = np.concatenate(
+            [np.diff(np.asarray(e, dtype=float)) for e in self.gen_edges_by_pt]
+        )
+        unfolded = unfolded * widths_flat
+        stat = stat * widths_flat
+        syst_sym = syst_sym * widths_flat
+        syst_up = syst_up * widths_flat
+        syst_down = syst_down * widths_flat
+        total_up = total_up * widths_flat
+        total_down = total_down * widths_flat
+        for source in sources:
+            syst_per_source_up[source] = syst_per_source_up[source] * widths_flat
+            syst_per_source_down[source] = syst_per_source_down[source] * widths_flat
+        py_norm = py_norm * widths_flat
+        py_norm_err = py_norm_err * widths_flat
+        hw_norm = hw_norm * widths_flat
+        hw_norm_err = hw_norm_err * widths_flat
 
         # ---- build hist objects (2D when uniform, per-pT list when ragged) ----
         summary = {
