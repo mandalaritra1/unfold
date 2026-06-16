@@ -2853,7 +2853,10 @@ class Unfolder:
             reproduces unfolded_syst_up/_down.
           - pythia_gen_raw[/_err], pythia_gen_ptnorm[/_err]: PYTHIA gen
             prediction, absolute and per-pT-normalized, with MC-stat error.
-          - herwig_gen_raw[/_err], herwig_gen_ptnorm[/_err]: same for HERWIG.
+          - herwig_gen_raw[/_err], herwig_gen_ptnorm[/_err]: same for HERWIG,
+            but the raw HERWIG is rescaled per pT slice to the unfolded-data
+            yield (its stored normalization is unreliable); herwig_pt_scale
+            holds the applied per-bin factor.
           - binning: pt_edges, gen_bins_per_pt, gen_edges.
         """
         suffix = "groomed" if self.groomed else "ungroomed"
@@ -2922,8 +2925,29 @@ class Unfolder:
         py_raw, py_raw_err, py_norm, py_norm_err = _gen(
             self.pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
         )
+
+        # HERWIG's stored gen normalization is unreliable, so rescale each pT
+        # slice of the raw HERWIG prediction to the absolute unfolded-data yield
+        # in that slice. The per-pT-normalized HERWIG is unaffected (a constant
+        # per-slice factor cancels in the normalization).
+        hw_scale_flat = np.ones_like(np.asarray(self.herwig_gen_val_flat, dtype=float))
+        data_abs = np.asarray(self.y_unf, dtype=float)
+        herwig_abs = np.asarray(self.herwig_gen_val_flat, dtype=float)
+        offset = 0
+        for edges in self.gen_edges_by_pt:
+            nbins = len(edges) - 1
+            sl = slice(offset, offset + nbins)
+            hw_sum = herwig_abs[sl].sum()
+            if hw_sum != 0:
+                hw_scale_flat[sl] = data_abs[sl].sum() / hw_sum
+            offset += nbins
+        hw_var_scaled = (
+            np.asarray(self.herwig_gen_var_flat, dtype=float) * hw_scale_flat ** 2
+            if getattr(self, "herwig_gen_var_flat", None) is not None
+            else None
+        )
         hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
-            self.herwig_gen_val_flat, getattr(self, "herwig_gen_var_flat", None)
+            herwig_abs * hw_scale_flat, hw_var_scaled
         )
 
         payload = dict(
@@ -2942,6 +2966,7 @@ class Unfolder:
             herwig_gen_raw_err=hw_raw_err,
             herwig_gen_ptnorm=hw_norm,
             herwig_gen_ptnorm_err=hw_norm_err,
+            herwig_pt_scale=hw_scale_flat,
             syst_sources=np.array(sources, dtype=object),
             pt_edges=np.asarray(self.pt_edges, dtype=float),
             gen_bins_per_pt=np.asarray(
