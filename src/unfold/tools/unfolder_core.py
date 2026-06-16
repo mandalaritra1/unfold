@@ -3,6 +3,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 import re
 
+import hist
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import mplhep as hep
@@ -2784,31 +2785,35 @@ class Unfolder:
             })
 
     def save_2d_unfolded(self):
-        """Persist a copy of the 2D unfolded output (absolute + 2D-normalized).
+        """Pickle the 2D unfolded output (absolute + 2D-normalized) as hists.
 
         Companion to ``save_normalized_covariance`` (which stores the per-pT
-        normalized result); this keeps the globally-normalized double-
-        differential spectrum and the raw absolute unfolded vector.
+        normalized result). Each entry is a ``hist.Hist`` over (pt, obs) (or a
+        per-pT list when the binning is ragged, e.g. mass):
+          - "unfolded_abs": absolute unfolded output (Weight, value + TUnfold
+            stat variance).
+          - "unfolded_2dnorm": globally (2D) normalized unfolded spectrum
+            (Weight, value + stat variance).
+          - "true_2dnorm": PYTHIA gen truth in the same 2D-normalized units.
+          - "layout": "2d" or "per_pt"; "pt_edges".
         """
         suffix = "groomed" if self.groomed else "ungroomed"
-        save_path = Path(self.spec.output_dir) / "unfold" / f"unfolded_2d_{suffix}.npz"
+        summary = {
+            "unfolded_abs": self._hist_from_flat(
+                self.unfolded_abs_flat, self.unfolded_abs_err_flat
+            ),
+            "unfolded_2dnorm": self._hist_from_flat(
+                self.unfolded_2dnorm_flat, self.unfolded_2dnorm_err_flat
+            ),
+            "true_2dnorm": self._hist_from_flat(self.true_2dnorm_flat),
+            "layout": "2d" if self._slices_share_binning() else "per_pt",
+            "pt_edges": np.asarray(self.pt_edges, dtype=float),
+        }
+        save_path = Path(self.spec.output_dir) / "unfold" / f"unfolded_2d_{suffix}.pkl"
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(
-            save_path,
-            unfolded_abs=self.unfolded_abs_flat,
-            unfolded_abs_err=self.unfolded_abs_err_flat,
-            unfolded_2dnorm=self.unfolded_2dnorm_flat,
-            unfolded_2dnorm_err=self.unfolded_2dnorm_err_flat,
-            true_2dnorm=self.true_2dnorm_flat,
-            pt_edges=np.asarray(self.pt_edges, dtype=float),
-            gen_bins_per_pt=np.asarray(
-                [len(edges) - 1 for edges in self.gen_edges_by_pt], dtype=int
-            ),
-            gen_edges=np.concatenate(
-                [np.asarray(edges, dtype=float) for edges in self.gen_edges_by_pt]
-            ),
-        )
-        print(f"Saved 2D unfolded output to {save_path}")
+        with open(save_path, "wb") as handle:
+            pkl.dump(summary, handle)
+        print(f"Saved 2D unfolded output (hist) to {save_path}")
 
     def _ptnorm_flat(self, val_flat, err_flat=None):
         """Per-pT-slice normalize a flat gen vector: v / bin_width / slice_sum.
@@ -2833,31 +2838,93 @@ class Unfolder:
             offset += nbins
         return (out_val, out_err) if err_flat is not None else out_val
 
+    def _slices_share_binning(self):
+        """True when every pT slice has identical gen edges (e.g. rho)."""
+        e0 = np.asarray(self.gen_edges_by_pt[0], dtype=float)
+        return all(
+            np.array_equal(e0, np.asarray(e, dtype=float)) for e in self.gen_edges_by_pt
+        )
+
+    def _obs_axis(self, edges):
+        return hist.axis.Variable(
+            np.asarray(edges, dtype=float), name="obs",
+            label=self._observable_short_label(),
+            underflow=False, overflow=False,
+        )
+
+    def _pt_axis(self):
+        return hist.axis.Variable(
+            np.asarray(self.pt_edges, dtype=float), name="pt",
+            label=r"jet $p_T$ [GeV]", underflow=False, overflow=False,
+        )
+
+    def _hist_from_flat(self, val_flat, err_flat=None, extra_axes=()):
+        """Build hist(s) from a flat (unrolled) gen vector.
+
+        Returns a single 2D ``Hist(pt, obs[, *extra_axes])`` when all pT slices
+        share binning (rho), else a list of per-pT 1D ``Hist(obs[, *extra_axes])``
+        (mass, whose binning differs per slice). With ``err_flat`` the storage is
+        Weight (value + variance = err**2); otherwise Double. ``extra_axes`` are
+        appended after the obs axis and ``val_flat``/``err_flat`` must then be
+        shaped (n_bins, *extra_shape) per slice.
+        """
+        val_flat = np.asarray(val_flat, dtype=float)
+        err_flat = None if err_flat is None else np.asarray(err_flat, dtype=float)
+
+        def _fill(axes, val, err):
+            if err is None:
+                h = hist.Hist(*axes, storage=hist.storage.Double())
+                h.view()[...] = val
+            else:
+                h = hist.Hist(*axes, storage=hist.storage.Weight())
+                view = h.view()
+                view["value"] = val
+                view["variance"] = err ** 2
+            return h
+
+        if self._slices_share_binning():
+            n_pt = len(self.pt_edges) - 1
+            n_obs = len(self.gen_edges_by_pt[0]) - 1
+            shape = (n_pt, n_obs) + val_flat.shape[1:]
+            axes = (self._pt_axis(), self._obs_axis(self.gen_edges_by_pt[0]), *extra_axes)
+            return _fill(axes, val_flat.reshape(shape),
+                         None if err_flat is None else err_flat.reshape(shape))
+
+        hists = []
+        offset = 0
+        for edges in self.gen_edges_by_pt:
+            nbins = len(edges) - 1
+            sl = slice(offset, offset + nbins)
+            axes = (self._obs_axis(edges), *extra_axes)
+            hists.append(_fill(axes, val_flat[sl],
+                               None if err_flat is None else err_flat[sl]))
+            offset += nbins
+        return hists
+
     def save_2d_uncertainty_summary(self):
-        """Write a per-bin (pT x rho) uncertainty + prediction summary to npz.
+        """Pickle a per-bin (pT x obs) uncertainty + prediction summary as hists.
 
-        All quantities are flat/unrolled over the gen binning (reshape with
-        ``gen_bins_per_pt`` / ``gen_edges``). Requires a full run with
-        ``do_syst=True`` for the systematic content; without systematics the
-        syst arrays are zero.
+        Each entry is a ``hist.Hist`` over (pt, obs) when the gen binning is the
+        same in every pT slice (rho), or a list of per-pT 1D ``hist.Hist`` when
+        it differs per slice (mass). Requires a full ``do_syst=True`` run for the
+        systematic content (otherwise the syst hists are zero).
 
-        Stored:
-          - unfolded_ptnorm, unfolded_stat: the per-pT-normalized unfolded
-            result (the usual analysis output) with per-bin stat uncertainty.
-          - unfolded_syst_up/_down: pure (stat-excluded) systematic, asymmetric;
-            unfolded_syst: symmetric 0.5*(up+down). unfolded_total_up/_down:
+        Dict keys:
+          - "unfolded": Weight hist of the per-pT-normalized unfolded result
+            (the usual analysis output); its variance is the per-bin stat.
+          - "unfolded_syst", "unfolded_syst_up"/"_down": pure (stat-excluded)
+            systematic, symmetric and asymmetric. "unfolded_total_up"/"_down":
             stat (+) syst in quadrature.
-          - syst__<Source>_up / syst__<Source>_down: per-bin systematic per
-            analysis summary source (JES, JER, JMS, ..., Model Uncertainty);
-            ``syst_sources`` lists the source names. Quadrature over sources
-            reproduces unfolded_syst_up/_down.
-          - pythia_gen_raw[/_err], pythia_gen_ptnorm[/_err]: PYTHIA gen
-            prediction, absolute and per-pT-normalized, with MC-stat error.
-          - herwig_gen_raw[/_err], herwig_gen_ptnorm[/_err]: same for HERWIG,
-            but the raw HERWIG is rescaled per pT slice to the unfolded-data
-            yield (its stored normalization is unreliable); herwig_pt_scale
-            holds the applied per-bin factor.
-          - binning: pt_edges, gen_bins_per_pt, gen_edges.
+          - "syst_breakdown": hist with extra (source, direction) StrCategory
+            axes giving the per-source systematic (JES, JER, JMS, ..., Model
+            Uncertainty); quadrature over sources reproduces unfolded_syst_*.
+            "syst_sources" lists the names.
+          - "pythia_gen_raw", "pythia_gen_ptnorm": PYTHIA gen prediction (Weight,
+            value + MC-stat variance), absolute and per-pT-normalized.
+          - "herwig_gen_raw", "herwig_gen_ptnorm": same for HERWIG; the raw
+            HERWIG is rescaled per pT slice to the unfolded-data yield (its
+            stored normalization is unreliable), "herwig_pt_scale" holds it.
+          - "layout": "2d" or "per_pt"; "pt_edges".
         """
         suffix = "groomed" if self.groomed else "ungroomed"
 
@@ -2950,40 +3017,43 @@ class Unfolder:
             herwig_abs * hw_scale_flat, hw_var_scaled
         )
 
-        payload = dict(
-            unfolded_ptnorm=unfolded,
-            unfolded_stat=stat,
-            unfolded_syst=syst_sym,
-            unfolded_syst_up=syst_up,
-            unfolded_syst_down=syst_down,
-            unfolded_total_up=total_up,
-            unfolded_total_down=total_down,
-            pythia_gen_raw=py_raw,
-            pythia_gen_raw_err=py_raw_err,
-            pythia_gen_ptnorm=py_norm,
-            pythia_gen_ptnorm_err=py_norm_err,
-            herwig_gen_raw=hw_raw,
-            herwig_gen_raw_err=hw_raw_err,
-            herwig_gen_ptnorm=hw_norm,
-            herwig_gen_ptnorm_err=hw_norm_err,
-            herwig_pt_scale=hw_scale_flat,
-            syst_sources=np.array(sources, dtype=object),
-            pt_edges=np.asarray(self.pt_edges, dtype=float),
-            gen_bins_per_pt=np.asarray(
-                [len(edges) - 1 for edges in self.gen_edges_by_pt], dtype=int
-            ),
-            gen_edges=np.concatenate(
-                [np.asarray(edges, dtype=float) for edges in self.gen_edges_by_pt]
-            ),
-        )
-        for source in sources:
-            payload[f"syst__{source}_up"] = syst_per_source_up[source]
-            payload[f"syst__{source}_down"] = syst_per_source_down[source]
+        # ---- build hist objects (2D when uniform, per-pT list when ragged) ----
+        summary = {
+            "unfolded": self._hist_from_flat(unfolded, stat),
+            "unfolded_syst": self._hist_from_flat(syst_sym),
+            "unfolded_syst_up": self._hist_from_flat(syst_up),
+            "unfolded_syst_down": self._hist_from_flat(syst_down),
+            "unfolded_total_up": self._hist_from_flat(total_up),
+            "unfolded_total_down": self._hist_from_flat(total_down),
+            "pythia_gen_raw": self._hist_from_flat(py_raw, py_raw_err),
+            "pythia_gen_ptnorm": self._hist_from_flat(py_norm, py_norm_err),
+            "herwig_gen_raw": self._hist_from_flat(hw_raw, hw_raw_err),
+            "herwig_gen_ptnorm": self._hist_from_flat(hw_norm, hw_norm_err),
+            "herwig_pt_scale": self._hist_from_flat(hw_scale_flat),
+            "syst_sources": list(sources),
+            "layout": "2d" if self._slices_share_binning() else "per_pt",
+            "pt_edges": np.asarray(self.pt_edges, dtype=float),
+        }
 
-        save_path = Path(self.spec.output_dir) / "unfold" / f"uncertainty_summary_2d_{suffix}.npz"
+        # systematic breakdown with (source, direction) category axes
+        if sources:
+            syst_stack = np.zeros((n_flat, len(sources), 2))
+            for j, source in enumerate(sources):
+                syst_stack[:, j, 0] = syst_per_source_up[source]
+                syst_stack[:, j, 1] = syst_per_source_down[source]
+            extra = (
+                hist.axis.StrCategory(sources, name="source"),
+                hist.axis.StrCategory(["up", "down"], name="direction"),
+            )
+            summary["syst_breakdown"] = self._hist_from_flat(syst_stack, extra_axes=extra)
+        else:
+            summary["syst_breakdown"] = None
+
+        save_path = Path(self.spec.output_dir) / "unfold" / f"uncertainty_summary_2d_{suffix}.pkl"
         save_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(save_path, **payload)
-        print(f"Saved 2D uncertainty summary to {save_path}")
+        with open(save_path, "wb") as handle:
+            pkl.dump(summary, handle)
+        print(f"Saved 2D uncertainty summary (hist) to {save_path}")
 
     def plot_unfolded_unrolled_2d(self, show=True):
         """Full unrolled (mass x pT) unfolded data vs PYTHIA gen, absolute.
