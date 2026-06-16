@@ -3156,6 +3156,94 @@ class Unfolder:
         save_path = f"./{self.spec.output_dir}unfold/unfolded_unrolled_2d_{suffix}.pdf"
         self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
+    def _jackknife_convergence_fractions(self):
+        """Per-bin fractional jackknife stat vs number of replicas.
+
+        Recomputes the sample std (ddof=1, the same estimator as
+        _compute_stat_unc at the full count) of the unfolded result over the
+        first n input-data and response-matrix jackknife replicas, for
+        n = 2..N. Returns ``(ns, input_frac, matrix_frac, total_frac)`` with the
+        fraction arrays shaped (len(ns), n_gen_bins); or None if no replicas.
+        """
+        input_reps = np.asarray(self.y_unf_jk_input_list, dtype=float)
+        matrix_reps = np.asarray(self.y_unf_jk_matrix_list, dtype=float)
+        if input_reps.ndim != 2 or matrix_reps.ndim != 2:
+            return None
+        n_rep = min(len(input_reps), len(matrix_reps))
+        if n_rep < 2:
+            return None
+        ns = np.arange(2, n_rep + 1)
+        nominal = np.abs(np.asarray(self.y_unf, dtype=float))
+
+        def fracs(reps):
+            rows = []
+            for n in ns:
+                std = np.std(reps[:n], axis=0, ddof=1)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    rows.append(np.where(nominal > 0, std / nominal, 0.0))
+            return np.asarray(rows)
+
+        input_frac = fracs(input_reps)
+        matrix_frac = fracs(matrix_reps)
+        total_frac = np.sqrt(input_frac**2 + matrix_frac**2)
+        return ns, input_frac, matrix_frac, total_frac
+
+    def plot_jackknife_convergence(self, show=True):
+        """Full sheet of jackknife stat convergence, one panel per (pT, rho) bin.
+
+        Each panel shows the fractional statistical uncertainty (input/data,
+        response-matrix/MC, and their quadrature sum) as a function of the
+        number of jackknife replicas used (2..N). A flattening curve indicates
+        the replica count is sufficient.
+        """
+        conv = self._jackknife_convergence_fractions()
+        if conv is None:
+            return
+        ns, input_frac, matrix_frac, total_frac = conv
+
+        counts = [len(edges) - 1 for edges in self.gen_edges_by_pt]
+        n_pt = len(counts)
+        n_col = max(counts)
+        fig, axes = plt.subplots(
+            n_pt, n_col, figsize=(2.4 * n_col, 2.3 * n_pt),
+            squeeze=False, sharex=True,
+        )
+        offset = 0
+        for pt_i, count in enumerate(counts):
+            edges = np.asarray(self.gen_edges_by_pt[pt_i], dtype=float)
+            lo = self.pt_edges[pt_i]
+            hi = self.pt_edges[pt_i + 1] if pt_i + 1 < len(self.pt_edges) else np.inf
+            pt_lbl = f"{lo:g}-{'∞' if not np.isfinite(hi) or hi >= 13000 else f'{hi:g}'} GeV"
+            for r in range(n_col):
+                ax = axes[pt_i][r]
+                if r >= count:
+                    ax.axis("off")
+                    continue
+                j = offset + r
+                ax.plot(ns, input_frac[:, j], "o-", ms=3, lw=1, color="#1f77b4", label="input (data)")
+                ax.plot(ns, matrix_frac[:, j], "s-", ms=3, lw=1, color="#ff7f0e", label="matrix (MC)")
+                ax.plot(ns, total_frac[:, j], "^-", ms=3, lw=1.3, color="k", label="total")
+                ax.axhline(total_frac[-1, j], color="gray", ls=":", lw=0.8)
+                ax.set_title(rf"$\rho\in[{edges[r]:g},{edges[r+1]:g})$", fontsize=8)
+                ax.tick_params(labelsize=7)
+                ax.grid(alpha=0.3)
+                if r == 0:
+                    ax.set_ylabel(f"{pt_lbl}\nfrac. stat", fontsize=8)
+                if pt_i == n_pt - 1:
+                    ax.set_xlabel("# replicas", fontsize=8)
+            offset += count
+
+        handles, labels = axes[0][0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right", fontsize=10, ncol=3)
+        mode = "groomed" if self.groomed else "ungroomed"
+        fig.suptitle(
+            f"Jackknife stat-uncertainty convergence vs # replicas ({mode})",
+            fontsize=14,
+        )
+        fig.tight_layout(rect=[0, 0, 1, 0.97])
+        save_path = f"./{self.spec.output_dir}unfold/jackknife_convergence_{mode}.pdf"
+        self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
     def _normalization_jacobian(self):
         """Jacobian of the per-pT-slice normalization y_i = x_i / (w_i * S_k).
 
@@ -4258,6 +4346,7 @@ class Unfolder:
         self.save_2d_unfolded()
         self.save_2d_uncertainty_summary()
         self.plot_unfolded_unrolled_2d(show=show)
+        self.plot_jackknife_convergence(show=show)
         self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
         if self.has_herwig:
