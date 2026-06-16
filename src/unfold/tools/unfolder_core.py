@@ -2810,6 +2810,156 @@ class Unfolder:
         )
         print(f"Saved 2D unfolded output to {save_path}")
 
+    def _ptnorm_flat(self, val_flat, err_flat=None):
+        """Per-pT-slice normalize a flat gen vector: v / bin_width / slice_sum.
+
+        Matches the convention used for ``normalized_results`` and the MC-stat
+        bands (relative error preserved: err / width / slice_sum). Returns the
+        normalized values, or ``(values, errors)`` when ``err_flat`` is given.
+        """
+        val_flat = np.asarray(val_flat, dtype=float)
+        out_val = np.zeros_like(val_flat)
+        out_err = None if err_flat is None else np.zeros_like(val_flat)
+        offset = 0
+        for edges in self.gen_edges_by_pt:
+            nbins = len(edges) - 1
+            sl = slice(offset, offset + nbins)
+            widths = np.diff(np.asarray(edges, dtype=float))
+            slice_sum = val_flat[sl].sum()
+            if slice_sum != 0:
+                out_val[sl] = val_flat[sl] / widths / slice_sum
+                if err_flat is not None:
+                    out_err[sl] = np.asarray(err_flat[sl], dtype=float) / widths / slice_sum
+            offset += nbins
+        return (out_val, out_err) if err_flat is not None else out_val
+
+    def save_2d_uncertainty_summary(self):
+        """Write a per-bin (pT x rho) uncertainty + prediction summary to npz.
+
+        All quantities are flat/unrolled over the gen binning (reshape with
+        ``gen_bins_per_pt`` / ``gen_edges``). Requires a full run with
+        ``do_syst=True`` for the systematic content; without systematics the
+        syst arrays are zero.
+
+        Stored:
+          - unfolded_ptnorm, unfolded_stat: the per-pT-normalized unfolded
+            result (the usual analysis output) with per-bin stat uncertainty.
+          - unfolded_syst_up/_down: pure (stat-excluded) systematic, asymmetric;
+            unfolded_syst: symmetric 0.5*(up+down). unfolded_total_up/_down:
+            stat (+) syst in quadrature.
+          - syst__<Source>_up / syst__<Source>_down: per-bin systematic per
+            analysis summary source (JES, JER, JMS, ..., Model Uncertainty);
+            ``syst_sources`` lists the source names. Quadrature over sources
+            reproduces unfolded_syst_up/_down.
+          - pythia_gen_raw[/_err], pythia_gen_ptnorm[/_err]: PYTHIA gen
+            prediction, absolute and per-pT-normalized, with MC-stat error.
+          - herwig_gen_raw[/_err], herwig_gen_ptnorm[/_err]: same for HERWIG.
+          - binning: pt_edges, gen_bins_per_pt, gen_edges.
+        """
+        suffix = "groomed" if self.groomed else "ungroomed"
+
+        # ---- unfolded (per-pT normalized) + stat ----
+        unfolded = np.concatenate(
+            [np.asarray(r["unfolded"], dtype=float) for r in self.normalized_results]
+        )
+        stat = np.concatenate(
+            [np.asarray(r["stat_unc"], dtype=float) for r in self.normalized_results]
+        )
+
+        # ---- systematic breakdown by analysis summary source (stat excluded) ----
+        # Each summary source's up/down is the quadrature sum of its individual
+        # nuisances per side, matching _compute_total_systematic so that the
+        # quadrature over sources reproduces the analysis up/down totals.
+        nominal_by_pt = [np.asarray(r["unfolded"], dtype=float) for r in self.normalized_results]
+        sources = []
+        for syst_name in self.systematics:
+            if syst_name == "nominal":
+                continue
+            src = self._get_systematic_summary_name(syst_name, grouped=False)
+            if src not in sources:
+                sources.append(src)
+
+        up_sq = {src: [] for src in sources}    # source -> per-pT list of sq-sums
+        down_sq = {src: [] for src in sources}
+        for i, nominal in enumerate(nominal_by_pt):
+            varied = self.normalized_systematics[i]["unfolded"]
+            up_acc = {src: np.zeros_like(nominal) for src in sources}
+            down_acc = {src: np.zeros_like(nominal) for src in sources}
+            for syst_name, arr in varied.items():
+                if syst_name == "nominal":
+                    continue
+                src = self._get_systematic_summary_name(syst_name, grouped=False)
+                _, variation = self._split_systematic_variation(syst_name)
+                diff_sq = (np.asarray(arr, dtype=float) - nominal) ** 2
+                if variation == "Down":
+                    down_acc[src] += diff_sq
+                else:  # "Up" or unpaired
+                    up_acc[src] += diff_sq
+            for src in sources:
+                up_sq[src].append(up_acc[src])
+                down_sq[src].append(down_acc[src])
+
+        syst_per_source_up = {src: np.sqrt(np.concatenate(up_sq[src])) for src in sources}
+        syst_per_source_down = {src: np.sqrt(np.concatenate(down_sq[src])) for src in sources}
+
+        n_flat = len(unfolded)
+        syst_up = np.sqrt(np.sum([syst_per_source_up[s] ** 2 for s in sources], axis=0)
+                          if sources else np.zeros(n_flat))
+        syst_down = np.sqrt(np.sum([syst_per_source_down[s] ** 2 for s in sources], axis=0)
+                            if sources else np.zeros(n_flat))
+        syst_sym = 0.5 * (syst_up + syst_down)
+        total_up = np.sqrt(stat ** 2 + syst_up ** 2)
+        total_down = np.sqrt(stat ** 2 + syst_down ** 2)
+
+        # ---- generator predictions: raw + per-pT-normalized, with MC stat ----
+        def _gen(val_flat, var_flat):
+            val = np.asarray(val_flat, dtype=float)
+            err = (np.sqrt(np.clip(np.asarray(var_flat, float), 0.0, None))
+                   if var_flat is not None else np.zeros_like(val))
+            nval, nerr = self._ptnorm_flat(val, err)
+            return val, err, nval, nerr
+
+        py_raw, py_raw_err, py_norm, py_norm_err = _gen(
+            self.pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
+        )
+        hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
+            self.herwig_gen_val_flat, getattr(self, "herwig_gen_var_flat", None)
+        )
+
+        payload = dict(
+            unfolded_ptnorm=unfolded,
+            unfolded_stat=stat,
+            unfolded_syst=syst_sym,
+            unfolded_syst_up=syst_up,
+            unfolded_syst_down=syst_down,
+            unfolded_total_up=total_up,
+            unfolded_total_down=total_down,
+            pythia_gen_raw=py_raw,
+            pythia_gen_raw_err=py_raw_err,
+            pythia_gen_ptnorm=py_norm,
+            pythia_gen_ptnorm_err=py_norm_err,
+            herwig_gen_raw=hw_raw,
+            herwig_gen_raw_err=hw_raw_err,
+            herwig_gen_ptnorm=hw_norm,
+            herwig_gen_ptnorm_err=hw_norm_err,
+            syst_sources=np.array(sources, dtype=object),
+            pt_edges=np.asarray(self.pt_edges, dtype=float),
+            gen_bins_per_pt=np.asarray(
+                [len(edges) - 1 for edges in self.gen_edges_by_pt], dtype=int
+            ),
+            gen_edges=np.concatenate(
+                [np.asarray(edges, dtype=float) for edges in self.gen_edges_by_pt]
+            ),
+        )
+        for source in sources:
+            payload[f"syst__{source}_up"] = syst_per_source_up[source]
+            payload[f"syst__{source}_down"] = syst_per_source_down[source]
+
+        save_path = Path(self.spec.output_dir) / "unfold" / f"uncertainty_summary_2d_{suffix}.npz"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(save_path, **payload)
+        print(f"Saved 2D uncertainty summary to {save_path}")
+
     def plot_unfolded_unrolled_2d(self, show=True):
         """Full unrolled (mass x pT) unfolded data vs PYTHIA gen, absolute.
 
@@ -3974,6 +4124,7 @@ class Unfolder:
         self.plot_lcurve(show=show)
         self.save_normalized_covariance()
         self.save_2d_unfolded()
+        self.save_2d_uncertainty_summary()
         self.plot_unfolded_unrolled_2d(show=show)
         self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
