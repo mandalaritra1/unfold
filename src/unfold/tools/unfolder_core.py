@@ -2732,6 +2732,147 @@ class Unfolder:
             "pt_bin": pt_bin,
             "unfolded": unfolded # Taking absolute values to avoid negative bins
             })
+
+        self._compute_2d_normalized_result()
+
+    def _compute_2d_normalized_result(self):
+        """2D-normalized unfolded result: normalize over the full (m, pT) plane.
+
+        Unlike ``normalized_results`` (each pT slice divided by its own sum so
+        every slice integrates to 1), this divides the whole double-differential
+        spectrum by a single global integral while keeping the mass-bin density
+        (/ bin width). The result is 1/sigma * d^2sigma/(dm dpT), integrating to
+        1 over the full (m, pT) plane, so the relative pT-to-pT normalization is
+        preserved rather than discarded.
+
+        Stores both the flat (unrolled) arrays and a per-pT-slice list mirroring
+        ``normalized_results``, plus a copy of the absolute unfolded output.
+        """
+        widths_flat = np.concatenate(
+            [np.diff(np.asarray(edges, dtype=float)) for edges in self.gen_edges_by_pt]
+        )
+        unf = np.asarray(self.y_unf, dtype=float)
+        true = np.asarray(self.y_true, dtype=float)
+        unf_err = np.asarray(self.ye_unf, dtype=float)
+
+        total_unf = unf.sum()
+        total_true = true.sum()
+
+        # Preserved copy of the absolute (un-normalized) 2D unfolded output.
+        self.unfolded_abs_flat = np.array(unf, copy=True)
+        self.unfolded_abs_err_flat = np.array(unf_err, copy=True)
+
+        self.unfolded_2dnorm_flat = unf / widths_flat / total_unf
+        self.unfolded_2dnorm_err_flat = unf_err / widths_flat / total_unf
+        self.true_2dnorm_flat = true / widths_flat / total_true
+
+        unf_pt = unflatten_gen_by_pt(self.unfolded_2dnorm_flat, self.gen_edges_by_pt)
+        err_pt = unflatten_gen_by_pt(self.unfolded_2dnorm_err_flat, self.gen_edges_by_pt)
+        true_pt = unflatten_gen_by_pt(self.true_2dnorm_flat, self.gen_edges_by_pt)
+
+        self.normalized_2d = []
+        for i in range(len(self.pt_edges) - 1):
+            self.normalized_2d.append({
+                "unfolded": unf_pt[i],
+                "unfolded_err": err_pt[i],
+                "true": true_pt[i],
+                "pt_bin": (
+                    self.pt_edges[i],
+                    self.pt_edges[i + 1] if i + 1 < len(self.pt_edges) - 1 else float("inf"),
+                ),
+                "mgen_edges": self.gen_edges_by_pt[i],
+            })
+
+    def save_2d_unfolded(self):
+        """Persist a copy of the 2D unfolded output (absolute + 2D-normalized).
+
+        Companion to ``save_normalized_covariance`` (which stores the per-pT
+        normalized result); this keeps the globally-normalized double-
+        differential spectrum and the raw absolute unfolded vector.
+        """
+        suffix = "groomed" if self.groomed else "ungroomed"
+        save_path = Path(self.spec.output_dir) / "unfold" / f"unfolded_2d_{suffix}.npz"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(
+            save_path,
+            unfolded_abs=self.unfolded_abs_flat,
+            unfolded_abs_err=self.unfolded_abs_err_flat,
+            unfolded_2dnorm=self.unfolded_2dnorm_flat,
+            unfolded_2dnorm_err=self.unfolded_2dnorm_err_flat,
+            true_2dnorm=self.true_2dnorm_flat,
+            pt_edges=np.asarray(self.pt_edges, dtype=float),
+            gen_bins_per_pt=np.asarray(
+                [len(edges) - 1 for edges in self.gen_edges_by_pt], dtype=int
+            ),
+            gen_edges=np.concatenate(
+                [np.asarray(edges, dtype=float) for edges in self.gen_edges_by_pt]
+            ),
+        )
+        print(f"Saved 2D unfolded output to {save_path}")
+
+    def plot_unfolded_unrolled_2d(self, show=True):
+        """Full unrolled (mass x pT) unfolded data vs PYTHIA gen, 2D-normalized.
+
+        Mirrors the reco-level input overlay, but at gen level: the unfolded
+        result and the PYTHIA truth are shown in the global 2D-normalized units
+        from ``_compute_2d_normalized_result`` (pT shape preserved), with a
+        Data/MC ratio pad and dotted pT-slice dividers.
+        """
+        hep.style.use("CMS")
+        unf = np.asarray(self.unfolded_2dnorm_flat, dtype=float)
+        unf_err = np.asarray(self.unfolded_2dnorm_err_flat, dtype=float)
+        true = np.asarray(self.true_2dnorm_flat, dtype=float)
+        n = len(unf)
+        x = np.arange(n)
+
+        fig, (ax, axr) = plt.subplots(
+            2, 1, figsize=(16, 8), gridspec_kw={"height_ratios": [3, 1]}, sharex=True
+        )
+        ax.step(x, true, where="mid", color="blue", lw=1.4, label="PYTHIA8 (gen)")
+        ax.errorbar(
+            x, unf, yerr=unf_err, fmt="o", ms=3, color="black", lw=0.8,
+            label="Unfolded data",
+        )
+        ax.set_yscale("log")
+        ax.set_ylabel(r"$\frac{1}{\sigma}\,\frac{d^2\sigma}{dm\,dp_T}$  (2D-normalized)")
+        ax.legend(loc="upper right", fontsize=13)
+        hep.cms.label(
+            self.cms_label, data=True, lumi=self._lumi_label(),
+            com=self._com_label(), ax=ax, fontsize=18,
+        )
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            ratio = np.divide(unf, true, out=np.zeros_like(unf), where=true > 0)
+            ratio_err = np.divide(unf_err, true, out=np.zeros_like(unf), where=true > 0)
+        axr.axhline(1, color="gray", ls="--", lw=1)
+        axr.errorbar(x, ratio, yerr=ratio_err, fmt="o", ms=3, color="black")
+        axr.set_ylabel("Data / MC")
+        axr.set_ylim(0.5, 1.5)
+        axr.set_xlabel(
+            "Unrolled bin index  (mass within each $p_T$ slice, slices concatenated)"
+        )
+        axr.set_xlim(-1, n)
+
+        counts_per_slice = [len(edges) - 1 for edges in self.gen_edges_by_pt]
+        boundaries = np.cumsum(counts_per_slice)
+        pt_edges = np.asarray(self.pt_edges, dtype=float)
+        start = 0
+        for i, b in enumerate(boundaries):
+            for a in (ax, axr):
+                a.axvline(b - 0.5, color="steelblue", ls=":", lw=1, alpha=0.7)
+            lo = pt_edges[i]
+            hi = pt_edges[i + 1] if i + 1 < len(pt_edges) else np.inf
+            lbl = f"{lo:g}-{'∞' if not np.isfinite(hi) or hi >= 13000 else f'{hi:g}'}"
+            ax.text(
+                (start + b - 1) / 2, ax.get_ylim()[1] * 0.5, lbl,
+                ha="center", va="top", fontsize=9, color="steelblue", rotation=90,
+            )
+            start = b
+
+        suffix = "groomed" if self.groomed else "ungroomed"
+        save_path = f"./{self.spec.output_dir}unfold/unfolded_unrolled_2d_{suffix}.pdf"
+        self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
     def _normalization_jacobian(self):
         """Jacobian of the per-pT-slice normalization y_i = x_i / (w_i * S_k).
 
@@ -3831,6 +3972,8 @@ class Unfolder:
         self.plot_correlation(show=show)
         self.plot_lcurve(show=show)
         self.save_normalized_covariance()
+        self.save_2d_unfolded()
+        self.plot_unfolded_unrolled_2d(show=show)
         self.plot_uncertainty_heatmap(show=show)
         self.plot_unfolded(show=show)
         if self.has_herwig:
