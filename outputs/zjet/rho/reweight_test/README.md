@@ -17,8 +17,16 @@ The nominal unfolding is run **unregularized** (TUnfold `DoUnfold(0.0)`), so it 
 
 Reco shape mismatch = mean over bins of `|MC_reco/data_reco − 1|` (lower = better closure); unfolded shift = mean `|reweighted/nominal − 1|` of the unfolded result (small = robust).
 
+### HERWIG non-closure (model-uncertainty proxy)
+Mean per-bin `|HERWIG − unfolded|/HERWIG` when HERWIG reco is unfolded through the nominal vs the data-reweighted PYTHIA response (lower = less model dependence):
+
+| mode | nominal response | reweighted response |
+|---|---|---|
+| groomed | 0.121 | 0.128 |
+| ungroomed | 1.962 | 1.987 |
+
 ### groomed
-Per-iteration max |data/MC − 1| (gen): 1.095, 0.228, 0.128
+Per-iteration max |data/MC shape − 1| (gen): 1.095, 0.228, 0.128
 
 **Gen reweight function**
 
@@ -32,8 +40,12 @@ Per-iteration max |data/MC − 1| (gen): 1.095, 0.228, 0.128
 
 ![stability](groomed_unfolded_stability.png)
 
+**HERWIG non-closure (nominal vs reweighted response)**
+
+![herwig](groomed_herwig_closure.png)
+
 ### ungroomed
-Per-iteration max |data/MC − 1| (gen): 0.750, 0.750, 0.750
+Per-iteration max |data/MC shape − 1| (gen): 0.750, 0.750, 0.750
 
 **Gen reweight function**
 
@@ -47,9 +59,14 @@ Per-iteration max |data/MC − 1| (gen): 0.750, 0.750, 0.750
 
 ![stability](ungroomed_unfolded_stability.png)
 
+**HERWIG non-closure (nominal vs reweighted response)**
+
+![herwig](ungroomed_herwig_closure.png)
+
 ## Interpretation
-- If **reco closure improves** (green closer to 1 than red) while the **unfolded result barely moves**, the unregularized result is robust against within-bin model dependence — the reweighting confirms low bias.
-- A large unfolded shift would instead flag genuine model dependence to assign as a systematic.
-- **Groomed**: reco closure improves sharply (≈0.11→0.03) while the unfolded result moves <1% — robust.
+- **Reco closure improves** (groomed ≈0.11→0.03) while the **unfolded result moves <1%** → the unregularized result is robust against within-bin model dependence; reweighting confirms low bias rather than changing the central value.
 - **Ungroomed**: closure improves in the populated region but **overshoots in the sparse low-ρ tail** (coarser 6-bin gen axis + few events), so the gain is limited; the unfolded result is still stable (<1%).
-- Natural next step: rerun the HERWIG non-closure (bias) test with the reweighted response and check the ~20% model-uncertainty source shrinks.
+- **HERWIG non-closure does *not* shrink** when the PYTHIA response is reweighted to data (groomed ≈0.12 either way; ungroomed dominated by sparse-tail bins). This is expected and informative: the model uncertainty comes from the **migration / within-bin behaviour** that differs between generators, which the limited gen-bin reweighting at τ=0 cannot remove. Reweighting the prior to data is therefore *not* a route to reducing the HERWIG model uncertainty here — that uncertainty is genuine.
+
+## Bottom line
+Reweighting the response to data leaves the central result essentially unchanged (<1%) and does not reduce the model uncertainty; it serves as a **robustness cross-check** confirming the unregularized unfolding is not prior/MC-shape driven, rather than as a correction to apply.

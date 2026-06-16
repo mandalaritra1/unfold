@@ -108,6 +108,69 @@ def interp_to_fine(uf, ratio_flat):
     return w_fine
 
 
+def unfold_herwig_with(uf, mosaic_rw, misses_rw):
+    """Unfold the HERWIG reco spectrum through a (reweighted) PYTHIA response."""
+    uf.misses_2d_dict = getattr(uf, "misses_2d_dict", {})
+    uf.misses_2d_dict["reweight"] = misses_rw
+    uf._perform_unfold(systematic="reweight", herwig_closure=True, resp_np=mosaic_rw)
+    return np.asarray(uf.y_unf_dict["reweight"], float)
+
+
+def herwig_closure_comparison(uf, mosaic_rw, misses_rw, mode, labels):
+    """HERWIG non-closure with nominal vs reweighted PYTHIA response.
+
+    Unfolds the HERWIG reco spectrum through both responses and compares to
+    HERWIG gen; the per-bin |HERWIG - unfolded|/HERWIG (per-pT density) is the
+    model-uncertainty proxy. Returns (mean_nom, mean_rw) or None if no HERWIG.
+    """
+    if not getattr(uf, "has_herwig", True) or getattr(uf, "y_true_herwig", None) is None:
+        return None
+    uf._ensure_herwig_bias_inputs()
+    y_h_nom, _ = uf._unfold_herwig_through_pythia()       # nominal response
+    y_h_rw = unfold_herwig_with(uf, mosaic_rw, misses_rw)  # reweighted response
+    y_true_h = np.asarray(uf.y_true_herwig, float)
+
+    def density_by_pt(flat):
+        out = unflatten_gen_by_pt(flat, uf.gen_edges_by_pt)
+        res = []
+        for i, a in enumerate(out):
+            w = np.diff(np.asarray(uf.gen_edges_by_pt[i], float))
+            s = a.sum()
+            res.append(a / w / s if s > 0 else a)
+        return res
+
+    h_pt = density_by_pt(y_true_h)
+    nom_pt = density_by_pt(y_h_nom)
+    rw_pt = density_by_pt(y_h_rw)
+
+    n_pt = len(labels)
+    fig, axes = plt.subplots(1, n_pt, figsize=(4 * n_pt, 3.6), squeeze=False)
+    nom_means, rw_means = [], []
+    for i in range(n_pt):
+        e = np.asarray(uf.gen_edges_by_pt[i], float)
+        c = 0.5 * (e[:-1] + e[1:])
+        nc_nom = safe_ratio(np.abs(h_pt[i] - nom_pt[i]), h_pt[i])
+        nc_rw = safe_ratio(np.abs(h_pt[i] - rw_pt[i]), h_pt[i])
+        nom_means.append(np.mean(nc_nom))
+        rw_means.append(np.mean(nc_rw))
+        ax = axes[0][i]
+        ax.plot(c, nc_nom, "s-", ms=3, color="red", label="nominal response")
+        ax.plot(c, nc_rw, "o-", ms=3, color="green", label="reweighted response")
+        ax.axhline(0, color="gray", ls="--", lw=1)
+        ax.set_title(labels[i], fontsize=10)
+        ax.set_xlabel(r"$\rho$ (gen)")
+        ax.set_ylim(0, max(0.3, 1.05 * max(nc_nom.max(), nc_rw.max())))
+        if i == 0:
+            ax.set_ylabel("|HERWIG − unfolded| / HERWIG")
+            ax.legend(fontsize=8)
+        ax.grid(alpha=0.3)
+    fig.suptitle(f"HERWIG non-closure: nominal vs reweighted response ({mode})")
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.savefig(OUTDIR / f"{mode}_herwig_closure.png", dpi=130)
+    plt.close(fig)
+    return float(np.mean(nom_means)), float(np.mean(rw_means))
+
+
 def pt_labels(uf):
     labels = []
     pe = np.asarray(uf.pt_edges, float)
@@ -251,12 +314,20 @@ def run_mode(groomed):
     reco_nom_dev = np.nanmean([np.mean(np.abs(safe_ratio(n_pt_mc[i], d_pt[i]) - 1)) for i in range(n_pt)])
     reco_rw_dev = np.nanmean([np.mean(np.abs(safe_ratio(r_pt_mc[i], d_pt[i]) - 1)) for i in range(n_pt)])
     unf_shift = np.nanmean([np.mean(np.abs(safe_ratio(u_rw[i], u_nom[i]) - 1)) for i in range(n_pt)])
+
+    # ---------- Fig 4: HERWIG non-closure, nominal vs reweighted response ----------
+    herwig = herwig_closure_comparison(uf, mosaic_rw, misses_rw, mode, labels)
+    if herwig is not None:
+        print(f"  HERWIG non-closure: nominal {herwig[0]:.3f} -> reweighted {herwig[1]:.3f}")
+
     return {
         "mode": mode,
         "step_max": step_max,
         "reco_nom_dev": float(reco_nom_dev),
         "reco_rw_dev": float(reco_rw_dev),
         "unf_shift": float(unf_shift),
+        "herwig_nom": None if herwig is None else herwig[0],
+        "herwig_rw": None if herwig is None else herwig[1],
     }
 
 
@@ -294,27 +365,44 @@ def write_markdown(results):
     A("\nReco shape mismatch = mean over bins of `|MC_reco/data_reco − 1|` (lower = better "
       "closure); unfolded shift = mean `|reweighted/nominal − 1|` of the unfolded result "
       "(small = robust).\n")
+    if any(r.get("herwig_nom") is not None for r in results):
+        A("\n### HERWIG non-closure (model-uncertainty proxy)\n")
+        A("Mean per-bin `|HERWIG − unfolded|/HERWIG` when HERWIG reco is unfolded "
+          "through the nominal vs the data-reweighted PYTHIA response (lower = less model "
+          "dependence):\n\n")
+        A("| mode | nominal response | reweighted response |\n|---|---|---|\n")
+        for r in results:
+            if r.get("herwig_nom") is not None:
+                A(f"| {r['mode']} | {r['herwig_nom']:.3f} | {r['herwig_rw']:.3f} |\n")
     for r in results:
         m = r["mode"]
         A(f"\n### {m}\n")
-        A(f"Per-iteration max |data/MC − 1| (gen): "
+        A(f"Per-iteration max |data/MC shape − 1| (gen): "
           f"{', '.join(f'{x:.3f}' for x in r['step_max'])}\n")
         A(f"\n**Gen reweight function**\n\n![reweight]({m}_reweight_function.png)\n")
         A(f"\n**Reco-level closure (MC vs data, before/after)**\n\n![closure]({m}_reco_closure.png)\n")
         A(f"\n**Unfolded stability (nominal vs reweighted)**\n\n![stability]({m}_unfolded_stability.png)\n")
+        if r.get("herwig_nom") is not None:
+            A(f"\n**HERWIG non-closure (nominal vs reweighted response)**\n\n"
+              f"![herwig]({m}_herwig_closure.png)\n")
     A("\n## Interpretation\n")
-    A("- If **reco closure improves** (green closer to 1 than red) while the **unfolded "
-      "result barely moves**, the unregularized result is robust against within-bin model "
-      "dependence — the reweighting confirms low bias.\n")
-    A("- A large unfolded shift would instead flag genuine model dependence to assign as a "
-      "systematic.\n")
-    A("- **Groomed**: reco closure improves sharply (≈0.11→0.03) while the unfolded result "
-      "moves <1% — robust.\n")
+    A("- **Reco closure improves** (groomed ≈0.11→0.03) while the **unfolded result moves "
+      "<1%** → the unregularized result is robust against within-bin model dependence; "
+      "reweighting confirms low bias rather than changing the central value.\n")
     A("- **Ungroomed**: closure improves in the populated region but **overshoots in the "
       "sparse low-ρ tail** (coarser 6-bin gen axis + few events), so the gain is limited; "
       "the unfolded result is still stable (<1%).\n")
-    A("- Natural next step: rerun the HERWIG non-closure (bias) test with the reweighted "
-      "response and check the ~20% model-uncertainty source shrinks.\n")
+    A("- **HERWIG non-closure does *not* shrink** when the PYTHIA response is reweighted to "
+      "data (groomed ≈0.12 either way; ungroomed dominated by sparse-tail bins). This is "
+      "expected and informative: the model uncertainty comes from the **migration / "
+      "within-bin behaviour** that differs between generators, which the limited gen-bin "
+      "reweighting at τ=0 cannot remove. Reweighting the prior to data is therefore *not* a "
+      "route to reducing the HERWIG model uncertainty here — that uncertainty is genuine.\n")
+    A("\n## Bottom line\n")
+    A("Reweighting the response to data leaves the central result essentially unchanged "
+      "(<1%) and does not reduce the model uncertainty; it serves as a **robustness "
+      "cross-check** confirming the unregularized unfolding is not prior/MC-shape driven, "
+      "rather than as a correction to apply.\n")
     md.write_text("".join(lines))
     print("wrote", md)
 
