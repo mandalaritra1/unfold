@@ -68,6 +68,32 @@ def build_reweighted_response(uf, w_fine):
     return mosaic_rw, misses_rw, fake_fraction_rw
 
 
+def export_weight_lookup(uf, w_fine, mode):
+    """Save the final data-prior rho weights in the processor lookup format.
+
+    The weights are intentionally stored on the discrete fine truth-rho
+    binning used to derive them.  The processor should do bin lookup, not
+    interpolate/smooth these values.
+    """
+    fine_edges = np.asarray(uf.edges_gen, dtype=float)
+
+    rho_edges = []
+    weight_grids = []
+    for i in range(len(uf.pt_edges) - 1):
+        rho_edges.append(fine_edges.copy())
+        weight_grids.append(np.asarray(w_fine[i], dtype=float))
+
+    out_path = OUTDIR / f"data_prior_rho_binned_{mode}.npz"
+    np.savez(
+        out_path,
+        pt_edges=np.asarray(uf.pt_edges, dtype=float),
+        rho_edges=np.asarray(rho_edges, dtype=object),
+        w_grids=np.asarray(weight_grids, dtype=object),
+    )
+    print("  wrote processor binned weights:", out_path)
+    return out_path
+
+
 def unfold_with(uf, mosaic_rw, misses_rw, fake_fraction_rw):
     """Re-unfold the same data with a reweighted response (no nominal clobber)."""
     uf.misses_2d_dict = getattr(uf, "misses_2d_dict", {})
@@ -223,6 +249,7 @@ def run_mode(groomed):
 
     y_unf_rw = current_unf
     mosaic_rw, misses_rw, ff_rw = build_reweighted_response(uf, w_cum)
+    export_weight_lookup(uf, w_cum, mode)
 
     # ---- reco-level closure: MC reco (matched+fakes) vs data reco ----
     data_reco = np.asarray(uf.mosaic_2d, float)

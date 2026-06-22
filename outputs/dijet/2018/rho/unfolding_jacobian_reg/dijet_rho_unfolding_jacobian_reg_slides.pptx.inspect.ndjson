@@ -1,0 +1,170 @@
+{"kind":"deck","id":"pr/2007xe","name":"Deck"}
+{"kind":"layout","layoutId":"892b8307-9b75-4078-b35f-e0a8aa9739b3","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"1348e8f6-187e-49f6-bf97-fd2876fb0b19","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/5t3wb7","slide":1,"title":"Dijet rho unfolding","textShapes":4}
+{"kind":"textbox","id":"sh/at47y1kr","slide":1,"text":"Dijet rho unfolding","textPreview":"Dijet rho unfolding","textChars":19,"textLines":1,"bbox":[72,150,900,82]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":1,"text":"2018, Jacobian statistical propagation, ratio-curvature regularization","textPreview":"2018, Jacobian statistical propagation, ratio-curvature regularization","textChars":70,"textLines":1,"bbox":[76,250,980,44]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":1,"text":"Key outputs: unfolded spectra, response/correlation matrices, L-curves, grouped uncertainties, and diagnostics.","textPreview":"Key outputs: unfolded spectra, response/correlation matrices, L-curves, grouped uncertainties, and diagnostics.","textChars":111,"textLines":1,"bbox":[76,340,980,36]}
+{"kind":"shape","id":"sh/32lszqtc","slide":1,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":1,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"notes","id":"nt/5t3wb7","slide":1,"text":""}
+{"kind":"slide","id":"sl/ovc3hr","slide":2,"title":"Run configuration and scope","textShapes":13}
+{"kind":"textbox","id":"sh/dcbulwva","slide":2,"text":"Run configuration and scope","textPreview":"Run configuration and scope","textChars":27,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":2,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/val87ed8","slide":2,"text":"Command: python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --jacobian --regularization ratio_curvature","textPreview":"Command: python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --jacobian --regularization ratio_curvature","textChars":129,"textLines":1,"bbox":[100,126,1050,54]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[70,126,22,30]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":2,"text":"Output: outputs/dijet/2018/rho/unfolding_jacobian_reg/","textPreview":"Output: outputs/dijet/2018/rho/unfolding_jacobian_reg/","textChars":54,"textLines":1,"bbox":[100,206,1050,54]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[70,206,22,30]}
+{"kind":"textbox","id":"sh/vixczed8","slide":2,"text":"Resolved tau: ungroomed 0.7907, groomed 0.6954","textPreview":"Resolved tau: ungroomed 0.7907, groomed 0.6954","textChars":46,"textLines":1,"bbox":[100,286,1050,54]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[70,286,22,30]}
+{"kind":"textbox","id":"sh/d0z61032","slide":2,"text":"Uncertainties are partial: input-data statistics plus available response variations.","textPreview":"Uncertainties are partial: input-data statistics plus available response variations.","textChars":84,"textLines":1,"bbox":[100,366,1050,54]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[70,366,22,30]}
+{"kind":"textbox","id":"sh/o7qpg3ex","slide":2,"text":"Excluded by design for dijet/trijet inputs: response MC statistics and HERWIG/model uncertainty.","textPreview":"Excluded by design for dijet/trijet inputs: response MC statistics and HERWIG/model uncertainty.","textChars":96,"textLines":1,"bbox":[100,446,1050,54]}
+{"kind":"textbox","id":"sh/vmtwra5g","slide":2,"text":"•","textPreview":"•","textChars":1,"textLines":1,"bbox":[70,446,22,30]}
+{"kind":"shape","id":"sh/61032lsz","slide":2,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/d4vmtwra","slide":2,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"notes","id":"nt/ovc3hr","slide":2,"text":""}
+{"kind":"slide","id":"sl/hyuaa4","slide":3,"title":"Unfolded results: summary overview","textShapes":5}
+{"kind":"textbox","id":"sh/al87ed8b","slide":3,"text":"Unfolded results: summary overview","textPreview":"Unfolded results: summary overview","textChars":34,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":3,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":3,"text":"Ungroomed","textPreview":"Ungroomed","textChars":9,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":3,"text":"Groomed","textPreview":"Groomed","textChars":7,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/sfil0rqd","slide":3,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":3,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/y90je9cv","slide":3,"name":"","alt":"Unfolded results: summary overview: Ungroomed","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/gbq1oryt","slide":3,"name":"","alt":"Unfolded results: summary overview: Groomed","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/hyuaa4","slide":3,"text":""}
+{"kind":"slide","id":"sl/4o52dc","slide":4,"title":"Unfolded results: full unrolled spectra","textShapes":5}
+{"kind":"textbox","id":"sh/bm58z25k","slide":4,"text":"Unfolded results: full unrolled spectra","textPreview":"Unfolded results: full unrolled spectra","textChars":39,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":4,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":4,"text":"Ungroomed","textPreview":"Ungroomed","textChars":9,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":4,"text":"Groomed","textPreview":"Groomed","textChars":7,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":4,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":4,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/vy90je9c","slide":4,"name":"","alt":"Unfolded results: full unrolled spectra: Ungroomed","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/d4vmtwra","slide":4,"name":"","alt":"Unfolded results: full unrolled spectra: Groomed","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/4o52dc","slide":4,"text":""}
+{"kind":"slide","id":"sl/df9fil","slide":5,"title":"Response matrices","textShapes":5}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":5,"text":"Response matrices","textPreview":"Response matrices","textChars":17,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/lwval87e","slide":5,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":5,"text":"Ungroomed","textPreview":"Ungroomed","textChars":9,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":5,"text":"Groomed","textPreview":"Groomed","textChars":7,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":5,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":5,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/idonyd0z","slide":5,"name":"","alt":"Response matrices: Ungroomed","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/0je9cvix","slide":5,"name":"","alt":"Response matrices: Groomed","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/df9fil","slide":5,"text":""}
+{"kind":"slide","id":"sl/2846rf","slide":6,"title":"Normalized statistical correlations","textShapes":5}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":6,"text":"Normalized statistical correlations","textPreview":"Normalized statistical correlations","textChars":35,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":6,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":6,"text":"Ungroomed","textPreview":"Ungroomed","textChars":9,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/ulwval87","slide":6,"text":"Groomed","textPreview":"Groomed","textChars":7,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":6,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":6,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/6hcrmhk3","slide":6,"name":"","alt":"Normalized statistical correlations: Ungroomed","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/onyd0z61","slide":6,"name":"","alt":"Normalized statistical correlations: Groomed","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/2846rf","slide":6,"text":""}
+{"kind":"slide","id":"sl/xw6dyd","slide":7,"title":"L-curve regularization scans","textShapes":5}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":7,"text":"L-curve regularization scans","textPreview":"L-curve regularization scans","textChars":28,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":7,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":7,"text":"Ungroomed tau = 0.7907","textPreview":"Ungroomed tau = 0.7907","textChars":22,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":7,"text":"Groomed tau = 0.6954","textPreview":"Groomed tau = 0.6954","textChars":20,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/ahoza1gv","slide":7,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/lwval87e","slide":7,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/032lszqt","slide":7,"name":"","alt":"L-curve regularization scans: Ungroomed tau = 0.7907","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/ixczed8v","slide":7,"name":"","alt":"L-curve regularization scans: Groomed tau = 0.6954","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/xw6dyd","slide":7,"text":""}
+{"kind":"slide","id":"sl/ynl5xi","slide":8,"title":"Unfolded panels: ungroomed","textShapes":8}
+{"kind":"textbox","id":"sh/bq1oryts","slide":8,"text":"Unfolded panels: ungroomed","textPreview":"Unfolded panels: ungroomed","textChars":26,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":8,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":8,"text":"200-290 GeV","textPreview":"200-290 GeV","textChars":11,"textLines":1,"bbox":[40,72,380,20]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":8,"text":"290-400 GeV","textPreview":"290-400 GeV","textChars":11,"textLines":1,"bbox":[450,72,380,20]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":8,"text":"400-570 GeV","textPreview":"400-570 GeV","textChars":11,"textLines":1,"bbox":[860,72,380,20]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":8,"text":"570-760 GeV","textPreview":"570-760 GeV","textChars":11,"textLines":1,"bbox":[230,368,380,20]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":8,"text":"> 760 GeV","textPreview":"> 760 GeV","textChars":9,"textLines":1,"bbox":[670,368,380,20]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":8,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":8,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/zed8v6ps","slide":8,"name":"","alt":"Unfolded panels: ungroomed: 200-290 GeV","bbox":[40,94,380,250]}
+{"kind":"image","id":"im/hk3q5o7q","slide":8,"name":"","alt":"Unfolded panels: ungroomed: 290-400 GeV","bbox":[450,94,380,250]}
+{"kind":"image","id":"im/z61032ls","slide":8,"name":"","alt":"Unfolded panels: ungroomed: 400-570 GeV","bbox":[860,94,380,250]}
+{"kind":"image","id":"im/k3q5o7qp","slide":8,"name":"","alt":"Unfolded panels: ungroomed: 570-760 GeV","bbox":[230,390,380,250]}
+{"kind":"image","id":"im/2x4nap4r","slide":8,"name":"","alt":"Unfolded panels: ungroomed: > 760 GeV","bbox":[670,390,380,250]}
+{"kind":"notes","id":"nt/ynl5xi","slide":8,"text":""}
+{"kind":"slide","id":"sl/2hmzrl","slide":9,"title":"Unfolded panels: groomed","textShapes":8}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":9,"text":"Unfolded panels: groomed","textPreview":"Unfolded panels: groomed","textChars":24,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":9,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":9,"text":"200-290 GeV","textPreview":"200-290 GeV","textChars":11,"textLines":1,"bbox":[40,72,380,20]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":9,"text":"290-400 GeV","textPreview":"290-400 GeV","textChars":11,"textLines":1,"bbox":[450,72,380,20]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":9,"text":"400-570 GeV","textPreview":"400-570 GeV","textChars":11,"textLines":1,"bbox":[860,72,380,20]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":9,"text":"570-760 GeV","textPreview":"570-760 GeV","textChars":11,"textLines":1,"bbox":[230,368,380,20]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":9,"text":"> 760 GeV","textPreview":"> 760 GeV","textChars":9,"textLines":1,"bbox":[670,368,380,20]}
+{"kind":"shape","id":"sh/8bat47y1","slide":9,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":9,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/zqtcj6to","slide":9,"name":"","alt":"Unfolded panels: groomed: 200-290 GeV","bbox":[40,94,380,250]}
+{"kind":"image","id":"im/hwfyxobm","slide":9,"name":"","alt":"Unfolded panels: groomed: 290-400 GeV","bbox":[450,94,380,250]}
+{"kind":"image","id":"im/zupwb2hw","slide":9,"name":"","alt":"Unfolded panels: groomed: 400-570 GeV","bbox":[860,94,380,250]}
+{"kind":"image","id":"im/8bat47y1","slide":9,"name":"","alt":"Unfolded panels: groomed: 570-760 GeV","bbox":[230,390,380,250]}
+{"kind":"image","id":"im/q5o7qpg3","slide":9,"name":"","alt":"Unfolded panels: groomed: > 760 GeV","bbox":[670,390,380,250]}
+{"kind":"notes","id":"nt/2hmzrl","slide":9,"text":""}
+{"kind":"slide","id":"sl/2x6hoh","slide":10,"title":"Grouped uncertainty summary: ungroomed","textShapes":8}
+{"kind":"textbox","id":"sh/vahoza1g","slide":10,"text":"Grouped uncertainty summary: ungroomed","textPreview":"Grouped uncertainty summary: ungroomed","textChars":38,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":10,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":10,"text":"200-290 GeV","textPreview":"200-290 GeV","textChars":11,"textLines":1,"bbox":[40,72,380,20]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":10,"text":"290-400 GeV","textPreview":"290-400 GeV","textChars":11,"textLines":1,"bbox":[450,72,380,20]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":10,"text":"400-570 GeV","textPreview":"400-570 GeV","textChars":11,"textLines":1,"bbox":[860,72,380,20]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":10,"text":"570-760 GeV","textPreview":"570-760 GeV","textChars":11,"textLines":1,"bbox":[230,368,380,20]}
+{"kind":"textbox","id":"sh/y90je9cv","slide":10,"text":"> 760 GeV","textPreview":"> 760 GeV","textChars":9,"textLines":1,"bbox":[670,368,380,20]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":10,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":10,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/byhgn29g","slide":10,"name":"","alt":"Grouped uncertainty summary: ungroomed: 200-290 GeV","bbox":[40,94,380,250]}
+{"kind":"image","id":"im/t47y1kre","slide":10,"name":"","alt":"Grouped uncertainty summary: ungroomed: 290-400 GeV","bbox":[450,94,380,250]}
+{"kind":"image","id":"im/bulwval8","slide":10,"name":"","alt":"Grouped uncertainty summary: ungroomed: 400-570 GeV","bbox":[860,94,380,250]}
+{"kind":"image","id":"im/0fepkzup","slide":10,"name":"","alt":"Grouped uncertainty summary: ungroomed: 570-760 GeV","bbox":[230,390,380,250]}
+{"kind":"image","id":"im/i9s36hcr","slide":10,"name":"","alt":"Grouped uncertainty summary: ungroomed: > 760 GeV","bbox":[670,390,380,250]}
+{"kind":"notes","id":"nt/2x6hoh","slide":10,"text":""}
+{"kind":"slide","id":"sl/n09rzb","slide":11,"title":"Grouped uncertainty summary: groomed","textShapes":8}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":11,"text":"Grouped uncertainty summary: groomed","textPreview":"Grouped uncertainty summary: groomed","textChars":36,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":11,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":11,"text":"200-290 GeV","textPreview":"200-290 GeV","textChars":11,"textLines":1,"bbox":[40,72,380,20]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":11,"text":"290-400 GeV","textPreview":"290-400 GeV","textChars":11,"textLines":1,"bbox":[450,72,380,20]}
+{"kind":"textbox","id":"sh/z61032ls","slide":11,"text":"400-570 GeV","textPreview":"400-570 GeV","textChars":11,"textLines":1,"bbox":[860,72,380,20]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":11,"text":"570-760 GeV","textPreview":"570-760 GeV","textChars":11,"textLines":1,"bbox":[230,368,380,20]}
+{"kind":"textbox","id":"sh/svu9knih","slide":11,"text":"> 760 GeV","textPreview":"> 760 GeV","textChars":9,"textLines":1,"bbox":[670,368,380,20]}
+{"kind":"shape","id":"sh/ap4r65wj","slide":11,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/hoza1gvy","slide":11,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/9cvixcze","slide":11,"name":"","alt":"Grouped uncertainty summary: groomed: 200-290 GeV","bbox":[40,94,380,250]}
+{"kind":"image","id":"im/r65wjudg","slide":11,"name":"","alt":"Grouped uncertainty summary: groomed: 290-400 GeV","bbox":[450,94,380,250]}
+{"kind":"image","id":"im/90je9cvi","slide":11,"name":"","alt":"Grouped uncertainty summary: groomed: 400-570 GeV","bbox":[860,94,380,250]}
+{"kind":"image","id":"im/65wjudg7","slide":11,"name":"","alt":"Grouped uncertainty summary: groomed: 570-760 GeV","bbox":[230,390,380,250]}
+{"kind":"image","id":"im/obm58z25","slide":11,"name":"","alt":"Grouped uncertainty summary: groomed: > 760 GeV","bbox":[670,390,380,250]}
+{"kind":"notes","id":"nt/n09rzb","slide":11,"text":""}
+{"kind":"slide","id":"sl/6bdens","slide":12,"title":"Statistical uncertainty fractions","textShapes":5}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":12,"text":"Statistical uncertainty fractions","textPreview":"Statistical uncertainty fractions","textChars":33,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":12,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":12,"text":"Ungroomed, 400-570 GeV","textPreview":"Ungroomed, 400-570 GeV","textChars":22,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":12,"text":"Groomed, 400-570 GeV","textPreview":"Groomed, 400-570 GeV","textChars":20,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":12,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/ra5gbq1o","slide":12,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/a5gbq1or","slide":12,"name":"","alt":"Statistical uncertainty fractions: Ungroomed, 400-570 GeV","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/s72x4nap","slide":12,"name":"","alt":"Statistical uncertainty fractions: Groomed, 400-570 GeV","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/6bdens","slide":12,"text":""}
+{"kind":"slide","id":"sl/cz8syf","slide":13,"title":"Fake-rate and efficiency diagnostics","textShapes":5}
+{"kind":"textbox","id":"sh/bq1oryts","slide":13,"text":"Fake-rate and efficiency diagnostics","textPreview":"Fake-rate and efficiency diagnostics","textChars":36,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":13,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":13,"text":"Ungroomed, 400-570 GeV","textPreview":"Ungroomed, 400-570 GeV","textChars":22,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":13,"text":"Groomed, 400-570 GeV","textPreview":"Groomed, 400-570 GeV","textChars":20,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/t83itgfm","slide":13,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":13,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/7qpg3ex0","slide":13,"name":"","alt":"Fake-rate and efficiency diagnostics: Ungroomed, 400-570 GeV","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/pwb2hwfy","slide":13,"name":"","alt":"Fake-rate and efficiency diagnostics: Groomed, 400-570 GeV","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/cz8syf","slide":13,"text":""}
+{"kind":"slide","id":"sl/257xpb","slide":14,"title":"Purity and stability checks","textShapes":5}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":14,"text":"Purity and stability checks","textPreview":"Purity and stability checks","textChars":27,"textLines":1,"bbox":[48,28,980,44]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":14,"text":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textPreview":"dijet 2018 rho | Jacobian + ratio-curvature regularization","textChars":58,"textLines":1,"bbox":[920,34,312,28]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":14,"text":"Ungroomed, 400-570 GeV","textPreview":"Ungroomed, 400-570 GeV","textChars":22,"textLines":1,"bbox":[52,76,566,24]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":14,"text":"Groomed, 400-570 GeV","textPreview":"Groomed, 400-570 GeV","textChars":20,"textLines":1,"bbox":[662,76,566,24]}
+{"kind":"shape","id":"sh/47y1kre1","slide":14,"bbox":[48,674,1184,0]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":14,"text":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textPreview":"Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg","textChars":60,"textLines":1,"bbox":[52,684,650,18]}
+{"kind":"image","id":"im/m58z25kb","slide":14,"name":"","alt":"Purity and stability checks: Ungroomed, 400-570 GeV","bbox":[52,104,566,548]}
+{"kind":"image","id":"im/4byhgn29","slide":14,"name":"","alt":"Purity and stability checks: Groomed, 400-570 GeV","bbox":[662,104,566,548]}
+{"kind":"notes","id":"nt/257xpb","slide":14,"text":""}

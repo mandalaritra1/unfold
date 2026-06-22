@@ -1,0 +1,29 @@
+Z+jet rho data-prior response test
+Nominal MC: inputs/zjet/rho/original/pythia_all.pkl
+Weighted MC: /Users/aritra/Downloads/data_prior_weighted_pythia_all.pkl
+Data: inputs/zjet/rho/original/data_all.pkl
+
+ungroomed:
+  absolute_unfolded_shift: mean |ratio-1| = 0.081934, max |ratio-1| = 0.191856
+  two_d_normalized_shift: mean |ratio-1| = 0.030658, max |ratio-1| = 0.106776
+  prior_shift: mean |ratio-1| = 0.195741, max |ratio-1| = 0.705403
+  visible per-pT normalized shape shift shown on plot:
+    pT 0-200 GeV: mean |ratio-1| = 0.019897, max |ratio-1| = 0.079850
+    pT 200-290 GeV: mean |ratio-1| = 0.015186, max |ratio-1| = 0.030124
+    pT 290-400 GeV: mean |ratio-1| = 0.023295, max |ratio-1| = 0.055524
+    pT 400-inf GeV: mean |ratio-1| = 0.011178, max |ratio-1| = 0.035899
+  negative fake bins: 0 nominal, 0 weighted
+  negative miss bins: 0 nominal, 0 weighted
+
+groomed:
+  absolute_unfolded_shift: mean |ratio-1| = 0.155726, max |ratio-1| = 1.656931
+  two_d_normalized_shift: mean |ratio-1| = 0.110698, max |ratio-1| = 1.471276
+  prior_shift: mean |ratio-1| = 0.268339, max |ratio-1| = 1.327564
+  visible per-pT normalized shape shift shown on plot:
+    pT 0-200 GeV: mean |ratio-1| = 0.050359, max |ratio-1| = 0.210338
+    pT 200-290 GeV: mean |ratio-1| = 0.085470, max |ratio-1| = 0.539190
+    pT 290-400 GeV: mean |ratio-1| = 0.018839, max |ratio-1| = 0.075005
+    pT 400-inf GeV: mean |ratio-1| = 0.026930, max |ratio-1| = 0.101611
+  negative fake bins: 0 nominal, 0 weighted
+  negative miss bins: 0 nominal, 0 weighted
+

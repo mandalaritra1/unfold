@@ -3003,33 +3003,41 @@ class Unfolder:
             nval, nerr = self._ptnorm_flat(val, err)
             return val, err, nval, nerr
 
+        # Prepared dijet/trijet inputs do not go through the legacy pickle path
+        # that fills pythia_gen_val_flat, but the nominal truth prior is always
+        # stored as y_true by TUnfold. Use it as the PYTHIA reference there.
+        pythia_gen_val_flat = getattr(self, "pythia_gen_val_flat", self.y_true)
         py_raw, py_raw_err, py_norm, py_norm_err = _gen(
-            self.pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
+            pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
         )
 
-        # HERWIG's stored gen normalization is unreliable, so rescale each pT
-        # slice of the raw HERWIG prediction to the absolute unfolded-data yield
-        # in that slice. The per-pT-normalized HERWIG is unaffected (a constant
-        # per-slice factor cancels in the normalization).
-        hw_scale_flat = np.ones_like(np.asarray(self.herwig_gen_val_flat, dtype=float))
-        data_abs = np.asarray(self.y_unf, dtype=float)
-        herwig_abs = np.asarray(self.herwig_gen_val_flat, dtype=float)
-        offset = 0
-        for edges in self.gen_edges_by_pt:
-            nbins = len(edges) - 1
-            sl = slice(offset, offset + nbins)
-            hw_sum = herwig_abs[sl].sum()
-            if hw_sum != 0:
-                hw_scale_flat[sl] = data_abs[sl].sum() / hw_sum
-            offset += nbins
-        hw_var_scaled = (
-            np.asarray(self.herwig_gen_var_flat, dtype=float) * hw_scale_flat ** 2
-            if getattr(self, "herwig_gen_var_flat", None) is not None
-            else None
-        )
-        hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
-            herwig_abs * hw_scale_flat, hw_var_scaled
-        )
+        has_herwig = getattr(self, "has_herwig", True) and hasattr(self, "herwig_gen_val_flat")
+        if has_herwig:
+            # HERWIG's stored gen normalization is unreliable, so rescale each pT
+            # slice of the raw HERWIG prediction to the absolute unfolded-data
+            # yield in that slice. The per-pT-normalized HERWIG is unaffected.
+            hw_scale_flat = np.ones_like(np.asarray(self.herwig_gen_val_flat, dtype=float))
+            data_abs = np.asarray(self.y_unf, dtype=float)
+            herwig_abs = np.asarray(self.herwig_gen_val_flat, dtype=float)
+            offset = 0
+            for edges in self.gen_edges_by_pt:
+                nbins = len(edges) - 1
+                sl = slice(offset, offset + nbins)
+                hw_sum = herwig_abs[sl].sum()
+                if hw_sum != 0:
+                    hw_scale_flat[sl] = data_abs[sl].sum() / hw_sum
+                offset += nbins
+            hw_var_scaled = (
+                np.asarray(self.herwig_gen_var_flat, dtype=float) * hw_scale_flat ** 2
+                if getattr(self, "herwig_gen_var_flat", None) is not None
+                else None
+            )
+            hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
+                herwig_abs * hw_scale_flat, hw_var_scaled
+            )
+        else:
+            hw_scale_flat = None
+            hw_raw = hw_raw_err = hw_norm = hw_norm_err = None
 
         # Store sum-normalized (per-bin) values, NOT densities: each pT slice
         # integrates to 1 over its bins, so .project("pt") == 1. Recover the
@@ -3051,8 +3059,9 @@ class Unfolder:
             syst_per_source_down[source] = syst_per_source_down[source] * widths_flat
         py_norm = py_norm * widths_flat
         py_norm_err = py_norm_err * widths_flat
-        hw_norm = hw_norm * widths_flat
-        hw_norm_err = hw_norm_err * widths_flat
+        if has_herwig:
+            hw_norm = hw_norm * widths_flat
+            hw_norm_err = hw_norm_err * widths_flat
 
         # ---- build hist objects (2D when uniform, per-pT list when ragged) ----
         summary = {
@@ -3064,9 +3073,9 @@ class Unfolder:
             "unfolded_total_down": self._hist_from_flat(total_down),
             "pythia_gen_raw": self._hist_from_flat(py_raw, py_raw_err),
             "pythia_gen_ptnorm": self._hist_from_flat(py_norm, py_norm_err),
-            "herwig_gen_raw": self._hist_from_flat(hw_raw, hw_raw_err),
-            "herwig_gen_ptnorm": self._hist_from_flat(hw_norm, hw_norm_err),
-            "herwig_pt_scale": self._hist_from_flat(hw_scale_flat),
+            "herwig_gen_raw": self._hist_from_flat(hw_raw, hw_raw_err) if has_herwig else None,
+            "herwig_gen_ptnorm": self._hist_from_flat(hw_norm, hw_norm_err) if has_herwig else None,
+            "herwig_pt_scale": self._hist_from_flat(hw_scale_flat) if has_herwig else None,
             "syst_sources": list(sources),
             "layout": "2d" if self._slices_share_binning() else "per_pt",
             "pt_edges": np.asarray(self.pt_edges, dtype=float),

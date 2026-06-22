@@ -1,0 +1,3 @@
+Rendered all slides to PNG with artifact-tool.
+Checked by script: generated slide previews, layout JSON, contact sheet, and PPTX.
+Slides intentionally embed plot images as figures; titles, labels, and notes are editable deck objects.

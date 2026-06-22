@@ -1,0 +1,684 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/2x6hoh",
+    "id": "2x6hoh",
+    "slide": 10,
+    "layoutId": "1348e8f6-187e-49f6-bf97-fd2876fb0b19",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "892b8307-9b75-4078-b35f-e0a8aa9739b3",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#F8FAFC",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "+mn-lt"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "1348e8f6-187e-49f6-bf97-fd2876fb0b19",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "892b8307-9b75-4078-b35f-e0a8aa9739b3",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "892b8307-9b75-4078-b35f-e0a8aa9739b3",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vahoza1g",
+      "id": "1",
+      "bbox": [
+        48,
+        28,
+        980,
+        44
+      ],
+      "geometry": "rect",
+      "text": "Grouped uncertainty summary: ungroomed",
+      "textPreview": "Grouped uncertainty summary: ungroomed",
+      "resolvedFontSize": 30,
+      "resolvedTextStyle": {
+        "fontSize": 30,
+        "typeface": "+mn-lt",
+        "color": "#0F172A",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Grouped uncertainty summary: ungroomed"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Grouped uncertainty summary: ungroomed",
+          "resolvedTextStyle": {
+            "fontSize": 30,
+            "color": "#0F172A",
+            "bold": true
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Grouped uncertainty summary: ungroomed",
+              "fontSize": 30,
+              "color": "#0F172A",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ovahoza1",
+      "id": "2",
+      "bbox": [
+        920,
+        34,
+        312,
+        28
+      ],
+      "geometry": "rect",
+      "text": "dijet 2018 rho | Jacobian + ratio-curvature regularization",
+      "textPreview": "dijet 2018 rho | Jacobian + ratio-curvature regularization",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "fontSize": 12,
+        "typeface": "+mn-lt",
+        "color": "#475569",
+        "alignment": "right",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "dijet 2018 rho | Jacobian + ratio-curvature"
+          },
+          {
+            "index": 2,
+            "text": "regularization"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "dijet 2018 rho | Jacobian + ratio-curvature regularization",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "color": "#475569",
+            "alignment": "right"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "dijet 2018 rho | Jacobian + ratio-curvature regularization",
+              "fontSize": 12,
+              "color": "#475569",
+              "alignment": "right"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/dg7adsji",
+      "id": "3",
+      "bbox": [
+        40,
+        72,
+        380,
+        20
+      ],
+      "geometry": "rect",
+      "text": "200-290 GeV",
+      "textPreview": "200-290 GeV",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "200-290 GeV"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "200-290 GeV",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "color": "#0F766E",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "200-290 GeV",
+              "fontSize": 13,
+              "color": "#0F766E",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/byhgn29g",
+      "id": "4",
+      "bbox": [
+        40,
+        94,
+        380,
+        250
+      ],
+      "alt": "Grouped uncertainty summary: ungroomed: 200-290 GeV",
+      "contentType": "image/png",
+      "imageFit": "contain",
+      "asset": {
+        "assetId": "c9fb16d1-63ee-4b3d-99d9-2909e990d3a3",
+        "contentType": "image/png",
+        "byteLength": 69807
+      }
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/z25kb6xk",
+      "id": "5",
+      "bbox": [
+        450,
+        72,
+        380,
+        20
+      ],
+      "geometry": "rect",
+      "text": "290-400 GeV",
+      "textPreview": "290-400 GeV",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "290-400 GeV"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "290-400 GeV",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "color": "#0F766E",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "290-400 GeV",
+              "fontSize": 13,
+              "color": "#0F766E",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/t47y1kre",
+      "id": "6",
+      "bbox": [
+        450,
+        94,
+        380,
+        250
+      ],
+      "alt": "Grouped uncertainty summary: ungroomed: 290-400 GeV",
+      "contentType": "image/png",
+      "imageFit": "contain",
+      "asset": {
+        "assetId": "83b882c8-56c6-44bf-ac7a-135a7f45feaf",
+        "contentType": "image/png",
+        "byteLength": 69761
+      }
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/d8v6psfi",
+      "id": "7",
+      "bbox": [
+        860,
+        72,
+        380,
+        20
+      ],
+      "geometry": "rect",
+      "text": "400-570 GeV",
+      "textPreview": "400-570 GeV",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "400-570 GeV"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "400-570 GeV",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "color": "#0F766E",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "400-570 GeV",
+              "fontSize": 13,
+              "color": "#0F766E",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/bulwval8",
+      "id": "8",
+      "bbox": [
+        860,
+        94,
+        380,
+        250
+      ],
+      "alt": "Grouped uncertainty summary: ungroomed: 400-570 GeV",
+      "contentType": "image/png",
+      "imageFit": "contain",
+      "asset": {
+        "assetId": "b5ab575a-b97a-42e5-99ab-76df3d21da49",
+        "contentType": "image/png",
+        "byteLength": 69469
+      }
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vy90je9c",
+      "id": "9",
+      "bbox": [
+        230,
+        368,
+        380,
+        20
+      ],
+      "geometry": "rect",
+      "text": "570-760 GeV",
+      "textPreview": "570-760 GeV",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "570-760 GeV"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "570-760 GeV",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "color": "#0F766E",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "570-760 GeV",
+              "fontSize": 13,
+              "color": "#0F766E",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/0fepkzup",
+      "id": "10",
+      "bbox": [
+        230,
+        390,
+        380,
+        250
+      ],
+      "alt": "Grouped uncertainty summary: ungroomed: 570-760 GeV",
+      "contentType": "image/png",
+      "imageFit": "contain",
+      "asset": {
+        "assetId": "df048f0b-f1f5-4aa6-90ba-7955263ad8e5",
+        "contentType": "image/png",
+        "byteLength": 70052
+      }
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/y90je9cv",
+      "id": "11",
+      "bbox": [
+        670,
+        368,
+        380,
+        20
+      ],
+      "geometry": "rect",
+      "text": "> 760 GeV",
+      "textPreview": "> 760 GeV",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "fontSize": 13,
+        "typeface": "+mn-lt",
+        "color": "#0F766E",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "> 760 GeV"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "> 760 GeV",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "color": "#0F766E",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "> 760 GeV",
+              "fontSize": 13,
+              "color": "#0F766E",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/i9s36hcr",
+      "id": "12",
+      "bbox": [
+        670,
+        390,
+        380,
+        250
+      ],
+      "alt": "Grouped uncertainty summary: ungroomed: > 760 GeV",
+      "contentType": "image/png",
+      "imageFit": "contain",
+      "asset": {
+        "assetId": "020b45cb-6c4a-4f41-82b6-37abec0f6747",
+        "contentType": "image/png",
+        "byteLength": 69326
+      }
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gbq1oryt",
+      "id": "13",
+      "bbox": [
+        48,
+        674,
+        1184,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#E2E8F0",
+      "lineWidth": 1
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/n29gr2p8",
+      "id": "14",
+      "bbox": [
+        52,
+        684,
+        650,
+        18
+      ],
+      "geometry": "rect",
+      "text": "Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg",
+      "textPreview": "Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg",
+      "resolvedFontSize": 10,
+      "resolvedTextStyle": {
+        "fontSize": 10,
+        "typeface": "+mn-lt",
+        "color": "#475569",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg",
+          "resolvedTextStyle": {
+            "fontSize": 10,
+            "color": "#475569"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Generated from outputs/dijet/2018/rho/unfolding_jacobian_reg",
+              "fontSize": 10,
+              "color": "#475569"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}
