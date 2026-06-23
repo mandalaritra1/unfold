@@ -110,6 +110,15 @@ python scripts/run_unfolding.py --channel zjet  --observable mass --jacobian --r
 python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --jacobian --regularization ratio_curvature
 # -> outputs/dijet/2018/rho/unfolding_jacobian_reg/ (settings + per-mode tau in run_manifest.json)
 
+# Backend choice: iterative Bayes / D'Agostini via RooUnfold (CMS-recommended)
+# instead of TUnfold. The jackknife replicas re-unfold through it unchanged, so
+# the statistical uncertainty stays jackknife-based. Needs a built libRooUnfold
+# (source scripts/setup_roounfold.sh); --n-iter sets the iterations (default 4).
+# The output dir gets a '_bayes' suffix.
+source scripts/setup_roounfold.sh
+python scripts/run_unfolding.py --channel zjet --observable rho --method roounfold_bayes --n-iter 4
+# -> outputs/zjet/rho/original_bayes/  (full plot suite + 2D summaries through Bayes)
+
 # dijet / trijet rho (delegates to run_rho_unfolding.py)
 python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018
 python scripts/run_unfolding.py --channel trijet --observable rho --year 2018

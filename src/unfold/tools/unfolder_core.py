@@ -142,6 +142,16 @@ class ObservableSpec:
     # unfold. Ignored when regularization == "none".
     tau: float | None = None
 
+    # Unfolding backend:
+    #   "tunfold"          -> TUnfoldDensity (default, the production path)
+    #   "roounfold_bayes"  -> iterative Bayes / D'Agostini via RooUnfold; the
+    #                         jackknife replicas re-unfold through it unchanged,
+    #                         so the statistical uncertainty stays jackknife-based.
+    method: str = "tunfold"
+    # D'Agostini iterations (the Bayes "regularization"). Used when
+    # method == "roounfold_bayes"; ignored otherwise.
+    n_iter: int = 4
+
 
 MASS_SPEC = ObservableSpec(
     name="mass",
@@ -416,6 +426,9 @@ class Unfolder:
         self.regularization = getattr(spec, "regularization", "none")
         # None -> L-curve scan on the nominal data unfold sets it
         self.tau = getattr(spec, "tau", None)
+        # Unfolding backend: "tunfold" (default) or "roounfold_bayes".
+        self.method = getattr(spec, "method", "tunfold")
+        self.n_iter = getattr(spec, "n_iter", 4)
         self.has_jackknife = True
         self.has_herwig = True
         self.has_validation_inputs = True
@@ -1697,6 +1710,11 @@ class Unfolder:
             self.y_unf_dict[systematic] = y_unf
 
     def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False, resp_np = None, jk_target = "input"):
+        if getattr(self, "method", "tunfold") == "roounfold_bayes":
+            return self._perform_unfold_bayes(
+                systematic=systematic, closure=closure, herwig_closure=herwig_closure,
+                meas_flat=meas_flat, do_jk=do_jk, resp_np=resp_np, jk_target=jk_target,
+            )
         uses_default_measurement = meas_flat is None and not closure and not herwig_closure
         uses_stored_matrix = resp_np is None
         if resp_np is None:
@@ -1817,9 +1835,74 @@ class Unfolder:
         if not do_jk:
             self._store_covariances(unfold, systematic)
         self._store_unfold_result(systematic, do_jk, jk_target, unfold, h_meas, h_true)
-        
-        
-    
+
+
+    def _perform_unfold_bayes(self, systematic="nominal", closure=False, herwig_closure=False,
+                              meas_flat=None, do_jk=False, resp_np=None, jk_target="input"):
+        """RooUnfoldBayes (D'Agostini) backend, dispatched from _perform_unfold.
+
+        Mirrors the TUnfold path's input prep (fake-corrected measured spectrum,
+        truth-with-misses prior) and result storage, but unfolds with iterative
+        Bayes. The jackknife and systematics loops call _perform_unfold
+        unchanged, so the same replicas/variations flow through here -- the
+        statistical uncertainty stays jackknife-based.
+        """
+        from .roounfold_backend import bayes_unfold
+
+        if resp_np is None:
+            resp_np = self.mosaic_dict[systematic]
+        resp_np = np.asarray(resp_np, dtype=float)
+        meas_flat = self._select_measured_spectrum(closure, herwig_closure, meas_flat)
+        meas_flat = self._apply_fake_correction(meas_flat, systematic, closure, herwig_closure)
+
+        if systematic in {"herwigUp", "herwigDown"}:
+            misses = self.misses_2d_herwig
+        else:
+            misses = getattr(self, "misses_2d_dict", {}).get(systematic, self.misses_2d)
+        truth_flat = resp_np.sum(axis=0) + np.asarray(misses, dtype=float)
+
+        want_cov = (not do_jk) and systematic == "nominal" and not herwig_closure
+        out = bayes_unfold(resp_np, meas_flat, truth_flat, n_iter=self.n_iter,
+                           with_covariance=want_cov, tag=str(systematic))
+        if want_cov:
+            y_unf, ye_unf, cov = out
+        else:
+            y_unf, ye_unf = out
+            cov = None
+
+        # Jackknife replicas only need the central unfolded vector.
+        if do_jk and systematic == "nominal":
+            if jk_target == "matrix":
+                self.y_unf_jk_matrix_list.append(y_unf)
+            else:
+                self.y_unf_jk_input_list.append(y_unf)
+            return
+
+        if systematic != "nominal":
+            self.y_unf_dict[systematic] = y_unf
+            if systematic == "herwigUp":
+                self.cov_data_herwig_np = np.diag(ye_unf ** 2)
+            return
+
+        # Nominal (or closure/herwig-closure): populate the same attributes the
+        # TUnfold store path sets. Folded prediction = column-normalized response
+        # (including efficiency) applied to the unfolded truth.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            col = np.divide(resp_np, truth_flat[None, :],
+                            out=np.zeros_like(resp_np), where=truth_flat[None, :] != 0)
+        self.y_meas = np.asarray(meas_flat, dtype=float)
+        self.ye_meas = np.sqrt(np.abs(self.y_meas))
+        self.y_unf = y_unf
+        self.ye_unf = ye_unf
+        self.y_true = truth_flat
+        self.x_folded = col @ y_unf
+        self.L = None
+        if cov is None:
+            cov = np.diag(ye_unf ** 2)
+        self.cov_np = cov
+        self.cov_uncorr_np = cov.copy()
+        self.cov_data_np = cov.copy()
+
     def plot_L(self, show=True):
         lMatrix = self.L
         #try plotting the L matrix root way

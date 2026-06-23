@@ -84,6 +84,22 @@ def parse_args() -> argparse.Namespace:
             "scanned-tau results."
         ),
     )
+    parser.add_argument(
+        "--method",
+        choices=("tunfold", "roounfold_bayes"),
+        default=None,
+        help=(
+            "Unfolding backend. 'roounfold_bayes' uses iterative Bayes "
+            "(D'Agostini) via RooUnfold with --n-iter iterations, reusing the "
+            "jackknife for the statistical uncertainty; needs a built "
+            "libRooUnfold (see scripts/setup_roounfold.sh). The output dir gets "
+            "a '_bayes' suffix. Default: the tag's method (tunfold)."
+        ),
+    )
+    parser.add_argument(
+        "--n-iter", type=int, default=None,
+        help="D'Agostini iterations for --method roounfold_bayes (default 4).",
+    )
     parser.add_argument("--year", default="2018", help="dijet/trijet only")
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--cms-label", default="Internal")
@@ -132,6 +148,12 @@ def resolve_zjet_spec(args: argparse.Namespace):
             sys.exit("--tau requires a regularized spec (use --regularization "
                      "ratio_curvature or a '<tag>_jacobian_reg' tag).")
         spec = replace(spec, tau=args.tau)
+    if args.method is not None and args.method != getattr(spec, "method", "tunfold"):
+        spec = replace(spec, method=args.method)
+        if args.method == "roounfold_bayes":
+            suffix += "_bayes"
+    if args.n_iter is not None:
+        spec = replace(spec, n_iter=args.n_iter)
     if suffix:
         spec = replace(spec, output_dir=spec.output_dir.rstrip("/") + suffix + "/")
 

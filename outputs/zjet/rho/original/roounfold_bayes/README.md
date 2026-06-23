@@ -52,8 +52,16 @@ python scripts/study_roounfold_bayes.py --tag original --n-iter 4
   suppresses statistical fluctuations (a bias/variance trade). Increasing
   `n_iter` relaxes this toward the unregularized TUnfold variance.
 
-## Status / open choices
-This is a study-script proof of concept, **not** yet a first-class `Unfolder`
-backend (no systematics, normalized covariance, or HEPData parity through Bayes
-yet). Open: choosing `n_iter` (scan vs fixed), and whether to wire RooUnfold in
-as a selectable `method` on the spec. Then apply the same pathway to dijet.
+## Status
+This script is the validation cross-check. RooUnfoldBayes is now also a
+**first-class backend**: `ObservableSpec.method = "roounfold_bayes"` (with
+`n_iter`) routes the whole `Unfolder` pipeline through D'Agostini, so
+
+```bash
+python scripts/run_unfolding.py --channel zjet --observable rho --method roounfold_bayes --n-iter 4
+# -> outputs/zjet/rho/original_bayes/
+```
+
+produces the full output suite (systematics, normalized covariances, 2D
+summaries, all plots) through Bayes, with the jackknife statistical uncertainty.
+Open: choosing `n_iter` (scan vs the current fixed 4).
