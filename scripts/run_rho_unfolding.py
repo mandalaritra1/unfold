@@ -241,6 +241,7 @@ def main() -> None:
             data_inputs=prepared.data,
             analysis_binning=prepared.binning[mode],
             systematics=prepared.systematics,
+            herwig_inputs=prepared.herwig,
             cms_label=args.cms_label,
             lumi=args.lumi,
             com=args.com,
@@ -302,11 +303,16 @@ def main() -> None:
             "included": [
                 "TUnfold-propagated input data statistical covariance",
                 "available MG+PYTHIA8 response variations",
-            ],
+            ] + (
+                ["alternate-generator (HERWIG) model uncertainty"]
+                if prepared.herwig is not None else []
+            ),
             "unavailable": [
                 "response-matrix statistical uncertainty (no jackknife inputs)",
-                "alternate-generator/model uncertainty (HERWIG intentionally skipped)",
-            ],
+            ] + (
+                [] if prepared.herwig is not None
+                else ["alternate-generator/model uncertainty (no HERWIG sample)"]
+            ),
             "label": "partial",
         },
         "validation": {
@@ -337,8 +343,11 @@ def main() -> None:
         f"MC: {files.mc}",
         f"systematics: {len(prepared.systematics)} including nominal",
         "plots: shared Unfolder.run_all_plots Z+jet format",
-        "uncertainties: partial (input statistics + available response variations)",
-        "excluded: response MC statistics, HERWIG/model uncertainty",
+        "uncertainties: partial (input statistics + available response variations"
+        + (" + HERWIG model uncertainty)" if prepared.herwig is not None else ")"),
+        ("excluded: response MC statistics"
+         if prepared.herwig is not None
+         else "excluded: response MC statistics, HERWIG/model uncertainty"),
         "validation: deferred",
     ]
     for summary in summaries:

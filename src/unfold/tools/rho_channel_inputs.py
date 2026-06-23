@@ -58,6 +58,7 @@ class RhoChannelFiles:
     year: str
     data: Path
     mc: Path
+    herwig: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +77,7 @@ class PreparedRhoInputs:
     systematics: list[str]
     binning: dict[str, RhoAnalysisBinning]
     source_files: RhoChannelFiles
+    herwig: dict[str, object] | None = None
 
 
 def channel_rho_binning(channel: str, groomed: bool) -> RhoAnalysisBinning:
@@ -161,7 +163,13 @@ def discover_rho_channel_files(
     if missing:
         formatted = "\n".join(f"  {path}" for path in missing)
         raise FileNotFoundError(f"Missing required rho inputs:\n{formatted}")
-    return RhoChannelFiles(channel=channel, year=year, data=data, mc=mc)
+    # HERWIG is optional (alternate-generator model uncertainty); use it if the
+    # producer pickle is present, otherwise the channel runs without it.
+    herwig = channel_dir / f"minimal_rho_{channel}_herwig_{year}.pkl"
+    return RhoChannelFiles(
+        channel=channel, year=year, data=data, mc=mc,
+        herwig=herwig if herwig.is_file() else None,
+    )
 
 
 def _load_pickle(path: Path):
@@ -334,10 +342,29 @@ def build_prepared_rho_inputs(
         if "nominal" not in data_systematics:
             raise ValueError(f"{mode} data histogram has no nominal category")
 
+    # Optional HERWIG sample for the alternate-generator (model) uncertainty.
+    # Adapted like the MC (reco/gen/response, both modes); only the nominal
+    # category is used downstream.
+    adapted_herwig = None
+    if files.herwig is not None:
+        herwig_payload = _load_pickle(files.herwig)
+        _validate_payload(herwig_payload, _required_keys_for_mc(), "HERWIG", files.herwig)
+        adapted_herwig = {}
+        for mode, keys in RHO_HIST_KEYS.items():
+            mode_binning = binning_by_mode[mode]
+            for role, key in keys.items():
+                adapted_herwig[key] = _adapt_histogram(
+                    herwig_payload[key],
+                    role,
+                    mode_binning,
+                    renames,
+                )
+
     return PreparedRhoInputs(
         mc=adapted_mc,
         data=adapted_data,
         systematics=ungroomed_systematics,
         binning=binning_by_mode,
         source_files=files,
+        herwig=adapted_herwig,
     )

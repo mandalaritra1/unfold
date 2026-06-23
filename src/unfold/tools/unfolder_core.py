@@ -463,6 +463,7 @@ class Unfolder:
         data_inputs,
         analysis_binning,
         systematics,
+        herwig_inputs=None,
         cms_label="Internal",
         lumi=59.7,
         com=13.0,
@@ -495,7 +496,7 @@ class Unfolder:
         self.closure = False
         self.herwig_closure = False
         self.has_jackknife = False
-        self.has_herwig = False
+        self.has_herwig = herwig_inputs is not None
         self.has_validation_inputs = False
         self.response_matrix_stat_available = False
         self.first_reported_pt_bin = 1
@@ -505,7 +506,7 @@ class Unfolder:
         self.y_unf_jk_matrix_list = []
         self._ensure_output_dirs()
         self._setup_prepared_binning(analysis_binning)
-        self._load_prepared_inputs(mc_inputs, data_inputs, systematics)
+        self._load_prepared_inputs(mc_inputs, data_inputs, systematics, herwig_inputs)
 
         self._perform_unfold(systematic="nominal")
         for systematic in self.systematics:
@@ -845,7 +846,7 @@ class Unfolder:
         )
         return response_reordered, mosaic
 
-    def _load_prepared_inputs(self, mc_inputs, data_inputs, systematics):
+    def _load_prepared_inputs(self, mc_inputs, data_inputs, systematics, herwig_inputs=None):
         """Populate the state used by the existing TUnfold implementation."""
 
         keys = self._histogram_keys()
@@ -913,7 +914,61 @@ class Unfolder:
         self.data_2d = data_reco_hist
         self.pythia_2d = mc_reco_hist
         self.pythia_4d = response_hist
-        self.y_true_herwig = None
+
+        if herwig_inputs is not None:
+            self._setup_prepared_herwig(herwig_inputs)
+        else:
+            self.y_true_herwig = None
+
+    def _setup_prepared_herwig(self, herwig_inputs):
+        """Build HERWIG state for the prepared-inputs path (dijet/trijet).
+
+        Mirrors the nominal MC setup for the HERWIG sample, then adds the
+        alternate-generator (model) uncertainty by registering the HERWIG
+        response as the herwigUp/herwigDown systematics: the data is re-unfolded
+        through it and the difference from nominal enters the total band (the
+        same mechanism the zjet path uses). Also stores the HERWIG gen
+        prediction and matched reco used by the HERWIG bias (non-closure) plot.
+        """
+        keys = self._histogram_keys()
+        reordered_herwig, mosaic_herwig = self._prepared_response_mosaic(
+            herwig_inputs[keys["response"]], "nominal"
+        )
+        h_reco = self._select_nominal_histogram(herwig_inputs[keys["reco"]])
+        h_gen = self._select_nominal_histogram(herwig_inputs[keys["gen"]])
+        herwig_reco_flat, _ = self._flatten_prepared_2d(
+            h_reco, self.edges, self.reco_edges_by_pt, ("ptreco", self.reco_axis)
+        )
+        herwig_gen_flat, herwig_gen_var = self._flatten_prepared_2d(
+            h_gen, self.edges_gen, self.gen_edges_by_pt, ("ptgen", self.gen_axis)
+        )
+
+        matched_reco = mosaic_herwig.sum(axis=1)
+        matched_gen = mosaic_herwig.sum(axis=0)
+        self.fakes_2d_herwig = herwig_reco_flat - matched_reco
+        self.misses_2d_herwig = herwig_gen_flat - matched_gen
+        self.fake_fraction_2d_herwig = self._compute_fake_fraction(
+            self.fakes_2d_herwig, matched_reco
+        )
+        # Matched HERWIG reco = measured input of the bias (non-closure) test;
+        # full HERWIG gen = truth/prediction (bias test + 2D summary).
+        self.mosaic_herwig_2d = matched_reco
+        self.y_true_herwig = herwig_gen_flat
+        self.herwig_gen_val_flat = herwig_gen_flat
+        self.herwig_gen_var_flat = herwig_gen_var
+        self.has_herwig = True
+
+        # Register the HERWIG response as the herwigUp/herwigDown systematics so
+        # the existing systematics loop + _compute_total_systematic fold the
+        # alternate-generator difference in as "Model Uncertainty" (symmetric:
+        # both directions share the HERWIG mosaic).
+        self.mosaic_dict["herwigUp"] = mosaic_herwig
+        self.mosaic_dict["herwigDown"] = mosaic_herwig
+        self.M_np_2d_dict["herwigUp"] = reordered_herwig
+        self.M_np_2d_dict["herwigDown"] = reordered_herwig
+        for name in ("herwigUp", "herwigDown"):
+            if name not in self.systematics:
+                self.systematics.append(name)
 
     def _compute_input_stat_unc_from_covariance(self):
         """Use TUnfold's propagated data covariance when JK inputs are absent."""
@@ -4200,6 +4255,11 @@ class Unfolder:
         
         for i, result in enumerate(self.normalized_results):
             syst_fraction_dict = result.get('syst_fraction_dict', {})
+            # syst_fraction_dict is only populated for the reported pt bins
+            # (first_reported_pt_bin..), so the unreported sink bin(s) carry no
+            # 'herwigUp' -- skip them instead of raising.
+            if 'herwigUp' not in syst_fraction_dict:
+                continue
             error_in_syst = uncertainty_pt_binned[i]*syst_fraction_dict['herwigUp']  # Uncertainty on relative uncertainty
             pt_bin = result['pt_bin']
             if 'herwigUp' in syst_fraction_dict:

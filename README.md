@@ -22,8 +22,11 @@ the full matrix first-class.
   path (`Unfolder(spec, groomed).run_all_plots()`), interactively from notebooks
   or from the CLI.
 - **dijet/trijet** rho run from prepared per-channel inputs
-  (`inputs/<channel>/rho/`) and intentionally omit jackknife response statistics
-  and HERWIG/model uncertainty; detector-level validation is deferred until
+  (`inputs/<channel>/rho/`) and omit jackknife response statistics (no jackknife
+  inputs). The HERWIG/model uncertainty is included **when** a
+  `minimal_rho_<channel>_herwig_<year>.pkl` is present (auto-discovered; dijet
+  2018 has one, so it gets the alternate-generator model uncertainty + bias
+  test); otherwise it is skipped. Detector-level validation is deferred until
   dedicated validation inputs exist.
 
 ## Repository layout
