@@ -68,9 +68,14 @@ Thumbs.db
 # Editor settings
 .vscode/
 
+# Scratch / temporary working area
+tmp/
+
 # Project artifacts
 *.pkl
 *.root
+# Cached HERWIG-closure uncertainty arrays the unfolder writes into the input dir
+herwig_closure_unc_*.npy
 test_output/
 outputs/**/*.pdf
 outputs/zjet/rho/_previews/

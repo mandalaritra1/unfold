@@ -36,7 +36,8 @@ src/unfold/tools/
   hepdata_export.py    # HEPData export
   merge_data.py        # per-era pickle merger
 src/unfold/utils/      # integrate_and_rebin, merge_helpers
-scripts/               # run_unfolding.py (unified), run_rho_unfolding.py, hepdata, purity
+scripts/               # run_unfolding.py (unified), run_rho_unfolding.py, hepdata,
+                       # purity, and study_*/plot_* cross-checks (see "Studies")
 notebooks/             # interactive runners (unfolder_v4_{rho,mass}, data_mc_rho_fancy)
 inputs/                # gitignored data; see inputs/README.md for the layout
   zjet/{rho/{original,fixed_jec},mass,validation}/
@@ -184,12 +185,52 @@ SHA-256 hash of every input pickle. Inputs come from `inputs/zjet/validation/`.
 The plotting command also refreshes `outputs/zjet/rho/data_mc/index.html` and
 its cached PNG previews; pass `--no-gallery` to skip that step.
 
+## Studies and cross-checks
+
+Standalone scripts that probe the robustness of the zjet rho unfolding. Each
+writes a self-contained folder under `outputs/zjet/rho/` with its own
+`README.md` summarizing method and results. The heavy producer `--*-mc` pickles
+are **not** committed, but the small `.npz` artifacts are, so the plot-only
+helpers can redraw figures without ROOT.
+
+```bash
+source scripts/setup_root.sh
+
+# Regularization L-curve / closure study (tau scan, self-closure, HERWIG bias)
+python scripts/study_regularization_rho.py
+
+# Response reweight-to-data: rebuild the response from a data-matched gen prior
+python scripts/study_response_reweight.py            # -> outputs/zjet/rho/reweight_test/
+
+# Data-prior response test: unfold through a response whose gen prior is
+# reweighted toward the unfolded data (needs the weighted producer pickle)
+python scripts/study_data_prior.py --weighted-mc /path/to/weighted_pythia_all.pkl
+python scripts/plot_data_prior_unfolded_comparison.py  # redraw from committed npz, no ROOT
+#   -> outputs/zjet/rho/original_data_prior_test/
+
+# Rho-averaged-per-pT jackknife stat-uncertainty convergence sheet
+python scripts/plot_jk_convergence_pt_avg.py --tag original
+#   -> outputs/zjet/rho/original/unfold/jackknife_convergence_pt_avg_{mode}.pdf
+```
+
 ## HEPData export
 
 ```bash
 python scripts/run_hepdata_export.py --spec fixed_jec        # -> outputs/zjet/rho/hepdata
 python scripts/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
 ```
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The suite uses the stdlib `unittest` (no extra dependency). One dijet-groomed
+binning test (`test_dijet_groomed_uses_studied_variable_low_rho_binning`)
+currently fails on a **pre-existing** mismatch between the binning code and
+[docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md);
+it is unrelated to the zjet rho path and tracked separately.
 
 ## Documentation
 
