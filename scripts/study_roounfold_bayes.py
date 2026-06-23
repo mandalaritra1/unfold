@@ -84,7 +84,7 @@ def _per_pt(unfolder, key):
     return [np.asarray(r[key], float) for r in unfolder.normalized_results]
 
 
-def plot_comparison(u_tu, u_bay, mode, title, out_dir, n_iter):
+def plot_comparison(u_tu, u_bay, mode, title, out_dir, n_iter, yscale="log"):
     edges_by_pt = u_tu.gen_edges_by_pt
     pt_edges = u_tu.pt_edges
     tu_unf = _per_pt(u_tu, "unfolded")
@@ -117,12 +117,14 @@ def plot_comparison(u_tu, u_bay, mode, title, out_dir, n_iter):
         lo, hi = pt_edges[i], pt_edges[i + 1]
         lbl = (rf"${lo:g}<p_T<{hi:g}$ GeV" if hi < 13000 else rf"$p_T>{lo:g}$ GeV")
         ax.text(0.04, 0.95, lbl, transform=ax.transAxes, ha="left", va="top", fontsize=13)
-        ax.set_yscale("log")
+        ax.set_yscale(yscale)
+        if yscale == "linear":
+            ax.set_ylim(bottom=0)
         ax.tick_params(labelbottom=False)
         ax.grid(alpha=0.25)
         if c == 0:
             ax.set_ylabel(u_tu._normalized_ylabel())
-            ax.legend(fontsize=9, loc="lower center")
+            ax.legend(fontsize=9, loc="center left" if yscale == "linear" else "lower center")
 
         with np.errstate(divide="ignore", invalid="ignore"):
             r_tu = np.where(tu_y != 0, py_y / tu_y, np.nan)
@@ -140,7 +142,8 @@ def plot_comparison(u_tu, u_bay, mode, title, out_dir, n_iter):
 
     fig.suptitle(f"{title} ({mode}): D'Agostini (RooUnfoldBayes) vs TUnfold", fontsize=14)
     out_dir.mkdir(parents=True, exist_ok=True)
-    out = out_dir / f"bayes_vs_tunfold_{mode}.png"
+    scale_suffix = "" if yscale == "log" else f"_{yscale}"
+    out = out_dir / f"bayes_vs_tunfold_{mode}{scale_suffix}.png"
     fig.savefig(out, dpi=160, bbox_inches="tight")
     fig.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
     plt.close(fig)
@@ -162,8 +165,9 @@ def main():
     for mode, groomed in (("ungroomed", False), ("groomed", True)):
         print(f"[{args.channel} {mode}] unfolding both backends ...")
         u_tu, u_bay, out_dir = build_both(args.channel, args.year, args.tag, args.n_iter, groomed)
-        out = plot_comparison(u_tu, u_bay, mode, title, out_dir, args.n_iter)
-        print(f"[{args.channel} {mode}] wrote {out}")
+        out = plot_comparison(u_tu, u_bay, mode, title, out_dir, args.n_iter, yscale="log")
+        plot_comparison(u_tu, u_bay, mode, title, out_dir, args.n_iter, yscale="linear")
+        print(f"[{args.channel} {mode}] wrote {out} (+ linear)")
 
         with np.errstate(divide="ignore", invalid="ignore"):
             ratio = np.where(u_tu.y_unf != 0, u_bay.y_unf / u_tu.y_unf, np.nan)
