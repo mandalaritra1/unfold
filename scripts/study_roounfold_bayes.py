@@ -125,13 +125,18 @@ def plot_comparison(u_tu, u_bay, mode, title, out_dir, n_iter):
             ax.legend(fontsize=9, loc="lower center")
 
         with np.errstate(divide="ignore", invalid="ignore"):
-            ratio = np.where(tu_y != 0, ba_y / tu_y, np.nan)
+            r_tu = np.where(tu_y != 0, py_y / tu_y, np.nan)
+            r_ba = np.where(ba_y != 0, py_y / ba_y, np.nan)
         rax.axhline(1.0, color="black", lw=1.0, ls=":")
-        rax.plot(centers, ratio, "s", ms=5, color="#d62728")
+        rax.plot(centers, r_tu, "o", ms=5, color="black", label="PYTHIA/TUnfold")
+        rax.plot(centers, r_ba, "s", ms=5, color="#d62728", mfc="none", mew=1.4,
+                 label="PYTHIA/Bayes")
         rax.set_ylim(0.8, 1.2)
-        rax.set_ylabel("Bayes/TU", fontsize=10)
+        rax.set_ylabel("PYTHIA / unfolded", fontsize=10)
         rax.set_xlabel(r"$\log_{10}(\rho^2)$", fontsize=12)
         rax.grid(alpha=0.25)
+        if c == 0:
+            rax.legend(fontsize=8, loc="lower left", ncol=2)
 
     fig.suptitle(f"{title} ({mode}): D'Agostini (RooUnfoldBayes) vs TUnfold", fontsize=14)
     out_dir.mkdir(parents=True, exist_ok=True)
