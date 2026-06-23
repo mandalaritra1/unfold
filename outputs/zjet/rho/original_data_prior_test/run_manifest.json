@@ -1,0 +1,163 @@
+{
+  "center_of_mass_energy_TeV": 13.0,
+  "cms_label": "Internal",
+  "command": "/Users/aritra/Projects/unfold/.venv/bin/python /Users/aritra/Projects/unfold/scripts/study_data_prior.py --weighted-mc /Users/aritra/Downloads/data_prior_weighted_pythia_all.pkl --tag original",
+  "inputs": {
+    "data": "inputs/zjet/rho/original/data_all.pkl",
+    "data_sha256": "873aaf3f4dd221c60ca41dc305dda60c98164a4080da93e560f2aaf084a9e31d",
+    "nominal_mc": "inputs/zjet/rho/original/pythia_all.pkl",
+    "nominal_mc_sha256": "cb2f4345331c7fa3373074460bddb23ae0d3b80a59f96dbaa117d2eb0c4f9057",
+    "weighted_mc": "/Users/aritra/Downloads/data_prior_weighted_pythia_all.pkl",
+    "weighted_mc_sha256": "4985d1d9fd1d4813a47e88e5bf0ca086c217abcd5ad9c5f03414fd852805c4ec"
+  },
+  "integrated_luminosity_fb-1": 138.0,
+  "outputs": {
+    "artifacts": [
+      "outputs/zjet/rho/original_data_prior_test/artifacts/ungroomed_data_prior_test.npz",
+      "outputs/zjet/rho/original_data_prior_test/artifacts/groomed_data_prior_test.npz"
+    ],
+    "plots": [
+      "outputs/zjet/rho/original_data_prior_test/data_prior_explainer.pdf",
+      "outputs/zjet/rho/original_data_prior_test/data_prior_explainer.png",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_gen_level_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_gen_level_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_reco_level_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_reco_level_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_response_matrix_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_response_matrix_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_unfolded_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/ungroomed_unfolded_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/groomed_gen_level_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/groomed_gen_level_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/groomed_reco_level_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/groomed_reco_level_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/groomed_response_matrix_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/groomed_response_matrix_comparison.png",
+      "outputs/zjet/rho/original_data_prior_test/groomed_unfolded_comparison.pdf",
+      "outputs/zjet/rho/original_data_prior_test/groomed_unfolded_comparison.png"
+    ],
+    "slide_pdf": "outputs/zjet/rho/original_data_prior_test/data_prior_comparison_slides.pdf"
+  },
+  "regularization": "none",
+  "root_version": "6.39.99",
+  "stat_propagation": "legacy",
+  "summaries": [
+    {
+      "absolute_unfolded_shift": {
+        "max_abs": 0.19185631938891579,
+        "mean_abs": 0.08193409810817016
+      },
+      "fake_fraction_shift": {
+        "max_abs": 0.09278528513638884,
+        "mean_abs": 0.004642165430053729
+      },
+      "mode": "ungroomed",
+      "negative_fake_bins_nominal": 0,
+      "negative_fake_bins_weighted": 0,
+      "negative_miss_bins_nominal": 0,
+      "negative_miss_bins_weighted": 0,
+      "prior_shift": {
+        "max_abs": 0.705403316907802,
+        "mean_abs": 0.19574102331905094
+      },
+      "two_d_normalized_shift": {
+        "max_abs": 0.1067760631429665,
+        "mean_abs": 0.03065787889545483
+      },
+      "visible_per_pt_normalized_shape_shift": [
+        {
+          "max_abs": 0.07984985647049991,
+          "mean_abs": 0.01989672969622227,
+          "pt_bin": [
+            0.0,
+            200.0
+          ]
+        },
+        {
+          "max_abs": 0.030124248200076753,
+          "mean_abs": 0.015185771697409912,
+          "pt_bin": [
+            200.0,
+            290.0
+          ]
+        },
+        {
+          "max_abs": 0.05552393642931486,
+          "mean_abs": 0.023294578714964164,
+          "pt_bin": [
+            290.0,
+            400.0
+          ]
+        },
+        {
+          "max_abs": 0.035898995043210036,
+          "mean_abs": 0.011177727040787233,
+          "pt_bin": [
+            400.0,
+            null
+          ]
+        }
+      ]
+    },
+    {
+      "absolute_unfolded_shift": {
+        "max_abs": 1.6569314359207317,
+        "mean_abs": 0.15572647809412704
+      },
+      "fake_fraction_shift": {
+        "max_abs": 1.043902301633929,
+        "mean_abs": 0.04073611078793232
+      },
+      "mode": "groomed",
+      "negative_fake_bins_nominal": 0,
+      "negative_fake_bins_weighted": 0,
+      "negative_miss_bins_nominal": 0,
+      "negative_miss_bins_weighted": 0,
+      "prior_shift": {
+        "max_abs": 1.3275642590329508,
+        "mean_abs": 0.2683393418145843
+      },
+      "two_d_normalized_shift": {
+        "max_abs": 1.47127629142537,
+        "mean_abs": 0.11069821284259096
+      },
+      "visible_per_pt_normalized_shape_shift": [
+        {
+          "max_abs": 0.2103383983939321,
+          "mean_abs": 0.05035947494874349,
+          "pt_bin": [
+            0.0,
+            200.0
+          ]
+        },
+        {
+          "max_abs": 0.5391900244405543,
+          "mean_abs": 0.08547020034477275,
+          "pt_bin": [
+            200.0,
+            290.0
+          ]
+        },
+        {
+          "max_abs": 0.07500453327163581,
+          "mean_abs": 0.018839356571059174,
+          "pt_bin": [
+            290.0,
+            400.0
+          ]
+        },
+        {
+          "max_abs": 0.10161104282030498,
+          "mean_abs": 0.026930381602292035,
+          "pt_bin": [
+            400.0,
+            null
+          ]
+        }
+      ]
+    }
+  ],
+  "tag": "original",
+  "tau": null,
+  "workflow": "zjet rho data-prior response test"
+}
