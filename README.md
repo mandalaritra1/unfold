@@ -226,11 +226,7 @@ python scripts/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
 python -m unittest discover -s tests -v
 ```
 
-The suite uses the stdlib `unittest` (no extra dependency). One dijet-groomed
-binning test (`test_dijet_groomed_uses_studied_variable_low_rho_binning`)
-currently fails on a **pre-existing** mismatch between the binning code and
-[docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md);
-it is unrelated to the zjet rho path and tracked separately.
+The suite uses the stdlib `unittest` (no extra dependency).
 
 ## Documentation
 

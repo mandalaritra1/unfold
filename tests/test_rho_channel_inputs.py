@@ -149,12 +149,16 @@ class RhoChannelInputTests(unittest.TestCase):
         dijet = channel_rho_binning("dijet", True)
         trijet = channel_rho_binning("trijet", True)
 
+        # These match the binning actually used in the last committed dijet run
+        # (outputs/dijet/2018/rho/unfolding/run_manifest.json -> binning.groomed
+        # .{gen,reco}_rho_edges_by_pt). The central pT intervals (400-570 and
+        # 570-760 GeV) carry one extra truth bin with the merge split at -6.0.
         expected_dijet_gen = [
             [-10.0, -4.5],
             [-10.0, -4.5],
             [-10.0, -4.5],
-            [-10.0, -5.0, -4.5],
-            [-10.0, -5.0, -4.5],
+            [-10.0, -6.0, -4.5],
+            [-10.0, -6.0, -4.5],
             [-10.0, -4.5],
         ]
         for pt_index, expected_prefix in enumerate(expected_dijet_gen):
@@ -165,11 +169,11 @@ class RhoChannelInputTests(unittest.TestCase):
 
         self.assertEqual(
             dijet.reco_rho_edges_by_pt[3][:6],
-            [-10.0, -6.0, -5.5, -5.0, -4.75, -4.5],
+            [-10.0, -8.0, -6.0, -5.5, -4.5, -4.0],
         )
         self.assertEqual(
             dijet.reco_rho_edges_by_pt[4][:6],
-            [-10.0, -6.0, -5.5, -5.0, -4.75, -4.5],
+            [-10.0, -8.0, -6.0, -5.5, -4.5, -4.0],
         )
         self.assertTrue(
             all(edges[1] == -4.5 for edges in trijet.gen_rho_edges_by_pt)

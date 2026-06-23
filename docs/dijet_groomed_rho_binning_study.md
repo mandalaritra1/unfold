@@ -50,3 +50,18 @@ respectively.
 
 The 0-200 GeV interval remains internal for migrations. Dijet groomed plots
 show the complete selected bin range down to `-10`.
+
+## Implemented binning (current code) — differs from the recommendation above
+
+The binning actually implemented in `channel_rho_binning` (dijet, groomed) and
+used in the last committed dijet run
+(`outputs/dijet/2018/rho/unfolding/run_manifest.json`) splits the central pT
+intervals at **-6.0**, not -5.0:
+
+- 400-570 and 570-760 GeV gen: `[-10,-6]`, `[-6,-4.5]` (split at -6.0).
+- Reco in those intervals: `[-10,-8,-6,-5.5,-4.5,-4.0, ...]`.
+
+This `[-10,-6],[-6,-4.5]` two-bin tail is **not** the `[-10,-5],[-5,-4.5]`
+scheme recommended above; the implementation diverged from this study. The
+current binning is retained for now (it is what the published outputs use);
+whether to reconcile it back to the studied `-5.0` split is an open decision.
