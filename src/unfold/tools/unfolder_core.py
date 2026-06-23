@@ -3244,6 +3244,109 @@ class Unfolder:
         save_path = f"./{self.spec.output_dir}unfold/jackknife_convergence_{mode}.pdf"
         self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
+    def plot_jackknife_convergence_pt_avg(self, show=True, pt_min=None):
+        """Jackknife stat convergence averaged over rho within each pT bin.
+
+        Same diagnostic as plot_jackknife_convergence, but instead of one panel
+        per (pT, rho) gen bin it collapses the rho dimension: each panel is one
+        pT slice and shows the mean over that slice's rho bins of the fractional
+        statistical uncertainty (input/data, response-matrix/MC, and their
+        quadrature sum) as a function of the number of jackknife replicas used
+        (2..N). A flattening curve indicates the replica count is sufficient.
+
+        Drawn in the mplhep CMS style for the analysis note. ``pt_min`` drops
+        pT slices whose upper edge is <= pt_min from the panels (the rho average
+        within each kept slice is unaffected).
+        """
+        conv = self._jackknife_convergence_fractions()
+        if conv is None:
+            return
+        ns, input_frac, matrix_frac, total_frac = conv
+
+        counts = [len(edges) - 1 for edges in self.gen_edges_by_pt]
+        # Per-slice rho-averaged curves, keeping the flat-array offsets aligned
+        # even for slices we end up dropping from the panels.
+        panels = []
+        offset = 0
+        for pt_i, count in enumerate(counts):
+            sl = slice(offset, offset + count)
+            offset += count
+            lo = self.pt_edges[pt_i]
+            hi = self.pt_edges[pt_i + 1] if pt_i + 1 < len(self.pt_edges) else np.inf
+            if pt_min is not None and np.isfinite(hi) and hi <= pt_min:
+                continue
+            panels.append((
+                lo, hi, count,
+                input_frac[:, sl].mean(axis=1),
+                matrix_frac[:, sl].mean(axis=1),
+                total_frac[:, sl].mean(axis=1),
+            ))
+
+        if not panels:
+            return
+
+        n_panel = len(panels)
+        n_col = min(n_panel, 4)
+        n_row = int(np.ceil(n_panel / n_col))
+        mode = "groomed" if self.groomed else "ungroomed"
+
+        with plt.style.context(hep.style.CMS):
+            fig, axes = plt.subplots(
+                n_row, n_col, figsize=(5.6 * n_col, 5.4 * n_row),
+                squeeze=False, sharex=True, layout="constrained",
+            )
+            for idx, (lo, hi, count, inp, mat, tot) in enumerate(panels):
+                ax = axes[idx // n_col][idx % n_col]
+                ax.plot(ns, inp, "o-", ms=8, lw=2.0, color="#5790fc", label="Input (data)")
+                ax.plot(ns, mat, "s-", ms=8, lw=2.0, color="#f89c20", label="Matrix (MC)")
+                ax.plot(ns, tot, "^-", ms=9, lw=2.6, color="k", label="Total")
+                ax.axhline(tot[-1], color="gray", ls=":", lw=1.4)
+
+                if np.isfinite(hi) and hi < 13000:
+                    pt_lbl = rf"${lo:g} < p_{{T}} < {hi:g}$ GeV"
+                else:
+                    pt_lbl = rf"$p_{{T}} > {lo:g}$ GeV"
+                ax.text(
+                    0.05, 0.95,
+                    pt_lbl + "\n" + rf"$\langle\,{count}\ \rho$ bins$\,\rangle$",
+                    transform=ax.transAxes, ha="left", va="top", fontsize=18,
+                )
+
+                vmax = max(float(inp.max()), float(mat.max()), float(tot.max()))
+                ax.set_ylim(0.0, vmax * 1.45)  # headroom for the pT label
+                ax.set_xlim(ns[0] - 0.4, ns[-1] + 0.4)
+                ax.grid(alpha=0.3)
+                ax.tick_params(labelsize=17)
+                ax.set_xlabel("Number of jackknife replicas", fontsize=19)
+
+            for k in range(n_panel, n_row * n_col):
+                axes[k // n_col][k % n_col].axis("off")
+
+            # CMS multi-panel convention: "CMS Internal" over the first panel,
+            # the luminosity over the last panel.
+            first_ax = axes[0][0]
+            last_ax = axes[(n_panel - 1) // n_col][(n_panel - 1) % n_col]
+            first_ax.set_ylabel(
+                "Mean fractional\nstatistical uncertainty", fontsize=19
+            )
+            hep.cms.label(self.cms_label, data=True, ax=first_ax, fontsize=20, rlabel="")
+            last_ax.text(
+                1.0, 1.01,
+                rf"{self._lumi_label()} fb$^{{-1}}$ ({self._com_label()} TeV)",
+                transform=last_ax.transAxes, ha="right", va="bottom", fontsize=18,
+            )
+
+            handles, labels = first_ax.get_legend_handles_labels()
+            fig.legend(
+                handles, labels, loc="outside lower center", ncol=3, fontsize=17,
+                frameon=False,
+            )
+            save_path = (
+                f"./{self.spec.output_dir}unfold/"
+                f"jackknife_convergence_pt_avg_{mode}.pdf"
+            )
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
     def _normalization_jacobian(self):
         """Jacobian of the per-pT-slice normalization y_i = x_i / (w_i * S_k).
 
