@@ -209,6 +209,10 @@ def run_channel(args: argparse.Namespace) -> None:
         cmd += ["--regularization", args.regularization]
     if args.tau is not None:
         cmd += ["--tau", str(args.tau)]
+    if args.method is not None:
+        cmd += ["--method", args.method]
+    if args.n_iter is not None:
+        cmd += ["--n-iter", str(args.n_iter)]
     subprocess.run(cmd, cwd=REPO_ROOT, check=True)
 
 

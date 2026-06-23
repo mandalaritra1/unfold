@@ -69,6 +69,22 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Fixed regularization strength (skips the L-curve scan).",
     )
+    parser.add_argument(
+        "--method",
+        choices=("tunfold", "roounfold_bayes"),
+        default="tunfold",
+        help=(
+            "Unfolding backend. 'roounfold_bayes' uses iterative Bayes "
+            "(D'Agostini) via RooUnfold with --n-iter iterations; these channels "
+            "have no jackknife inputs, so the stat uncertainty falls back to "
+            "RooUnfold's propagated covariance. Needs a built libRooUnfold "
+            "(scripts/setup_roounfold.sh). The output dir gets a '_bayes' suffix."
+        ),
+    )
+    parser.add_argument(
+        "--n-iter", type=int, default=4,
+        help="D'Agostini iterations for --method roounfold_bayes (default 4).",
+    )
     args = parser.parse_args()
     if args.tau is not None and args.regularization == "none":
         parser.error("--tau requires --regularization ratio_curvature")
@@ -170,7 +186,7 @@ def main() -> None:
     # baseline outputs (mirrors the zjet '<tag>_jacobian[_reg]' convention).
     option_suffix = ("_jacobian" if args.jacobian else "") + (
         "_reg" if args.regularization != "none" else ""
-    )
+    ) + ("_bayes" if args.method == "roounfold_bayes" else "")
     output_dir = (
         args.output_dir
         if args.output_dir is not None
@@ -210,6 +226,8 @@ def main() -> None:
             stat_propagation="jacobian" if args.jacobian else RHO_FIXED_JEC_SPEC.stat_propagation,
             regularization=args.regularization,
             tau=args.tau,
+            method=args.method,
+            n_iter=args.n_iter,
             xlim_lower_groomed=(
                 prepared.binning[mode].gen_rho_edges_by_pt[0][0]
                 if args.channel == "dijet" and groomed

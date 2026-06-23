@@ -118,6 +118,10 @@ python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --j
 source scripts/setup_roounfold.sh
 python scripts/run_unfolding.py --channel zjet --observable rho --method roounfold_bayes --n-iter 4
 # -> outputs/zjet/rho/original_bayes/  (full plot suite + 2D summaries through Bayes)
+# Works for dijet/trijet too; those have no jackknife inputs, so the Bayes stat
+# uncertainty falls back to RooUnfold's propagated covariance.
+python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --method roounfold_bayes
+# -> outputs/dijet/2018/rho/unfolding_bayes/
 
 # dijet / trijet rho (delegates to run_rho_unfolding.py)
 python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018

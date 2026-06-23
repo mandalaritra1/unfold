@@ -486,6 +486,12 @@ class Unfolder:
         self.stat_propagation = getattr(spec, "stat_propagation", "legacy")
         self.regularization = getattr(spec, "regularization", "none")
         self.tau = getattr(spec, "tau", None)
+        # Unfolding backend. dijet/trijet have no jackknife inputs, so under
+        # method="roounfold_bayes" the statistical uncertainty falls back to
+        # RooUnfold's propagated covariance (via _compute_input_stat_unc_from_covariance),
+        # mirroring how the TUnfold path uses the input covariance here.
+        self.method = getattr(spec, "method", "tunfold")
+        self.n_iter = getattr(spec, "n_iter", 4)
         self.closure = False
         self.herwig_closure = False
         self.has_jackknife = False
@@ -1849,6 +1855,7 @@ class Unfolder:
         """
         from .roounfold_backend import bayes_unfold
 
+        uses_default_measurement = meas_flat is None and not closure and not herwig_closure
         if resp_np is None:
             resp_np = self.mosaic_dict[systematic]
         resp_np = np.asarray(resp_np, dtype=float)
@@ -1897,6 +1904,13 @@ class Unfolder:
         self.y_true = truth_flat
         self.x_folded = col @ y_unf
         self.L = None
+        # Fake-corrected measured variances (consumed by the dijet artifact
+        # writer and normalized-covariance code), mirroring the TUnfold path.
+        if uses_default_measurement and hasattr(self, "measured_variances"):
+            fake_survival = 1.0 - np.asarray(self.fake_fraction_2d, dtype=float)
+            self.corrected_measured_variances = (
+                np.asarray(self.measured_variances, dtype=float) * np.square(fake_survival)
+            )
         if cov is None:
             cov = np.diag(ye_unf ** 2)
         self.cov_np = cov
@@ -3086,33 +3100,43 @@ class Unfolder:
             nval, nerr = self._ptnorm_flat(val, err)
             return val, err, nval, nerr
 
-        py_raw, py_raw_err, py_norm, py_norm_err = _gen(
-            self.pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
+        # PYTHIA/HERWIG gen predictions exist only on the zjet spec path; the
+        # dijet/trijet prepared inputs carry none, so emit None for those.
+        has_gen_pred = hasattr(self, "pythia_gen_val_flat") and hasattr(
+            self, "herwig_gen_val_flat"
         )
+        if has_gen_pred:
+            py_raw, py_raw_err, py_norm, py_norm_err = _gen(
+                self.pythia_gen_val_flat, getattr(self, "pythia_gen_var_flat", None)
+            )
 
-        # HERWIG's stored gen normalization is unreliable, so rescale each pT
-        # slice of the raw HERWIG prediction to the absolute unfolded-data yield
-        # in that slice. The per-pT-normalized HERWIG is unaffected (a constant
-        # per-slice factor cancels in the normalization).
-        hw_scale_flat = np.ones_like(np.asarray(self.herwig_gen_val_flat, dtype=float))
-        data_abs = np.asarray(self.y_unf, dtype=float)
-        herwig_abs = np.asarray(self.herwig_gen_val_flat, dtype=float)
-        offset = 0
-        for edges in self.gen_edges_by_pt:
-            nbins = len(edges) - 1
-            sl = slice(offset, offset + nbins)
-            hw_sum = herwig_abs[sl].sum()
-            if hw_sum != 0:
-                hw_scale_flat[sl] = data_abs[sl].sum() / hw_sum
-            offset += nbins
-        hw_var_scaled = (
-            np.asarray(self.herwig_gen_var_flat, dtype=float) * hw_scale_flat ** 2
-            if getattr(self, "herwig_gen_var_flat", None) is not None
-            else None
-        )
-        hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
-            herwig_abs * hw_scale_flat, hw_var_scaled
-        )
+            # HERWIG's stored gen normalization is unreliable, so rescale each pT
+            # slice of the raw HERWIG prediction to the absolute unfolded-data
+            # yield in that slice. The per-pT-normalized HERWIG is unaffected (a
+            # constant per-slice factor cancels in the normalization).
+            hw_scale_flat = np.ones_like(np.asarray(self.herwig_gen_val_flat, dtype=float))
+            data_abs = np.asarray(self.y_unf, dtype=float)
+            herwig_abs = np.asarray(self.herwig_gen_val_flat, dtype=float)
+            offset = 0
+            for edges in self.gen_edges_by_pt:
+                nbins = len(edges) - 1
+                sl = slice(offset, offset + nbins)
+                hw_sum = herwig_abs[sl].sum()
+                if hw_sum != 0:
+                    hw_scale_flat[sl] = data_abs[sl].sum() / hw_sum
+                offset += nbins
+            hw_var_scaled = (
+                np.asarray(self.herwig_gen_var_flat, dtype=float) * hw_scale_flat ** 2
+                if getattr(self, "herwig_gen_var_flat", None) is not None
+                else None
+            )
+            hw_raw, hw_raw_err, hw_norm, hw_norm_err = _gen(
+                herwig_abs * hw_scale_flat, hw_var_scaled
+            )
+        else:
+            py_raw = py_raw_err = py_norm = py_norm_err = None
+            hw_raw = hw_raw_err = hw_norm = hw_norm_err = None
+            hw_scale_flat = None
 
         # Store sum-normalized (per-bin) values, NOT densities: each pT slice
         # integrates to 1 over its bins, so .project("pt") == 1. Recover the
@@ -3132,10 +3156,11 @@ class Unfolder:
         for source in sources:
             syst_per_source_up[source] = syst_per_source_up[source] * widths_flat
             syst_per_source_down[source] = syst_per_source_down[source] * widths_flat
-        py_norm = py_norm * widths_flat
-        py_norm_err = py_norm_err * widths_flat
-        hw_norm = hw_norm * widths_flat
-        hw_norm_err = hw_norm_err * widths_flat
+        if has_gen_pred:
+            py_norm = py_norm * widths_flat
+            py_norm_err = py_norm_err * widths_flat
+            hw_norm = hw_norm * widths_flat
+            hw_norm_err = hw_norm_err * widths_flat
 
         # ---- build hist objects (2D when uniform, per-pT list when ragged) ----
         summary = {
@@ -3145,11 +3170,11 @@ class Unfolder:
             "unfolded_syst_down": self._hist_from_flat(syst_down),
             "unfolded_total_up": self._hist_from_flat(total_up),
             "unfolded_total_down": self._hist_from_flat(total_down),
-            "pythia_gen_raw": self._hist_from_flat(py_raw, py_raw_err),
-            "pythia_gen_ptnorm": self._hist_from_flat(py_norm, py_norm_err),
-            "herwig_gen_raw": self._hist_from_flat(hw_raw, hw_raw_err),
-            "herwig_gen_ptnorm": self._hist_from_flat(hw_norm, hw_norm_err),
-            "herwig_pt_scale": self._hist_from_flat(hw_scale_flat),
+            "pythia_gen_raw": self._hist_from_flat(py_raw, py_raw_err) if has_gen_pred else None,
+            "pythia_gen_ptnorm": self._hist_from_flat(py_norm, py_norm_err) if has_gen_pred else None,
+            "herwig_gen_raw": self._hist_from_flat(hw_raw, hw_raw_err) if has_gen_pred else None,
+            "herwig_gen_ptnorm": self._hist_from_flat(hw_norm, hw_norm_err) if has_gen_pred else None,
+            "herwig_pt_scale": self._hist_from_flat(hw_scale_flat) if has_gen_pred else None,
             "syst_sources": list(sources),
             "layout": "2d" if self._slices_share_binning() else "per_pt",
             "pt_edges": np.asarray(self.pt_edges, dtype=float),
