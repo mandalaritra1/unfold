@@ -1,0 +1,9 @@
+Dijet rho RooUnfoldBayes (n_iter=4) vs TUnfold
+
+ungroomed:
+  central Bayes/TUnfold: mean |r-1| = 0.2866, max = 4.1362
+  median stat frac: TUnfold = 0.0353, Bayes = 0.0003
+
+groomed:
+  central Bayes/TUnfold: mean |r-1| = 0.4770, max = 5.7727
+  median stat frac: TUnfold = 0.0143, Bayes = 0.0002
