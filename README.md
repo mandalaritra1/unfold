@@ -211,6 +211,12 @@ python scripts/plot_data_prior_unfolded_comparison.py  # redraw from committed n
 # Rho-averaged-per-pT jackknife stat-uncertainty convergence sheet
 python scripts/plot_jk_convergence_pt_avg.py --tag original
 #   -> outputs/zjet/rho/original/unfold/jackknife_convergence_pt_avg_{mode}.pdf
+
+# D'Agostini (iterative Bayes) via RooUnfold vs TUnfold, reusing the same
+# jackknife replicas for the stat uncertainty (needs a built libRooUnfold)
+source scripts/setup_roounfold.sh
+python scripts/study_roounfold_bayes.py --tag original --n-iter 4
+#   -> outputs/zjet/rho/original/roounfold_bayes/
 ```
 
 ## HEPData export

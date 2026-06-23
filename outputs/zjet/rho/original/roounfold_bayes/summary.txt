@@ -1,0 +1,9 @@
+Z+jet rho RooUnfoldBayes (n_iter=4) vs TUnfold
+
+ungroomed:
+  central Bayes/TUnfold: mean |r-1| = 0.3637, max = 2.1372
+  median jackknife stat frac: TUnfold = 0.0237, Bayes = 0.0047
+
+groomed:
+  central Bayes/TUnfold: mean |r-1| = 0.1271, max = 0.5018
+  median jackknife stat frac: TUnfold = 0.0220, Bayes = 0.0047
