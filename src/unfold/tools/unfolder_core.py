@@ -1504,7 +1504,7 @@ class Unfolder:
                 1 - fakerate_pt_binned[i],
                 self.reco_edges_by_pt[i],
                 yerr=fakerate_unc_pt_binned[i] if fakerate_unc_pt_binned is not None else None,
-                label="1 - fake rate",
+                label=r"$1-$ fake rate $= N_{\mathrm{gen}\wedge\mathrm{reco}}/N_{\mathrm{reco}}$",
                 lw=1.5,
                 histtype="step",
             )
@@ -1512,7 +1512,7 @@ class Unfolder:
                 efficiency_pt_binned[i],
                 self.gen_edges_by_pt[i],
                 yerr=efficiency_unc_pt_binned[i] if efficiency_unc_pt_binned is not None else None,
-                label="Efficiency",
+                label=r"Efficiency $= N_{\mathrm{gen}\wedge\mathrm{reco}}/N_{\mathrm{gen}}$",
                 lw=1.5,
                 histtype="step",
             )
