@@ -587,8 +587,9 @@ class Unfolder:
     def _ensure_output_dirs(self):
         output_dir = Path(self.spec.output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / "unfold").mkdir(parents=True, exist_ok=True)
-        (output_dir / "uncertainties").mkdir(parents=True, exist_ok=True)
+        # Category subfolders (summary/, inputs/, response/, bottom_line/,
+        # unfolded/, validation/, uncertainties/, data/) are created on demand by
+        # _categorize_output; only the gallery preview mirror is pre-made here.
         (output_dir / "_previews").mkdir(parents=True, exist_ok=True)
 
     def _setup_binning(self):
@@ -636,9 +637,79 @@ class Unfolder:
         candidate_list = ", ".join(str(Path(candidate)) for candidate in candidates if candidate is not None)
         raise FileNotFoundError(f"Could not find any of: {candidate_list}")
 
+    def _categorize_output(self, stem):
+        """Map a plot basename to (category_subfolder, descriptive_stem).
+
+        Single source of truth for the per-mode output layout: every plot lands
+        in a semantic subfolder (nothing dumped in the mode root) and the bare
+        unfolded-result names (e.g. 'groomed_1') gain a descriptive prefix. The
+        trailing '_<mode>_<idx>' panel index is normalized to '_<mode>_pt<idx>'
+        ('ptall' for the inclusive -1 panel) so filenames are searchable.
+        """
+        def _ptnorm(name):
+            return re.sub(
+                r"_(groomed|ungroomed)_(-?\d+)$",
+                lambda m: f"_{m.group(1)}_"
+                + ("ptall" if int(m.group(2)) < 0 else f"pt{m.group(2)}"),
+                name,
+            )
+
+        s = stem
+        # bare unfolded result, e.g. 'groomed_1' / 'ungroomed_-1'
+        if re.fullmatch(r"(?:un)?groomed_-?\d+", s):
+            return "unfolded", _ptnorm("unfolded_" + s)
+        # per-mode result summaries, e.g. 'groomed_summary', 'groomed_summary_linear'
+        m = re.fullmatch(r"(groomed|ungroomed)_summary(_linear)?", s)
+        if m:
+            return "summary", f"unfolded_summary{'_linear' if m.group(2) else ''}_{m.group(1)}"
+        # prefix -> (category, rename); first match wins, order matters
+        rules = [
+            ("bottom_line_chi2_summary", "summary",       None),
+            ("bottom_line",              "bottom_line",   None),
+            ("purity_stability",         "response",      None),
+            ("response_",                "response",      lambda n: n.replace("response_", "response_matrix_", 1)),
+            ("fakerates",                "response",      lambda n: n.replace("fakerates", "fakes_misses", 1)),
+            ("input_",                   "inputs",        lambda n: n.replace("input_", "input_data_mc_", 1)),
+            ("herwig_pythia_comparison", "unfolded",      None),
+            ("herwig_closure_unc",       "validation",    None),
+            ("herwig_bias_test",         "validation",    None),
+            ("closure_",                 "validation",    None),
+            ("folded_",                  "validation",    None),
+            ("jackknife_convergence",    "validation",    None),
+            ("jk_inputs",                "validation",    None),
+            ("jk_outputs",               "validation",    None),
+            ("L_matrix",                 "validation",    None),
+            ("lcurve",                   "validation",    None),
+            ("correlation",              "unfolded",      None),
+            ("unfolded_unrolled_2d",     "unfolded",      None),
+            ("unfolded_basic",           "unfolded",      None),
+            ("unfolded_2d",              "data",          None),
+            ("uncertainty_summary_2d",   "data",          None),
+            ("normalized_covariance",    "data",          None),
+            ("stat_fraction",            "uncertainties", None),
+            ("summary_grouped",          "uncertainties", None),
+            ("summary_linear",           "uncertainties", None),
+            ("summary_",                 "uncertainties", None),
+            ("nominal_minus_",           "uncertainties", None),
+            ("heatmap",                  "uncertainties", None),
+        ]
+        for prefix, cat, fn in rules:
+            if s.startswith(prefix):
+                return cat, _ptnorm(fn(s) if fn else s)
+        # remaining '<SYST>_<mode>_<idx>' plots (JES/JMS/ElectronSF/herwig/...)
+        if re.search(r"_(groomed|ungroomed)_-?\d+$", s):
+            return "uncertainties", _ptnorm(s)
+        return "misc", _ptnorm(s)
+
+    def _relocate_output(self, save_path):
+        """Rewrite a legacy save path into the categorized layout."""
+        p = Path(save_path)
+        cat, stem = self._categorize_output(p.stem)
+        return Path(self.spec.output_dir) / cat / f"{stem}{p.suffix}"
+
     def _finalize_plot(self, save_path=None, show=True, fig=None):
         if save_path is not None:
-            path = Path(save_path)
+            path = self._relocate_output(save_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             target_fig = fig if fig is not None else plt.gcf()
             target_fig.savefig(path, bbox_inches="tight", pad_inches=0.1)
@@ -2245,7 +2316,9 @@ class Unfolder:
         #try plotting the L matrix root way
         c = ROOT.TCanvas("c", "L-curve Matrix", 800, 600)
         lMatrix.Draw("colz")
-        c.SaveAs(f"{self.spec.output_dir}unfold/L_matrix_root.png")
+        l_root_path = self._relocate_output("L_matrix_root.png")
+        l_root_path.parent.mkdir(parents=True, exist_ok=True)
+        c.SaveAs(str(l_root_path))
         nx, ny = lMatrix.GetNbinsX(), lMatrix.GetNbinsY() 
         l_np = np.zeros((nx, ny))
         for i in range(nx):
@@ -3350,7 +3423,7 @@ class Unfolder:
             "layout": "2d" if self._slices_share_binning() else "per_pt",
             "pt_edges": np.asarray(self.pt_edges, dtype=float),
         }
-        save_path = Path(self.spec.output_dir) / "unfold" / f"unfolded_2d_{suffix}.pkl"
+        save_path = self._relocate_output(f"unfolded_2d_{suffix}.pkl")
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(save_path, "wb") as handle:
             pkl.dump(summary, handle)
@@ -3629,7 +3702,7 @@ class Unfolder:
         else:
             summary["syst_breakdown"] = None
 
-        save_path = Path(self.spec.output_dir) / "unfold" / f"uncertainty_summary_2d_{suffix}.pkl"
+        save_path = self._relocate_output(f"uncertainty_summary_2d_{suffix}.pkl")
         save_path.parent.mkdir(parents=True, exist_ok=True)
         with open(save_path, "wb") as handle:
             pkl.dump(summary, handle)
@@ -3998,7 +4071,7 @@ class Unfolder:
             [np.asarray(result["unfolded"], dtype=float) for result in self.normalized_results]
         )
         cov_syst = self.get_systematic_covariance()
-        save_path = Path(self.spec.output_dir) / "unfold" / f"normalized_covariance_{suffix}.npz"
+        save_path = self._relocate_output(f"normalized_covariance_{suffix}.npz")
         save_path.parent.mkdir(parents=True, exist_ok=True)
         np.savez(
             save_path,
@@ -5116,7 +5189,9 @@ class Unfolder:
 
         fig.tight_layout()
         groomed_tag = "groomed" if self.groomed else "ungroomed"
-        plt.savefig(f"{self.spec.output_dir}unfold/response_{groomed_tag}.pdf")
+        resp_path = self._relocate_output(f"response_{groomed_tag}.pdf")
+        resp_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(resp_path)
         return fig, ax
     
     def _make_inputs_numpy(self, filenames=None):

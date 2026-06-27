@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import re
 import subprocess
 from collections import defaultdict
 from pathlib import Path
@@ -11,11 +12,33 @@ PDF_DPI = 144
 PREVIEW_DIRNAME = "_previews"
 ALLOWED_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg"}
 SKIP_DIR_NAMES = {PREVIEW_DIRNAME, ".ipynb_checkpoints"}
+# Semantic categories written by the unfolder (see _categorize_output), in the
+# order they should appear, with human-readable section titles.
 FOLDER_ORDER = {
-    ".": 0,
-    "unfold": 1,
-    "uncertainties": 2,
-    "data_mc": 3,
+    "summary": 0,
+    "inputs": 1,
+    "response": 2,
+    "bottom_line": 3,
+    "unfolded": 4,
+    "validation": 5,
+    "uncertainties": 6,
+    "roounfold_bayes": 7,
+    "misc": 97,
+    "data": 98,
+    ".": 99,
+}
+CATEGORY_TITLES = {
+    "summary": "Summary",
+    "inputs": "Input data / MC",
+    "response": "Response &amp; purity",
+    "bottom_line": "Bottom-line test",
+    "unfolded": "Unfolded results",
+    "validation": "Validation &amp; closure",
+    "uncertainties": "Uncertainties",
+    "roounfold_bayes": "Bayes comparison",
+    "misc": "Other",
+    "data": "Data artifacts",
+    ".": "Other (root)",
 }
 
 
@@ -159,15 +182,22 @@ def build_html(
         groups[folder].append(path)
 
     sections = []
+    toc_items = []
     for folder, items in sorted(groups.items(), key=sort_group_key):
-        title = "root" if folder == "." else folder
+        title = CATEGORY_TITLES.get(folder, folder if folder != "." else "Other")
+        anchor = "sec-" + re.sub(r"[^a-z0-9]+", "-", folder.lower()).strip("-")
         cards = "".join(card_html(item, root, dpi) for item in items)
+        toc_items.append(
+            f'<a class="toc-chip" href="#{anchor}" data-folder="{html.escape(folder)}">'
+            f'{title} <span>{len(items)}</span></a>'
+        )
         sections.append(
             f"""
-            <section class="section" data-folder="{html.escape(folder)}">
+            <section class="section" id="{anchor}" data-folder="{html.escape(folder)}">
               <div class="section-header">
-                <h2>{html.escape(title)}</h2>
+                <h2>{title}</h2>
                 <span>{len(items)} files</span>
+                <a class="section-top" href="#top">&uarr; top</a>
               </div>
               <div class="grid">
                 {cards}
@@ -175,6 +205,7 @@ def build_html(
             </section>
             """
         )
+    toc_html = "".join(toc_items)
 
     hero_copy_html = (
         hero_copy
@@ -268,9 +299,47 @@ def build_html(
       font-size: 0.95rem;
       white-space: nowrap;
     }}
+    .toc {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }}
+    .toc-chip {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(14, 19, 27, 0.7);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: border-color 0.15s, background 0.15s;
+    }}
+    .toc-chip:hover {{
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }}
+    .toc-chip span {{
+      color: var(--muted);
+      font-size: 0.78rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      padding: 1px 7px;
+    }}
     .section {{
       margin: 30px 0 0;
+      scroll-margin-top: 220px;
     }}
+    .section-header .section-top {{
+      margin-left: auto;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }}
+    .section-header .section-top:hover {{ color: var(--accent); }}
     .section-header {{
       display: flex;
       justify-content: space-between;
@@ -447,6 +516,7 @@ def build_html(
 </head>
 <body>
   <div class="shell">
+    <div id="top"></div>
     <div class="hero">
       <h1>{html.escape(hero_title)}</h1>
       <div class="hero-copy">
@@ -456,6 +526,7 @@ def build_html(
         <input id="filter" type="search" placeholder="Filter by file name or folder">
         <div class="count"><span id="visible-count">{len(files)}</span> / {len(files)} visible</div>
       </div>
+      <nav class="toc">{toc_html}</nav>
     </div>
     {''.join(sections)}
   </div>
@@ -487,6 +558,8 @@ def build_html(
       for (const section of sections) {{
         const hasVisible = section.querySelector('.card:not(.hidden)');
         section.classList.toggle('hidden', !hasVisible);
+        const chip = document.querySelector(`.toc-chip[data-folder="${{section.dataset.folder}}"]`);
+        if (chip) chip.classList.toggle('hidden', !hasVisible);
       }}
       count.textContent = String(visible);
     }}

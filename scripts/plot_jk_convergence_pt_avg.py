@@ -37,7 +37,7 @@ def main() -> None:
     for mode, groomed in (("ungroomed", False), ("groomed", True)):
         unfolder = Unfolder(spec, groomed, do_syst=False)
         unfolder.plot_jackknife_convergence_pt_avg(show=False, pt_min=200)
-        out = f"{spec.output_dir}unfold/jackknife_convergence_pt_avg_{mode}.pdf"
+        out = f"{spec.output_dir}validation/jackknife_convergence_pt_avg_{mode}.pdf"
         print(f"[zjet {args.observable} {mode}] wrote {out}")
 
 
