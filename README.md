@@ -258,4 +258,7 @@ The suite uses the stdlib `unittest` (no extra dependency).
   rho runner details.
 - [docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md)
   — the dijet groomed low-rho binning study.
+- [docs/ratio_curvature_regularization.md](docs/ratio_curvature_regularization.md)
+  — how the regularization L-matrix is modified (curvature of `x/x_MC`), with a
+  figure of its block-diagonal structure and the validation summary.
 - [inputs/README.md](inputs/README.md) — input file layout and provenance.
