@@ -2779,16 +2779,19 @@ class Unfolder:
                             (rect.get_x() + rect.get_width() / 2, rect.get_height()),
                             ha="center", va="bottom", fontsize=9)
         # PASS/FAIL is always the raw-chi2 inequality -- never chi2/ndf.
+        # Keep the canvas lean: only the two legend entries in-plot. The test
+        # statement, PASS/FAIL verdict, and bin-range note belong in the
+        # caption (deck/AN); the verdict is still printed for the log.
         passed = all(g["unfolded"]["chi2"] <= g["smeared"]["chi2"] + 1e-9 for g in groups)
         mode = "Groomed" if self.groomed else "Ungroomed"
-        title = (f"{mode}: bottom-line test  "
-                 r"$\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smeared}$  "
-                 + (r"$\checkmark$ PASS" if passed else r"$\times$ FAIL"))
-        if min_edge is not None:
-            title += f"\n(bins with $\\log_{{10}}(\\rho^2) \\geq {min_edge:g}$ only)"
-        if normalized:
-            title += "\n(test is on raw $\\chi^2$; bars show $\\chi^2/$ndf for reference)"
-        ax.legend(title=title, loc="upper right")
+        cut_note = "" if min_edge is None else f" (rho >= {min_edge:g})"
+        print(f"[bottom-line {mode.lower()}{cut_note}] "
+              + ("PASS" if passed else "FAIL"))
+        panel_id = mode if min_edge is None else (
+            mode + rf", $\log_{{10}}(\rho^2) \geq {min_edge:g}$")
+        ax.text(0.03, 0.97, panel_id, transform=ax.transAxes,
+                ha="left", va="top", fontsize=18)
+        ax.legend(loc="upper right", fontsize=16)
         ax.set_ylim(top=max(max(c_sm), max(c_unf)) * 4)
         hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
         suffix = "groomed" if self.groomed else "ungroomed"
