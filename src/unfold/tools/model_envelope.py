@@ -147,6 +147,37 @@ def compute_model_shifts(uf):
     return shifts
 
 
+def vincia_truth_by_pt(uf):
+    """True standalone-Vincia gen prediction, normalized like the plotted MC.
+
+    Histograms the path-B Vincia gen cache (60k selected events, CMS_ZJET_JETMASS
+    gen selection) into ``uf.gen_edges_by_pt`` per pT slice. Returns
+    ``{i: (density, stat_err)}`` in the same per-bin-width normalized units as
+    ``normalized_results[i]['true']``, or None when the cache is absent.
+    """
+    cache = WEIGHTER_DIR / "vincia_gen_cache.npz"
+    if not cache.exists():
+        return None
+    z = np.load(cache)
+    rho = z["v_rho_g"] if uf.groomed else z["v_rho_u"]
+    jet_pt = z["v_jet_pt"]
+    w = z["v_weight"]
+    pt_edges = np.asarray(uf.pt_edges, float)
+    out = {}
+    for i in range(len(uf.gen_edges_by_pt)):
+        edges = np.asarray(uf.gen_edges_by_pt[i], float)
+        m = (jet_pt >= pt_edges[i]) & (jet_pt < pt_edges[i + 1]) & np.isfinite(rho)
+        h, _ = np.histogram(rho[m], bins=edges, weights=w[m])
+        h2, _ = np.histogram(rho[m], bins=edges, weights=w[m] ** 2)
+        widths = np.diff(edges)
+        total = h.sum()
+        if total <= 0:
+            out[i] = (np.zeros(len(widths)), np.zeros(len(widths)))
+            continue
+        out[i] = (h / widths / total, np.sqrt(h2) / widths / total)
+    return out
+
+
 def group_model_shifts(shifts, n_pt):
     """Group raw source shifts into the reported components.
 

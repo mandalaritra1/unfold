@@ -2914,6 +2914,14 @@ class Unfolder:
             if has_herwig
             else None
         )
+        # True standalone-Vincia gen prediction (rho only; None if unavailable).
+        vincia_truth = None
+        if self.spec.name == "rho":
+            try:
+                from unfold.tools.model_envelope import vincia_truth_by_pt
+                vincia_truth = vincia_truth_by_pt(self)
+            except Exception:
+                vincia_truth = None
         for i in self._reported_pt_indices():
             fig, (ax_main, ax_ratio) = plt.subplots(
                 2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=(12, 10)
@@ -2962,6 +2970,13 @@ class Unfolder:
                 if hw_unc_up is not None:
                     plt.errorbar(centers, herwig_norm, yerr=[hw_unc_down, hw_unc_up], fmt='none',
                                  ecolor='r', elinewidth=1.5, capsize=3)
+            if vincia_truth is not None:
+                vincia_norm, vincia_err = vincia_truth[i]
+                plt.stairs(vincia_norm, self.gen_edges_by_pt[i],
+                           label=_mc_chi2_label('VINCIA', vincia_norm),
+                           color='m', ls='dashed', lw=2)
+                plt.errorbar(centers, vincia_norm, yerr=vincia_err, fmt='none',
+                             ecolor='m', elinewidth=1.5, capsize=3)
             plt.plot(centers, unfolded, color='k', lw=0, marker=markers[i], markersize=8, label='Unfolded')
 
             plt.legend(title = title_list[i], fontsize=14, title_fontsize=15)
@@ -2996,6 +3011,11 @@ class Unfolder:
                         centers, ratio_herwig, yerr=[rel_hw * hw_unc_down, rel_hw * hw_unc_up],
                         fmt='none', ecolor='r', elinewidth=1.2, capsize=2,
                     )
+            if vincia_truth is not None:
+                ratio_vincia = np.divide(
+                    unfolded, vincia_norm,
+                    out=np.zeros_like(unfolded), where=vincia_norm != 0)
+                plt.stairs(ratio_vincia, self.gen_edges_by_pt[i], color='m', ls='dashed', lw=2, label='Data / VINCIA')
             plt.ylim(0, 2)
             plt.xlabel(self._observable_label())
             plt.ylabel(r"$\frac{Data}{Simulation}$")

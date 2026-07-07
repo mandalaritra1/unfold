@@ -11,3 +11,7 @@ rho axis (fine 48-bin axis merged in pairs), so scaling the gen columns of the
 nominal response by w is EXACTLY equivalent to the per-event reskim (validated
 2026-07-07 at machine precision, and against a full UL18 casa reskim).
 Used by `unfold.tools.model_envelope` for the production model uncertainty.
+
+`vincia_gen_cache.npz` — the TRUE standalone Vincia gen prediction (path-B
+production, 60,764 selected events; v_jet_pt / v_rho_u / v_rho_g / v_weight),
+used to overlay VINCIA on the unfolded-result plots alongside PYTHIA8/HERWIG7.
