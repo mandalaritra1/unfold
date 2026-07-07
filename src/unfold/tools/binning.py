@@ -258,12 +258,13 @@ class bin_edges:
                  0.  ]
 
 
+            # merge everything below -3 into one low-rho bin (shown from -4.5);
             # last two bins merged into [-1, 0] ([-0.5, 0] alone is near-empty)
             self.gen_rho_edges_by_pt = [
-                [-10,  -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 1
-                [-10,  -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 2
-                [-10,  -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 3
-                [-10,  -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 4
+                [-10, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 1
+                [-10, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 2
+                [-10, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 3
+                [-10, -3, -2.5, -2, -1.5, -1, 0],  # pt bin 4
             ]
 
             self.reco_rho_edges_by_pt = [
