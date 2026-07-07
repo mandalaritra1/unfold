@@ -2122,7 +2122,7 @@ class Unfolder:
             "inequality_holds": bool(unfolded["chi2"] <= smeared["chi2"] + 1e-9),
         }
 
-    def bottom_line_test_by_pt(self):
+    def bottom_line_test_by_pt(self, min_edge=None):
         """Per-pT-slice bottom-line test, plus a reported-range global row.
 
         Same residual / covariance definitions as :meth:`bottom_line_test`,
@@ -2131,6 +2131,10 @@ class Unfolder:
         ``_chi2_from_covariance`` dicts. Used by the per-panel annotation and by
         the bottom-line chi2 bar chart. Returns ``(rows, global_row)`` or
         ``([], None)`` when the data-stat inputs are unavailable.
+
+        ``min_edge`` restricts both the gen and reco chi2 sums to bins whose
+        LOWER edge is >= min_edge (e.g. -2.5 drops the resolution-limited
+        low-rho merged bins from the comparison on both sides).
         """
         var_y = getattr(self, "corrected_measured_variances", None)
         cov_x = getattr(self, "cov_data_np", None)
@@ -2155,6 +2159,15 @@ class Unfolder:
                 continue
             gidx = list(range(gstart[i], gstart[i] + gcount[i]))
             ridx = list(range(rstart[i], rstart[i] + rcount[i]))
+            if min_edge is not None:
+                gedges = np.asarray(self.gen_edges_by_pt[i], float)
+                redges = np.asarray(self.reco_edges_by_pt[i], float)
+                gidx = [gstart[i] + j for j in range(gcount[i])
+                        if gedges[j] >= min_edge - 1e-9]
+                ridx = [rstart[i] + j for j in range(rcount[i])
+                        if redges[j] >= min_edge - 1e-9]
+                if not gidx or not ridx:
+                    continue
             hi = int(self.pt_edges[i + 1]) if i + 1 < len(self.pt_edges) - 1 else None
             rows.append({
                 "i": i, "pt_lo": int(self.pt_edges[i]), "pt_hi": hi,
@@ -2709,7 +2722,8 @@ class Unfolder:
             save_path = Path(self.spec.output_dir) / f"bottom_line_{mode}_{i - 1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
-    def plot_bottom_line_chi2_summary(self, show=True, normalized=False):
+    def plot_bottom_line_chi2_summary(self, show=True, normalized=False,
+                                      min_edge=None):
         r"""Grouped bar chart of chi2_smeared vs chi2_unfold per pT slice.
 
         Direct visual of the bottom-line inequality: the (blue) unfolded bar
@@ -2727,7 +2741,7 @@ class Unfolder:
         bar can sit above the smeared one even when the test passes. The
         PASS/FAIL flag therefore always reflects the raw-chi2 inequality.
         """
-        rows, glob = self.bottom_line_test_by_pt()
+        rows, glob = self.bottom_line_test_by_pt(min_edge=min_edge)
         if not rows:
             return
         labels, groups = [], []
@@ -2770,13 +2784,16 @@ class Unfolder:
         title = (f"{mode}: bottom-line test  "
                  r"$\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smeared}$  "
                  + (r"$\checkmark$ PASS" if passed else r"$\times$ FAIL"))
+        if min_edge is not None:
+            title += f"\n(bins with $\\log_{{10}}(\\rho^2) \\geq {min_edge:g}$ only)"
         if normalized:
             title += "\n(test is on raw $\\chi^2$; bars show $\\chi^2/$ndf for reference)"
         ax.legend(title=title, loc="upper right")
         ax.set_ylim(top=max(max(c_sm), max(c_unf)) * 4)
         hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
         suffix = "groomed" if self.groomed else "ungroomed"
-        stem = f"bottom_line_chi2{'_perndf' if normalized else ''}_summary_{suffix}.pdf"
+        cut_tag = f"_above{abs(min_edge):g}".replace(".", "") if min_edge is not None else ""
+        stem = f"bottom_line_chi2{'_perndf' if normalized else ''}_summary{cut_tag}_{suffix}.pdf"
         self._finalize_plot(
             save_path=Path(self.spec.output_dir) / stem,
             show=show, fig=fig,
@@ -2920,13 +2937,27 @@ class Unfolder:
                 baseline = unfolded - stat_unc,
                 fill = True, color = "darkgreen" , label = stat_label)
             pythia = np.array(self.normalized_results[i]['true'], dtype=float)
-            plt.stairs(pythia, self.gen_edges_by_pt[i], label = 'PYTHIA8', color = 'b', ls = 'dotted', lw = 3)
+            # Data-vs-MC chi2/ndf per panel using the total (stat + syst)
+            # uncertainty of the unfolded shape; the per-pT normalization
+            # constraint removes one dof.
+            def _mc_chi2_label(name, prediction):
+                sigma = np.maximum(syst_up, syst_down)
+                good = (sigma > 0) & np.isfinite(prediction)
+                ndf = max(int(good.sum()) - 1, 1)
+                chi2 = float(np.sum(
+                    ((unfolded[good] - prediction[good]) / sigma[good]) ** 2))
+                return rf"{name} ($\chi^2$/ndf = {chi2:.1f}/{ndf})"
+            plt.stairs(pythia, self.gen_edges_by_pt[i],
+                       label=_mc_chi2_label('PYTHIA8', pythia),
+                       color='b', ls='dotted', lw=3)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
                 plt.errorbar(centers, pythia, yerr=[py_unc_down, py_unc_up], fmt='none',
                              ecolor='b', elinewidth=1.5, capsize=3)
             if has_herwig:
-                plt.stairs(herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
+                plt.stairs(herwig_norm, self.gen_edges_by_pt[i],
+                           label=_mc_chi2_label('HERWIG7', herwig_norm),
+                           color='r', ls='dashdot', lw=2)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
                     plt.errorbar(centers, herwig_norm, yerr=[hw_unc_down, hw_unc_up], fmt='none',
@@ -5363,6 +5394,10 @@ class Unfolder:
         self.plot_bottom_line(show=show)
         self.plot_bottom_line_chi2_summary(show=show)
         self.plot_bottom_line_chi2_summary(show=show, normalized=True)
+        # Restricted variant: drop the resolution-limited low-rho bins
+        # (< -2.5) from both sides of the comparison.
+        self.plot_bottom_line_chi2_summary(show=show, min_edge=-2.5)
+        self.plot_bottom_line_chi2_summary(show=show, normalized=True, min_edge=-2.5)
         self.plot_fakes_misses(show=show)
         self.plot_purity_stability(show=show)
         if self.has_validation_inputs:
