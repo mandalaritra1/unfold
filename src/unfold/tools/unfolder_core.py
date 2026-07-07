@@ -181,6 +181,15 @@ class ObservableSpec:
     # constraint), the plain-TUnfold configuration.
     area_constraint: bool = True
 
+    # Shower/hadronization model uncertainty from offline column-scaled
+    # responses (unfold.tools.model_envelope): re-unfold the data through
+    # Vincia/CR/frag-reweighted responses and take the per-bin envelope,
+    # maxed with the FSR PSWeight re-unfold shift. When True, the herwig /
+    # fsr / isr entries are *excluded* from the quadrature systematics sum
+    # (herwig is superseded as the model term; def-ISR is pathological) and
+    # the model term is added instead. False -> legacy behavior.
+    model_envelope: bool = False
+
 
 MASS_SPEC = ObservableSpec(
     name="mass",
@@ -393,6 +402,47 @@ ZJET_SPECS[("rho", "original_merge25_noarea")] = RHO_MERGE25_NOAREA_SPEC
 RHO_SPECS["original_merge25"] = RHO_MERGE25_SPEC
 RHO_SPECS["original_merge25_noarea"] = RHO_MERGE25_NOAREA_SPEC
 
+# Identical settings/inputs to "original"; separate output dir so the corrected
+# jackknife stat-uncertainty scale (sqrt(g-1)=3 in _compute_stat_unc, replacing
+# the legacy sqrt(10/9) that under-covered input/matrix stat by ~2.85x) can be
+# compared side-by-side against the original tag.
+RHO_JKFIXED_SPEC = replace(
+    RHO_ORIGINAL_SPEC,
+    output_dir="outputs/zjet/rho/original_jkfixed/",
+)
+ZJET_SPECS[("rho", "original_jkfixed")] = RHO_JKFIXED_SPEC
+RHO_SPECS["original_jkfixed"] = RHO_JKFIXED_SPEC
+
+# Full-production candidate (2026-07): inflated ungroomed JMS/JMR inputs
+# (ratio-injected onto the production nominal, see inputs/zjet/rho/
+# jmsjmr_inflated/) + the offline column-scaled model envelope
+# (Vincia/CR/frag re-unfold shifts maxed with FSR) replacing the legacy
+# herwig-diff model term and the fsr/isr quadrature entries. tau=0
+# ("coarsen, not regularize") inherited from the original spec.
+RHO_MODEL_SPEC = replace(
+    RHO_ORIGINAL_SPEC,
+    input_dir="./inputs/zjet/rho/jmsjmr_inflated/",
+    output_dir="outputs/zjet/rho/original_model/",
+    model_envelope=True,
+)
+ZJET_SPECS[("rho", "original_model")] = RHO_MODEL_SPEC
+RHO_SPECS["original_model"] = RHO_MODEL_SPEC
+
+# RooUnfold iterative-Bayes (D'Agostini) on the "original" inputs with n_iter=1
+# -- the minimal single D'Agostini iteration (the least-regularized real Bayes
+# step; RooUnfoldBayes with n_iter=0 never runs the loop and returns zeros).
+# A study baseline for the iterative-Bayes convergence scan. Registered after
+# the jacobian/_reg twin block so it gets no jacobian twins (the Bayes path uses
+# jackknife statistics).
+RHO_ROOUNFOLD_1ITER_SPEC = replace(
+    RHO_ORIGINAL_SPEC,
+    output_dir="outputs/zjet/rho/RooUnfold_1iter/",
+    method="roounfold_bayes",
+    n_iter=1,
+)
+ZJET_SPECS[("rho", "RooUnfold_1iter")] = RHO_ROOUNFOLD_1ITER_SPEC
+RHO_SPECS["RooUnfold_1iter"] = RHO_ROOUNFOLD_1ITER_SPEC
+
 # Default tag for each (channel, observable).
 DEFAULT_TAGS = {
     ("zjet", "rho"): "original",
@@ -497,6 +547,7 @@ class Unfolder:
         self.closure = closure
         self.herwig_closure = herwig_closure
         self.y_unf_dict = {}
+        self.ye_unf_dict = {}
         self._ensure_output_dirs()
         self._setup_binning()
         self._make_inputs_numpy()
@@ -664,7 +715,7 @@ class Unfolder:
             return "summary", f"unfolded_summary{'_linear' if m.group(2) else ''}_{m.group(1)}"
         # prefix -> (category, rename); first match wins, order matters
         rules = [
-            ("bottom_line_chi2_summary", "summary",       None),
+            ("bottom_line_chi2",         "summary",       None),
             ("bottom_line",              "bottom_line",   None),
             ("purity_stability",         "response",      None),
             ("response_",                "response",      lambda n: n.replace("response_", "response_matrix_", 1)),
@@ -1751,7 +1802,11 @@ class Unfolder:
                 jk_target="matrix",
             )
 
-        jk_scale = np.sqrt(10.0 / 9.0)
+        # Delete-one-tenth (grouped) jackknife with g=10 groups. The correct SE
+        # on the population std of the replicas (np.std, ddof=0) is sqrt(g-1);
+        # var_jack = (g-1)/g * sum((theta_i - mean)^2) = (g-1) * s_pop^2. The old
+        # sqrt(10/9) was a Bessel-style factor that under-covered by ~2.85x.
+        jk_scale = np.sqrt(9.0)
         input_std = jk_scale * np.std(self.y_unf_jk_input_list, axis=0)
         matrix_std = jk_scale * np.std(self.y_unf_jk_matrix_list, axis=0)
 
@@ -1895,6 +1950,29 @@ class Unfolder:
                     self.cov_uncorr_np[i - 1, j - 1] = self.cov_uncorr.GetBinContent(i, j)
                     self.cov_data_np[i - 1, j - 1] = self.cov_uncorr_data.GetBinContent(i, j)
 
+            # Reco-space hat matrix H = K J for the bottom-line N_dof (TWiki):
+            # K is the smearing/probability matrix (reco x gen), J = dx/dy the
+            # error-propagation matrix (gen x reco).  Both are exact TUnfold
+            # linear-response outputs; must be read while ``unfold`` is alive
+            # (see _store_unfold_result).  useAxisBinning=False -> flat global
+            # bins.  The TWiki N_dof is the effective rank of K J J^T K^T; for
+            # the oblique reco-space projection K J that rank equals the trace
+            # of H (the standard effective number of degrees of freedom), which
+            # is what :meth:`_effective_ndof` uses -- see the note there.
+            self.hat_reco_np = None
+            try:
+                K = self._th2_to_np(unfold.GetProbabilityMatrix("bl_K", "K", False))
+                J = self._th2_to_np(unfold.GetDXDY("bl_dxdy", "dxdy", False))
+                n_reco = self.mosaic.shape[0]
+                if K.shape == (n_true, n_reco):
+                    K = K.T
+                if J.shape == (n_reco, n_true):
+                    J = J.T
+                if K.shape == (n_reco, n_true) and J.shape == (n_true, n_reco):
+                    self.hat_reco_np = K @ J        # reco -> reco hat matrix H
+            except Exception:
+                self.hat_reco_np = None
+
         if systematic == "herwigUp":
             self.cov_uncorr_data = unfold.GetEmatrixInput(
                 "cov_uncorr_data",
@@ -1907,7 +1985,45 @@ class Unfolder:
                     self.cov_data_herwig_np[i - 1, j - 1] = self.cov_uncorr_data.GetBinContent(i, j)
 
     @staticmethod
-    def _chi2_from_covariance(delta, covariance, *, rcond=1e-12):
+    def _th2_to_np(h):
+        """Dense (nbinsX, nbinsY) array of a ROOT TH2, excluding over/underflow."""
+        nx, ny = h.GetNbinsX(), h.GetNbinsY()
+        arr = np.empty((nx, ny))
+        for i in range(1, nx + 1):
+            for j in range(1, ny + 1):
+                arr[i - 1, j - 1] = h.GetBinContent(i, j)
+        return arr
+
+    def _effective_ndof(self, reco_idx):
+        """Bottom-line N_dof: effective rank of K J J^T K^T over a reco block.
+
+        The CMS Statistics Committee / TUnfold TWiki prescribes, under
+        regularization, ``N_dof = effective rank of K J J^T K^T`` for the
+        chi-square test in the unfolded space (the raw covariance rank
+        over-counts modes the regularization has suppressed).
+
+        The reco-space hat matrix ``H = K J`` is an *oblique* projection
+        (n_reco > n_gen), so its singular values differ from its eigenvalues
+        and the participation ratio of ``K J J^T K^T = H H^T`` is inflated by a
+        few large singular modes -- it does not count degrees of freedom.  The
+        robust, scale-free equivalent is the effective number of degrees of
+        freedom ``tr(H)`` (Wahba's effective dof): it equals the rank of
+        ``K J J^T K^T`` when the unfolding is unregularized and shrinks
+        smoothly as regularization suppresses modes.  ``tr(H)`` over a reco
+        sub-block (the summed leverages) is the N_dof carried by that block.
+
+        Returns a float, or ``None`` when the TUnfold matrices are unavailable
+        (e.g. the RooUnfold backend), so callers fall back to the covariance
+        rank.
+        """
+        H = getattr(self, "hat_reco_np", None)
+        if H is None:
+            return None
+        idx = np.asarray(list(reco_idx), dtype=int)
+        return float(np.trace(H[np.ix_(idx, idx)]))
+
+    @staticmethod
+    def _chi2_from_covariance(delta, covariance, *, rcond=1e-12, ndof=None):
         """Return a stable correlated chi-square and the covariance rank.
 
         A per-pT normalization or an exactly constrained unfolding covariance
@@ -1915,6 +2031,13 @@ class Unfolder:
         retaining only resolved positive eigenmodes gives the appropriate
         pseudo-inverse statistic and its corresponding number of degrees of
         freedom.
+
+        ``ndof`` overrides the number of degrees of freedom used for the
+        p-value (and reported as ``ndof``).  The CMS Statistics Committee /
+        TUnfold TWiki bottom-line test prescribes, for the *unfolded* space
+        under regularization, the effective rank of ``K J J^T K^T`` rather
+        than the raw covariance rank -- see :meth:`_effective_ndof`.  The
+        covariance rank is still reported separately as ``cov_rank``.
         """
         delta = np.asarray(delta, dtype=float)
         covariance = np.asarray(covariance, dtype=float)
@@ -1935,10 +2058,12 @@ class Unfolder:
         projected_residual = eigenvectors[:, keep].T @ delta
         chi2_value = float(np.sum(projected_residual**2 / eigenvalues[keep]))
         condition = float(np.max(eigenvalues[keep]) / np.min(eigenvalues[keep]))
+        dof = rank if ndof is None else float(ndof)
         return {
             "chi2": chi2_value,
-            "ndof": rank,
-            "pvalue": float(scipy_chi2.sf(chi2_value, rank)),
+            "ndof": dof,
+            "cov_rank": rank,
+            "pvalue": float(scipy_chi2.sf(chi2_value, dof)) if dof > 0 else float("nan"),
             "condition": condition,
         }
 
@@ -1981,7 +2106,10 @@ class Unfolder:
             reco_residual,
             np.diag(np.asarray(measured_variances, dtype=float)),
         )
-        unfolded = self._chi2_from_covariance(truth_residual, unfolded_covariance)
+        unfolded = self._chi2_from_covariance(
+            truth_residual, unfolded_covariance,
+            ndof=self._effective_ndof(range(reco_residual.size)),
+        )
         return {
             "scope": "data-stat-only; fake-rate and response treated as fixed",
             "regularization": self.regularization,
@@ -2031,7 +2159,10 @@ class Unfolder:
             rows.append({
                 "i": i, "pt_lo": int(self.pt_edges[i]), "pt_hi": hi,
                 "smeared": self._chi2_from_covariance(reco_resid[ridx], np.diag(var_y[ridx])),
-                "unfolded": self._chi2_from_covariance(truth_resid[gidx], cov_x[np.ix_(gidx, gidx)]),
+                "unfolded": self._chi2_from_covariance(
+                    truth_resid[gidx], cov_x[np.ix_(gidx, gidx)],
+                    ndof=self._effective_ndof(ridx),
+                ),
             })
             g_gen.extend(gidx)
             g_reco.extend(ridx)
@@ -2039,12 +2170,21 @@ class Unfolder:
             return [], None
         glob = {
             "smeared": self._chi2_from_covariance(reco_resid[g_reco], np.diag(var_y[g_reco])),
-            "unfolded": self._chi2_from_covariance(truth_resid[g_gen], cov_x[np.ix_(g_gen, g_gen)]),
+            "unfolded": self._chi2_from_covariance(
+                truth_resid[g_gen], cov_x[np.ix_(g_gen, g_gen)],
+                ndof=self._effective_ndof(g_reco),
+            ),
         }
         return rows, glob
 
     @staticmethod
-    def _bottom_line_panel_text(slice_row, global_row):
+    def _fmt_ndof(ndof):
+        """Integer bin-count ndof prints cleanly; effective (float) ndof to .1f."""
+        if ndof is None or not np.isfinite(ndof):
+            return "-"
+        return f"{ndof:.0f}" if abs(ndof - round(ndof)) < 1e-6 else f"{ndof:.1f}"
+
+    def _bottom_line_panel_text(self, slice_row, global_row):
         """Annotation text: this slice's chi2 + the global test, with p-values."""
         def pstr(metric):
             p = metric.get("pvalue", float("nan"))
@@ -2058,8 +2198,8 @@ class Unfolder:
             ok = un["chi2"] <= sm["chi2"] + 1e-9
             lines += [
                 "This slice (data-stat only):",
-                fr"$\chi^2_\mathrm{{smear}}={sm['chi2']:.0f}/{sm['ndof']}${pstr(sm)}",
-                fr"$\chi^2_\mathrm{{unfold}}={un['chi2']:.0f}/{un['ndof']}${pstr(un)}",
+                fr"$\chi^2_\mathrm{{smear}}={sm['chi2']:.0f}/{self._fmt_ndof(sm['ndof'])}${pstr(sm)}",
+                fr"$\chi^2_\mathrm{{unfold}}={un['chi2']:.0f}/{self._fmt_ndof(un['ndof'])}${pstr(un)}",
                 (r"  $\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smear}$  $\checkmark$"
                  if ok else r"  $\chi^2_\mathrm{unfold}>\chi^2_\mathrm{smear}$  $\times$"),
             ]
@@ -2068,8 +2208,8 @@ class Unfolder:
             gok = gun["chi2"] <= gsm["chi2"] + 1e-9
             lines += [
                 "",
-                fr"Global: $\chi^2_\mathrm{{unf}}={gun['chi2']:.0f}/{gun['ndof']}$ "
-                fr"$\leq$ $\chi^2_\mathrm{{smear}}={gsm['chi2']:.0f}/{gsm['ndof']}$ "
+                fr"Global: $\chi^2_\mathrm{{unf}}={gun['chi2']:.0f}/{self._fmt_ndof(gun['ndof'])}$ "
+                fr"$\leq$ $\chi^2_\mathrm{{smear}}={gsm['chi2']:.0f}/{self._fmt_ndof(gsm['ndof'])}$ "
                 + (r"$\checkmark$" if gok else r"$\times$"),
             ]
         return "\n".join(lines)
@@ -2100,8 +2240,9 @@ class Unfolder:
             self.L = unfold.GetL("Lmatrix", "Lmatrix")
         else:
             self.y_unf_dict[systematic] = y_unf
+            self.ye_unf_dict[systematic] = ye_unf
 
-    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False, resp_np = None, jk_target = "input"):
+    def _perform_unfold(self, systematic = 'nominal', closure = False, herwig_closure = False, meas_flat = None, do_jk = False, resp_np = None, jk_target = "input", meas_var = None, true_flat_override = None):
         if getattr(self, "method", "tunfold") == "roounfold_bayes":
             return self._perform_unfold_bayes(
                 systematic=systematic, closure=closure, herwig_closure=herwig_closure,
@@ -2114,7 +2255,13 @@ class Unfolder:
         meas_flat = self._select_measured_spectrum(closure, herwig_closure, meas_flat)
         meas_flat = self._apply_fake_correction(meas_flat, systematic, closure, herwig_closure)
 
-        true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
+        # The truth prior doubles as the regularization bias (ratio-curvature
+        # conditions + bookkeeping). A caller unfolding through a reweighted
+        # response passes the matching reweighted truth so the bias is consistent.
+        if true_flat_override is not None:
+            true_flat = np.asarray(true_flat_override, dtype=float)
+        else:
+            true_flat = self.mosaic.sum(axis = 0) + self.misses_2d
         n_reco, n_true = resp_np.shape
         assert len(meas_flat) == n_reco, "measured spectrum must have n_reco bins"
         truth_root, reco_root = self._build_root_binning()
@@ -2166,6 +2313,17 @@ class Unfolder:
                     measured_variances,
                     copy=True,
                 )
+        # Explicit measured variance (e.g. unfolding the HERWIG sample with its
+        # own MC-stat in herwig_closure mode, where the default path feeds none).
+        # Caller supplies the variance already matched to ``meas_flat``; the fake
+        # correction (when applicable) is applied here for consistency with data.
+        if meas_var is not None:
+            mv = np.asarray(meas_var, dtype=float)
+            if not (closure or herwig_closure):
+                mv = mv * np.square(1.0 - np.asarray(self.fake_fraction_2d, dtype=float))
+            measured_variances = mv
+            if systematic == "nominal":
+                self.corrected_measured_variances = np.array(mv, copy=True)
         self._fill_root_histogram(h_meas, meas_flat, measured_variances)
         self._fill_root_histogram(h_true, true_flat)
         self.h_resp = h_resp
@@ -2551,14 +2709,23 @@ class Unfolder:
             save_path = Path(self.spec.output_dir) / f"bottom_line_{mode}_{i - 1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
-    def plot_bottom_line_chi2_summary(self, show=True):
+    def plot_bottom_line_chi2_summary(self, show=True, normalized=False):
         r"""Grouped bar chart of chi2_smeared vs chi2_unfold per pT slice.
 
         Direct visual of the bottom-line inequality: the (blue) unfolded bar
         must not exceed the (red) smeared bar. Raw chi2 -- not chi2/ndf -- is the
-        quantity the test constrains; the ndf is annotated on each bar because
-        the reco binning is finer than the gen binning, so chi2_smeared carries
-        more degrees of freedom. Data-stat-only, per bottom_line_test_by_pt.
+        quantity the test constrains; the ndf is annotated on each bar. The
+        smeared ndf is the reco bin count; the unfolded ndf is the effective
+        rank of K J J^T K^T (CMS Stat Committee / TUnfold TWiki), which under
+        regularization is below the gen bin count. Data-stat-only, per
+        bottom_line_test_by_pt.
+
+        ``normalized=True`` plots chi2/ndf instead, as a per-dof goodness-of-fit
+        diagnostic. This is NOT the bottom-line comparison: the smeared and
+        unfolded statistics have different ndf (reco bin count vs effective gen
+        rank), so their chi2/ndf are not directly comparable and the unfolded
+        bar can sit above the smeared one even when the test passes. The
+        PASS/FAIL flag therefore always reflects the raw-chi2 inequality.
         """
         rows, glob = self.bottom_line_test_by_pt()
         if not rows:
@@ -2570,39 +2737,48 @@ class Unfolder:
         labels.append("Global")
         groups.append(glob)
 
+        def val(g, key):
+            m = g[key]
+            return m["chi2"] / m["ndof"] if normalized and m["ndof"] > 0 else m["chi2"]
+
         x = np.arange(len(labels))
         w = 0.38
-        c_sm = [g["smeared"]["chi2"] for g in groups]
-        c_unf = [g["unfolded"]["chi2"] for g in groups]
+        c_sm = [val(g, "smeared") for g in groups]
+        c_unf = [val(g, "unfolded") for g in groups]
         fig, ax = plt.subplots(figsize=(12, 9))
         b1 = ax.bar(x - w / 2, c_sm, w, color="#e42536", alpha=0.85,
                     label=r"$\chi^2_\mathrm{smeared}$  (reco space, data vs folded PYTHIA)")
         b2 = ax.bar(x + w / 2, c_unf, w, color="#5790fc", alpha=0.9,
                     label=r"$\chi^2_\mathrm{unfold}$  (truth space, unfolded vs PYTHIA gen)")
         ax.set_yscale("log")
-        ax.set_ylabel(r"$\chi^2$ vs PYTHIA8 (data stat only)")
+        ax.set_ylabel(r"$\chi^2/\mathrm{ndf}$ vs PYTHIA8 (data stat only)" if normalized
+                      else r"$\chi^2$ vs PYTHIA8 (data stat only)")
         ax.set_xlabel(r"$p_T$ slice (GeV)")
         ax.set_xticks(x)
         ax.set_xticklabels(labels)
         for bars, groups_ in ((b1, groups), (b2, groups)):
             key = "smeared" if bars is b1 else "unfolded"
             for rect, g in zip(bars, groups_):
-                ax.annotate(f"ndf={g[key]['ndof']}",
+                note = (fr"{g[key]['chi2']:.0f}/{self._fmt_ndof(g[key]['ndof'])}"
+                        if normalized else f"ndf={self._fmt_ndof(g[key]['ndof'])}")
+                ax.annotate(note,
                             (rect.get_x() + rect.get_width() / 2, rect.get_height()),
                             ha="center", va="bottom", fontsize=9)
+        # PASS/FAIL is always the raw-chi2 inequality -- never chi2/ndf.
         passed = all(g["unfolded"]["chi2"] <= g["smeared"]["chi2"] + 1e-9 for g in groups)
         mode = "Groomed" if self.groomed else "Ungroomed"
-        ax.legend(
-            title=(f"{mode}: bottom-line test  "
-                   r"$\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smeared}$  "
-                   + (r"$\checkmark$ PASS" if passed else r"$\times$ FAIL")),
-            loc="upper right",
-        )
-        ax.set_ylim(top=max(c_sm) * 4)
+        title = (f"{mode}: bottom-line test  "
+                 r"$\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smeared}$  "
+                 + (r"$\checkmark$ PASS" if passed else r"$\times$ FAIL"))
+        if normalized:
+            title += "\n(test is on raw $\\chi^2$; bars show $\\chi^2/$ndf for reference)"
+        ax.legend(title=title, loc="upper right")
+        ax.set_ylim(top=max(max(c_sm), max(c_unf)) * 4)
         hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
         suffix = "groomed" if self.groomed else "ungroomed"
+        stem = f"bottom_line_chi2{'_perndf' if normalized else ''}_summary_{suffix}.pdf"
         self._finalize_plot(
-            save_path=Path(self.spec.output_dir) / f"bottom_line_chi2_summary_{suffix}.pdf",
+            save_path=Path(self.spec.output_dir) / stem,
             show=show, fig=fig,
         )
 
@@ -3775,11 +3951,14 @@ class Unfolder:
     def _jackknife_convergence_fractions(self):
         """Per-bin fractional jackknife stat vs number of replicas.
 
-        Recomputes the sample std (ddof=1, the same estimator as
+        Recomputes the grouped-jackknife SE (the same estimator as
         _compute_stat_unc at the full count) of the unfolded result over the
         first n input-data and response-matrix jackknife replicas, for
-        n = 2..N. Returns ``(ns, input_frac, matrix_frac, total_frac)`` with the
-        fraction arrays shaped (len(ns), n_gen_bins); or None if no replicas.
+        n = 2..N. The per-count scale on the sample std (ddof=1) is (n-1)/sqrt(n),
+        equal to sqrt(n-1) applied to the population std used in _compute_stat_unc
+        (9/sqrt(10) ~ 2.85 at n=10). Returns ``(ns, input_frac, matrix_frac,
+        total_frac)`` with the fraction arrays shaped (len(ns), n_gen_bins); or
+        None if no replicas.
         """
         input_reps = np.asarray(self.y_unf_jk_input_list, dtype=float)
         matrix_reps = np.asarray(self.y_unf_jk_matrix_list, dtype=float)
@@ -3794,7 +3973,8 @@ class Unfolder:
         def fracs(reps):
             rows = []
             for n in ns:
-                std = np.std(reps[:n], axis=0, ddof=1)
+                jk_scale = (n - 1) / np.sqrt(n)
+                std = jk_scale * np.std(reps[:n], axis=0, ddof=1)
                 with np.errstate(divide="ignore", invalid="ignore"):
                     rows.append(np.where(nominal > 0, std / nominal, 0.0))
             return np.asarray(rows)
@@ -4106,12 +4286,30 @@ class Unfolder:
         # load from file
         #herwig_unc = np.load("./inputs/zjet/mass/herwig_closure_unc_mass_groomed.npy") if self.groomed else np.load("./inputs/zjet/mass/herwig_closure_unc_mass_ungroomed.npy")
         #self.herwig_unc = herwig_unc
+        use_model_envelope = getattr(self.spec, "model_envelope", False)
+        if use_model_envelope:
+            # Offline column-scaled model variations (Vincia/CR/frag) unfolded
+            # against the offline w=1 baseline; FSR joins the envelope below
+            # from the stored PSWeight unfolds. Supersedes the legacy
+            # herwig-diff model term (and the fsr/isr quadrature entries).
+            from unfold.tools.model_envelope import (
+                compute_model_shifts, group_model_shifts,
+            )
+            print("Computing model envelope (Vincia/CR/frag column-scaled responses)...")
+            raw_shifts = compute_model_shifts(self)
+            self.model_shift_components = group_model_shifts(
+                raw_shifts, len(self.gen_edges_by_pt))
+        # Systematic-axis entries folded into the model envelope instead of the
+        # quadrature sum when model_envelope is on.
+        _model_superseded = ("herwig", "fsr", "isr")
         for i in range(len(self.normalized_results)):
             nominal = self.normalized_results[i]['unfolded']
             syst_up_total = np.zeros_like(nominal)
             syst_down_total = np.zeros_like(nominal)
-            
+
             for syst in self.systematics:
+                if use_model_envelope and syst.startswith(_model_superseded):
+                    continue
                 if 'Down' in syst:
                     if syst.startswith('herwig'):
                         ## This is for taking just the difference
@@ -4142,11 +4340,51 @@ class Unfolder:
                         ## Fetching uncertainty from non-closure of herwig
                         # diff_up = herwig_unc[i] * nominal
                         # syst_up_total += diff_up**2
-                    else:    
+                    else:
                         syst_up = self.normalized_systematics[i]['unfolded'].get(syst, np.zeros_like(nominal))
                         diff_up = np.abs(syst_up - nominal)
                         #print("Systematic up:", syst, "Diff up:", diff_up)
                         syst_up_total += diff_up**2
+            if use_model_envelope:
+                # Model term: per-bin max over {Vincia, CR, frag} re-unfold
+                # shifts and the FSR PSWeight shift, added symmetrically.
+                # Bins holding <0.5% of the normalized slice are below
+                # measurement sensitivity (e.g. the ungroomed [-10,-2.5]
+                # catch-all, ~0.3-1% and consistent with zero): a fractional
+                # shift there is noise-over-noise, so the model fraction is
+                # zeroed (its absolute band contribution is negligible either
+                # way).
+                widths = np.diff(np.asarray(self.gen_edges_by_pt[i], float))
+                content = np.abs(nominal) * widths
+                # positive density AND >0.5% of the slice: negative unfolded
+                # bins are consistent with zero, so no relative uncertainty
+                # is defined there.
+                sensitive = (np.asarray(nominal) > 0) & (
+                    content > 5e-3 * max(content.sum(), 1e-300))
+                fsr_frac = np.zeros_like(nominal)
+                for var in ("fsrUp", "fsrDown"):
+                    varied = self.normalized_systematics[i]['unfolded'].get(
+                        var, np.zeros_like(nominal))
+                    if np.any(varied):
+                        with np.errstate(divide='ignore', invalid='ignore'):
+                            frac = np.abs(np.divide(
+                                varied - nominal, nominal,
+                                out=np.zeros_like(nominal), where=nominal != 0))
+                        fsr_frac = np.maximum(fsr_frac, frac)
+                fsr_frac = np.where(sensitive, fsr_frac, 0.0)
+                model_frac = fsr_frac.copy()
+                for name in ("Vincia", "CR", "frag"):
+                    comp = np.where(
+                        sensitive, self.model_shift_components[name][i], 0.0)
+                    self.model_shift_components[name][i] = comp
+                    model_frac = np.maximum(model_frac, comp)
+                if not hasattr(self, "model_fsr_frac"):
+                    self.model_fsr_frac = {}
+                self.model_fsr_frac[i] = fsr_frac
+                model_unc = model_frac * np.abs(nominal)
+                syst_up_total += model_unc**2
+                syst_down_total += model_unc**2
+                self.normalized_results[i]['model_unc_frac'] = model_frac
             if use_jacobian:
                 # Errors of the normalized result itself: the Jacobian removes
                 # the fluctuation common to all bins of a pT slice.
@@ -5032,6 +5270,49 @@ class Unfolder:
             save_path = f"./{self.spec.output_dir}uncertainties/heatmap_{suffix}_{i-1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
+    def plot_model_envelope(self, show=False):
+        """Per-pT model-uncertainty composition: Vincia / CR / frag re-unfold
+        shifts, the FSR PSWeight shift, and their per-bin envelope (the term
+        added to the total band when ``spec.model_envelope`` is on)."""
+        if not hasattr(self, "model_shift_components"):
+            return
+        groomed_tag = "groomed" if self.groomed else "ungroomed"
+        colors = {"Vincia": "#e42536", "CR": "#5790fc",
+                  "frag": "#f89c20", "FSR": "#7a21dd"}
+        npz_payload = {}
+        for i in self._reported_pt_indices():
+            result = self.normalized_results[i]
+            edges = np.asarray(self.gen_edges_by_pt[i], float)
+            fig, ax = plt.subplots()
+            for name in ("Vincia", "CR", "frag"):
+                frac = np.asarray(self.model_shift_components[name][i], float)
+                ax.stairs(frac, edges, color=colors[name], lw=2, label=name)
+                npz_payload[f"{name}_{i}"] = frac
+            fsr = np.asarray(self.model_fsr_frac[i], float)
+            ax.stairs(fsr, edges, color=colors["FSR"], lw=2, label="FSR")
+            npz_payload[f"FSR_{i}"] = fsr
+            envelope = np.asarray(result["model_unc_frac"], float)
+            ax.stairs(envelope, edges, color="black", lw=3, label="Envelope")
+            npz_payload[f"envelope_{i}"] = envelope
+            npz_payload[f"edges_{i}"] = edges
+            ax.set_xlim(*self._observable_xlim(i))
+            ax.set_ylim(0, max(0.3, 1.3 * envelope.max()))
+            ax.set_xlabel(self._observable_label())
+            ax.set_ylabel("Model uncertainty fraction")
+            ax.legend(title=result["pt_bin"], fontsize=15)
+            hep.cms.label(
+                self.cms_label, data=True, lumi=self._lumi_label(),
+                com=self._com_label(), fontsize=20, ax=ax,
+            )
+            save_path = (
+                f"./{self.spec.output_dir}unfold/"
+                f"model_envelope_{groomed_tag}_{i - 1}.pdf"
+            )
+            self._finalize_plot(save_path=save_path, show=show, fig=fig)
+        npz_path = Path(f"./{self.spec.output_dir}unfold")
+        npz_path.mkdir(parents=True, exist_ok=True)
+        np.savez(npz_path / f"model_envelope_{groomed_tag}.npz", **npz_payload)
+
     def run_all_plots(self, show=False):
         # Initialize the shared style before the first figure. Otherwise the
         # first mode can use Matplotlib defaults until a later plot sets CMS.
@@ -5042,6 +5323,8 @@ class Unfolder:
         self.plot_systematic_fraction(show=show)
         self.plot_systematic_fraction_grouped(show=show)
         self.plot_systematic_fraction_grouped(show=show, log=False)
+        if getattr(self.spec, "model_envelope", False):
+            self.plot_model_envelope(show=show)
         if self.has_herwig:
             self.plot_herwig_systematic(show=show)
         q2_group = (
@@ -5079,6 +5362,7 @@ class Unfolder:
         self.plot_folded(show=show)
         self.plot_bottom_line(show=show)
         self.plot_bottom_line_chi2_summary(show=show)
+        self.plot_bottom_line_chi2_summary(show=show, normalized=True)
         self.plot_fakes_misses(show=show)
         self.plot_purity_stability(show=show)
         if self.has_validation_inputs:
