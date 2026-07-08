@@ -3061,6 +3061,11 @@ class Unfolder:
                 if hw_unc_up is not None:
                     plt.errorbar(centers, scale * herwig_norm, yerr=[scale * hw_unc_down, scale * hw_unc_up],
                                  fmt='none', ecolor='r', elinewidth=1.2, capsize=2)
+            if vincia_truth is not None:
+                vincia_norm, vincia_err = vincia_truth[i]
+                plt.stairs(scale * vincia_norm, self.gen_edges_by_pt[i], label='VINCIA', color='m', ls='dashed', lw=2)
+                plt.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
+                             fmt='none', ecolor='m', elinewidth=1.2, capsize=2)
             plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
             plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
             plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
