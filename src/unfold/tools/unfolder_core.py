@@ -4539,6 +4539,8 @@ class Unfolder:
             return "Lepton SFs"
         if syst_lower.startswith("isr") or syst_lower.startswith("fsr"):
             return "Parton Shower"
+        if syst_lower.startswith("modelenvelope") or syst_lower.startswith("herwig"):
+            return "Model Uncertainty"
         if (
             syst_lower.startswith("pu")
             or syst_lower.startswith("pdf")
@@ -4556,6 +4558,7 @@ class Unfolder:
             "q2": r"Q$^2$ Scale",
             "pdf": "PDF",
             "herwig": "Model Uncertainty",
+            "modelenvelope": "Model Uncertainty",
             "isr": "ISR",
             "fsr": "FSR",
             "jms": "JMS",
@@ -4591,6 +4594,7 @@ class Unfolder:
             "q2": "Q2 Scale",
             "l1prefiring": "L1 Prefiring",
             "herwig": "Model Uncertainty",
+            "modelenvelope": "Model Uncertainty",
         }
         if base_lower.startswith("jes"):
             return "JES"
@@ -4612,11 +4616,23 @@ class Unfolder:
         total_syst_up = result["syst_unc"]["up"]
         total_syst_down = result["syst_unc"]["down"]
         syst_fraction_dict = {}
+        use_model_envelope = getattr(self.spec, "model_envelope", False)
 
         for syst_name, syst_unfolded in self.normalized_systematics[pt_index]["unfolded"].items():
+            # With the model envelope on, herwig/fsr/isr are superseded in the
+            # total (see _compute_total_systematic); showing their legacy
+            # curves would misrepresent the decomposition.
+            if use_model_envelope and syst_name.startswith(("herwig", "fsr", "isr")):
+                continue
             diff = syst_unfolded - nominal
             syst_fraction = np.abs(np.divide(diff, nominal, out=np.zeros_like(diff), where=nominal != 0))
             syst_fraction_dict[syst_name] = syst_fraction
+
+        if use_model_envelope and "model_unc_frac" in result:
+            # The actual model term entering the total: envelope of the
+            # Vincia/CR/frag re-unfold shifts and the FSR variation.
+            syst_fraction_dict["modelenvelopeUp"] = np.asarray(
+                result["model_unc_frac"], float)
 
         stat_fraction = self.stat_unc_pt_binned[pt_index]
         total_syst_fraction_up = np.abs(np.divide(total_syst_up, np.abs(nominal), out=np.zeros_like(total_syst_up), where=np.abs(nominal) != 0))
