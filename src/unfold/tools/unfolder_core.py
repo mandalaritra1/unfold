@@ -1350,13 +1350,27 @@ class Unfolder:
         mass_edges_reco = self.edges
         mass_edges_gen = self.edges_gen
 
-        fakes = pythia2d.project('ptreco', self.reco_axis, 'systematic')[:, :, 'nominal'] + (-1)*pythia4d.project('ptreco', self.reco_axis, 'systematic')[:, :, 'nominal']
-        fakes_herwig = herwig2d.project('ptreco', self.reco_axis, 'systematic') + (-1)*herwig4d.project('ptreco', self.reco_axis, 'systematic')
+        # Fakes/misses are derived by subtracting the matched matrix from the
+        # reco/gen spectra. The matched term must sum over the IN-RANGE pt bins
+        # only (exclude pt flow): from ARC round-2 the low sink bin is [185,200]
+        # rather than [0,200], so the pt axis now has underflow (jets below 185).
+        # A flow-inclusive projection would fold a cross-boundary event (gen<185 &
+        # reco>=185, or reco<185 & gen>=185) back into "matched", cancelling it
+        # out of fakes/misses -- yet the matrix itself is built with flow=False
+        # and drops it, so it would leak out of both and bias the result. Summing
+        # only the in-range pt bins puts those events where they belong: gen<185 &
+        # reco>=185 -> fake, reco<185 & gen>=185 -> miss. No-op while the pt axis
+        # starts at 0 (pt flow is empty); see scripts/study_pt_sink_flow.py.
+        def _sum_inrange_pt(h, pt_axis):
+            return h[{pt_axis: slice(0, len(h.axes[pt_axis]), sum)}]
+
+        fakes = pythia2d.project('ptreco', self.reco_axis, 'systematic')[:, :, 'nominal'] + (-1)*_sum_inrange_pt(pythia4d, 'ptgen').project('ptreco', self.reco_axis, 'systematic')[:, :, 'nominal']
+        fakes_herwig = herwig2d.project('ptreco', self.reco_axis, 'systematic') + (-1)*_sum_inrange_pt(herwig4d, 'ptgen').project('ptreco', self.reco_axis, 'systematic')
         self.fakes = fakes
         self.fakes_herwig = fakes_herwig
 
-        misses = pythia_gen2d.project('ptgen', self.gen_axis, 'systematic')[:, :, 'nominal'] + (-1)*pythia4d.project('ptgen', self.gen_axis, 'systematic')[:, :, 'nominal']
-        misses_herwig = herwig_gen2d.project('ptgen', self.gen_axis, 'systematic') + (-1)*herwig4d.project('ptgen', self.gen_axis, 'systematic')
+        misses = pythia_gen2d.project('ptgen', self.gen_axis, 'systematic')[:, :, 'nominal'] + (-1)*_sum_inrange_pt(pythia4d, 'ptreco').project('ptgen', self.gen_axis, 'systematic')[:, :, 'nominal']
+        misses_herwig = herwig_gen2d.project('ptgen', self.gen_axis, 'systematic') + (-1)*_sum_inrange_pt(herwig4d, 'ptreco').project('ptgen', self.gen_axis, 'systematic')
         self.misses = misses
         self.misses_herwig = misses_herwig
         self.y_true_herwig = self._prepare_truth_spectrum(
