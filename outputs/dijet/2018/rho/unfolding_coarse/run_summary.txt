@@ -1,0 +1,11 @@
+dijet 2018 rho unfolding
+ROOT: 6.39.99
+data: /Users/aritra/Projects/unfold/.claude/worktrees/objective-swanson-22e275/inputs/dijet/rho/minimal_rho_dijet_data_2018.pkl
+MC: /Users/aritra/Projects/unfold/.claude/worktrees/objective-swanson-22e275/inputs/dijet/rho/minimal_rho_dijet_mg_pythia8_2018.pkl
+systematics: 23 including nominal
+plots: shared Unfolder.run_all_plots Z+jet format
+uncertainties: partial (input statistics + available response variations)
+excluded: response MC statistics, HERWIG/model uncertainty
+validation: deferred
+ungroomed: response=[60, 30], unfolded bins=30, fake fraction=[0, 1]
+groomed: response=[132, 48], unfolded bins=48, fake fraction=[0.006056, 0.2044]

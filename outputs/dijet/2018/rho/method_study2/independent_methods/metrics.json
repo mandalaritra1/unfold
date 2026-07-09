@@ -1,0 +1,424 @@
+{
+  "groomed": {
+    "central_crosscheck": {
+      "forward_fold_spline": {
+        "per_pt": {
+          "1": {
+            "median_pct": 90.59869925497041,
+            "max_pct": 92.17546357468056
+          },
+          "2": {
+            "median_pct": 8.729543711184572,
+            "max_pct": 139.22675403610683
+          },
+          "3": {
+            "median_pct": 9.04933274187526,
+            "max_pct": 99.77018217965579
+          },
+          "4": {
+            "median_pct": 12.705609642940507,
+            "max_pct": 30.91674912212824
+          },
+          "5": {
+            "median_pct": 9.721719576313825,
+            "max_pct": 72.74619792249055
+          }
+        },
+        "median_of_slice_medians_pct": 9.721719576313825,
+        "max_over_slices_pct": 139.22675403610683
+      },
+      "positive_regularized": {
+        "per_pt": {
+          "1": {
+            "median_pct": 5.992591400612707,
+            "max_pct": 20.91474762356318
+          },
+          "2": {
+            "median_pct": 3.77607415925173,
+            "max_pct": 9.342837136945315
+          },
+          "3": {
+            "median_pct": 5.100988703328724,
+            "max_pct": 24.960171333757643
+          },
+          "4": {
+            "median_pct": 4.189390765824063,
+            "max_pct": 8.669028382825905
+          },
+          "5": {
+            "median_pct": 5.603616258349326,
+            "max_pct": 15.048802141124828
+          }
+        },
+        "chosen_tau": 31.622776601683793,
+        "median_of_slice_medians_pct": 5.100988703328724,
+        "max_over_slices_pct": 24.960171333757643
+      }
+    },
+    "forward_fold_fit": {
+      "1": {
+        "scale": 0.0550696265829793,
+        "scale_rel_err": 0.5920313619436266,
+        "n_knots": 4,
+        "chi2_ndf": 551.0634601184031
+      },
+      "2": {
+        "scale": 0.9980141019787073,
+        "scale_rel_err": 0.053928525665365636,
+        "n_knots": 4,
+        "chi2_ndf": 2.05442296315235
+      },
+      "3": {
+        "scale": 0.9406716110318742,
+        "scale_rel_err": 0.06755274062755758,
+        "n_knots": 4,
+        "chi2_ndf": 4.154887632363927
+      },
+      "4": {
+        "scale": 0.8042286054280817,
+        "scale_rel_err": 0.1227613702057666,
+        "n_knots": 4,
+        "chi2_ndf": 8.844676440752007
+      },
+      "5": {
+        "scale": 0.641705345928078,
+        "scale_rel_err": 0.2068401352159096,
+        "n_knots": 4,
+        "chi2_ndf": 18.351083094302222
+      }
+    },
+    "posreg_tau_scan": [
+      {
+        "tau": 0.01,
+        "osc": 0.2598273370118882,
+        "neg": 0
+      },
+      {
+        "tau": 0.03162277660168379,
+        "osc": 0.2591238887742663,
+        "neg": 0
+      },
+      {
+        "tau": 0.1,
+        "osc": 0.2523600208192929,
+        "neg": 0
+      },
+      {
+        "tau": 0.31622776601683794,
+        "osc": 0.32339508417503104,
+        "neg": 0
+      },
+      {
+        "tau": 1.0,
+        "osc": 0.24876083549206507,
+        "neg": 0
+      },
+      {
+        "tau": 3.1622776601683795,
+        "osc": 0.13902867115128953,
+        "neg": 0
+      },
+      {
+        "tau": 10.0,
+        "osc": 0.10006307148322069,
+        "neg": 0
+      },
+      {
+        "tau": 31.622776601683793,
+        "osc": 0.04692332495770646,
+        "neg": 0
+      },
+      {
+        "tau": 100.0,
+        "osc": 0.00936553096149445,
+        "neg": 0
+      }
+    ],
+    "stat_audit": {
+      "tag_quoted_input_err": {
+        "median_pct": 0.024673184619189534,
+        "p90_pct": 0.14898160760377196,
+        "max_pct": 1.0840207217294566,
+        "source": "outputs/dijet/2018/rho/unfolding_bayes/artifacts/groomed_results.npz"
+      },
+      "toy_data_only": {
+        "median_pct": 0.41766063818804344,
+        "p90_pct": 2.0480191723056325,
+        "max_pct": 6.3968588606206165
+      },
+      "toy_data_plus_response": {
+        "median_pct": 0.43424254343208646,
+        "p90_pct": 1.9782257999068482,
+        "max_pct": 6.138187327276954
+      },
+      "honest_over_quoted_ratio_median": 16.927715032911014,
+      "source_defect": {
+        "implied_rel_from_sqrtN_median_pct": 0.02785638052797146,
+        "honest_rel_from_sumw2_median_pct": 0.483908110682762,
+        "sumw2_over_N_median": 246.55145434538738,
+        "underestimate_factor_median": 15.701957022785006,
+        "defect_file_line": "src/unfold/tools/roounfold_backend.py:63",
+        "diagnosis": "run_rho_unfolding.py:134-136 writes unfolded_input_errors = sqrt(diag(cov_data_np)). In the bayes path (unfolder_core.py:2437-2439,2484) cov_data_np = RooUnfoldBayes.Eunfold(kCovariance) (roounfold_backend.py:136), which propagates ONLY the data-histogram bin errors. Those bin errors are hard-coded to sqrt(|content|)=sqrt(N) at roounfold_backend.py:63 (_np_to_th1), discarding the stored sumw2. The dijet data is prescale-weighted so sumw2/N ~ 247; the honest per-bin stat is sqrt(247) ~ 15.7x larger. The manifest's stat_propagation='legacy' (jackknife) is vacuous: dijet has NO jackknife inputs (has_jackknife=False, unfolder_core.py:615)."
+      },
+      "n_iter_regularization_systematic": {
+        "n2_vs_n4": {
+          "median_pct": 3.4544115888997498,
+          "p90_pct": 7.313204472893081,
+          "max_pct": 14.107936577930483
+        },
+        "n6_vs_n4": {
+          "median_pct": 1.6650781725927746,
+          "p90_pct": 4.233539782700101,
+          "max_pct": 10.588572203641878
+        }
+      }
+    },
+    "prior_dependence": {
+      "n_iter_4": {
+        "max_minus_min_spread": {
+          "median_pct": 12.920839698467876,
+          "p90_pct": 286.1101817589783,
+          "max_pct": 1088.82385008795
+        },
+        "tilt_0p6_1p4_vs_nominal": {
+          "median_pct": 1.436866520189259,
+          "p90_pct": 10.20467698741297,
+          "max_pct": 34.92561531031526
+        },
+        "flat_in_x_vs_nominal": {
+          "median_pct": 12.920839698467876,
+          "p90_pct": 275.65292995246216,
+          "max_pct": 1053.8982347776348
+        }
+      },
+      "n_iter_10": {
+        "max_minus_min_spread": {
+          "median_pct": 9.612309960248533,
+          "p90_pct": 94.55872798046259,
+          "max_pct": 516.4128049300779
+        },
+        "tilt_0p6_1p4_vs_nominal": {
+          "median_pct": 0.43865431509571706,
+          "p90_pct": 5.328570471699866,
+          "max_pct": 29.479141191941643
+        },
+        "flat_in_x_vs_nominal": {
+          "median_pct": 8.995153638069779,
+          "p90_pct": 88.98304583736699,
+          "max_pct": 486.93366373813626
+        }
+      }
+    }
+  },
+  "ungroomed": {
+    "central_crosscheck": {
+      "forward_fold_spline": {
+        "per_pt": {
+          "1": {
+            "median_pct": 95.4881194888886,
+            "max_pct": 97.06182102988271
+          },
+          "2": {
+            "median_pct": 93.02762900759706,
+            "max_pct": 96.93862720228303
+          },
+          "3": {
+            "median_pct": 31.285751971469626,
+            "max_pct": 65.6581338954162
+          },
+          "4": {
+            "median_pct": 23.161686539133303,
+            "max_pct": 444.9958664095666
+          },
+          "5": {
+            "median_pct": 11.939127067843902,
+            "max_pct": 102.04708214658575
+          }
+        },
+        "median_of_slice_medians_pct": 31.285751971469626,
+        "max_over_slices_pct": 444.9958664095666
+      },
+      "positive_regularized": {
+        "per_pt": {
+          "1": {
+            "median_pct": 6.058524176903429,
+            "max_pct": 30.919265045994305
+          },
+          "2": {
+            "median_pct": 31.288260259461087,
+            "max_pct": 362.6688367473016
+          },
+          "3": {
+            "median_pct": 5.297228068213478,
+            "max_pct": 71.4131501226757
+          },
+          "4": {
+            "median_pct": 8.846232715921342,
+            "max_pct": 159.36316071933646
+          },
+          "5": {
+            "median_pct": 2.4663285217563335,
+            "max_pct": 43.18595148141058
+          }
+        },
+        "chosen_tau": 10.0,
+        "median_of_slice_medians_pct": 6.058524176903429,
+        "max_over_slices_pct": 362.6688367473016
+      }
+    },
+    "forward_fold_fit": {
+      "1": {
+        "scale": 0.19922693528643903,
+        "scale_rel_err": 0.268708525189544,
+        "n_knots": 4,
+        "chi2_ndf": 125.1707221564894
+      },
+      "2": {
+        "scale": 0.2248857178858463,
+        "scale_rel_err": 0.21622588469572532,
+        "n_knots": 4,
+        "chi2_ndf": 93.97043929985819
+      },
+      "3": {
+        "scale": 0.6419387453629218,
+        "scale_rel_err": 1.3623477374372153,
+        "n_knots": 4,
+        "chi2_ndf": 9.906389445388223
+      },
+      "4": {
+        "scale": 1.7311422136833328,
+        "scale_rel_err": 0.306217038536105,
+        "n_knots": 4,
+        "chi2_ndf": 0.6236152418454449
+      },
+      "5": {
+        "scale": 1.080915754661168,
+        "scale_rel_err": 0.43747716680601334,
+        "n_knots": 4,
+        "chi2_ndf": 1.9631444335767836
+      }
+    },
+    "posreg_tau_scan": [
+      {
+        "tau": 0.01,
+        "osc": 0.7507533881160888,
+        "neg": 0
+      },
+      {
+        "tau": 0.03162277660168379,
+        "osc": 0.6947983333125575,
+        "neg": 0
+      },
+      {
+        "tau": 0.1,
+        "osc": 0.35434565607361274,
+        "neg": 0
+      },
+      {
+        "tau": 0.31622776601683794,
+        "osc": 0.26054837818113746,
+        "neg": 0
+      },
+      {
+        "tau": 1.0,
+        "osc": 0.19332645498023582,
+        "neg": 0
+      },
+      {
+        "tau": 3.1622776601683795,
+        "osc": 0.06973535030705945,
+        "neg": 0
+      },
+      {
+        "tau": 10.0,
+        "osc": 0.024551445615963452,
+        "neg": 0
+      },
+      {
+        "tau": 31.622776601683793,
+        "osc": 0.0028066782281142566,
+        "neg": 0
+      },
+      {
+        "tau": 100.0,
+        "osc": 0.000624811503433409,
+        "neg": 0
+      }
+    ],
+    "stat_audit": {
+      "tag_quoted_input_err": {
+        "median_pct": 0.031948364493276406,
+        "p90_pct": 0.14099862938904595,
+        "max_pct": 1.2223560971174916,
+        "source": "outputs/dijet/2018/rho/unfolding_bayes/artifacts/ungroomed_results.npz"
+      },
+      "toy_data_only": {
+        "median_pct": 0.6396806287495673,
+        "p90_pct": 11.553961532738654,
+        "max_pct": 82.48678771313486
+      },
+      "toy_data_plus_response": {
+        "median_pct": 0.7339717927101794,
+        "p90_pct": 37.56788913831139,
+        "max_pct": 112.70240935053462
+      },
+      "honest_over_quoted_ratio_median": 20.022327868588995,
+      "source_defect": {
+        "implied_rel_from_sqrtN_median_pct": 0.04813559841341257,
+        "honest_rel_from_sumw2_median_pct": 0.6748133236886763,
+        "sumw2_over_N_median": 258.21302178389095,
+        "underestimate_factor_median": 16.06900811450075,
+        "defect_file_line": "src/unfold/tools/roounfold_backend.py:63",
+        "diagnosis": "run_rho_unfolding.py:134-136 writes unfolded_input_errors = sqrt(diag(cov_data_np)). In the bayes path (unfolder_core.py:2437-2439,2484) cov_data_np = RooUnfoldBayes.Eunfold(kCovariance) (roounfold_backend.py:136), which propagates ONLY the data-histogram bin errors. Those bin errors are hard-coded to sqrt(|content|)=sqrt(N) at roounfold_backend.py:63 (_np_to_th1), discarding the stored sumw2. The dijet data is prescale-weighted so sumw2/N ~ 247; the honest per-bin stat is sqrt(247) ~ 15.7x larger. The manifest's stat_propagation='legacy' (jackknife) is vacuous: dijet has NO jackknife inputs (has_jackknife=False, unfolder_core.py:615)."
+      },
+      "n_iter_regularization_systematic": {
+        "n2_vs_n4": {
+          "median_pct": 2.6669824580858466,
+          "p90_pct": 15.355670167899993,
+          "max_pct": 27.196617668459815
+        },
+        "n6_vs_n4": {
+          "median_pct": 1.4675215398752086,
+          "p90_pct": 12.031508686744507,
+          "max_pct": 26.457074790709612
+        }
+      }
+    },
+    "prior_dependence": {
+      "n_iter_4": {
+        "max_minus_min_spread": {
+          "median_pct": 21.68485307420925,
+          "p90_pct": 153.72462326002707,
+          "max_pct": 880.4139516019344
+        },
+        "tilt_0p6_1p4_vs_nominal": {
+          "median_pct": 0.08988914132128072,
+          "p90_pct": 1.7519080452118945,
+          "max_pct": 6.128286397091394
+        },
+        "flat_in_x_vs_nominal": {
+          "median_pct": 21.09740534512703,
+          "p90_pct": 153.30292025533677,
+          "max_pct": 880.4136287599271
+        }
+      },
+      "n_iter_10": {
+        "max_minus_min_spread": {
+          "median_pct": 5.032059640376942,
+          "p90_pct": 53.961913357813735,
+          "max_pct": 726.3153987912763
+        },
+        "tilt_0p6_1p4_vs_nominal": {
+          "median_pct": 0.03664381424317316,
+          "p90_pct": 0.9075716104392845,
+          "max_pct": 4.0660891466471325
+        },
+        "flat_in_x_vs_nominal": {
+          "median_pct": 4.879489096149522,
+          "p90_pct": 51.858466704023925,
+          "max_pct": 726.3150568785426
+        }
+      }
+    }
+  }
+}

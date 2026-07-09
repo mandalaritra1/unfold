@@ -80,11 +80,41 @@ class PreparedRhoInputs:
     herwig: dict[str, object] | None = None
 
 
-def channel_rho_binning(channel: str, groomed: bool) -> RhoAnalysisBinning:
-    """Return producer-compatible rho edges for one dijet/trijet mode."""
+BINNING_VARIANTS = ("default", "coarse")
+
+# Resolution-matched coarse gen binning (uniform across pT slices) from the
+# dijet method study (outputs/dijet/2018/rho/method_study2/{tunfold_rescue,
+# tail_split}/): the lowest bin is an unpublished edge/buffer bin (like the
+# pT<200 sink), then bins wide enough for an (effectively) unregularized
+# least-squares unfold to be as sane as the data/model compatibility allows
+# (prior-free candidate). Groomed publishes from [-5,-3] (purity 0.53-0.62,
+# cross-method 3-11%); splitting [-5,-4] off or any 0.5-wide bin below -3 is
+# method-dependent noise ('tail_split' study). Ungroomed cannot publish below
+# -2 (purity collapses, negative bins return).
+COARSE_GEN_EDGES = {
+    True: [-10.0, -5.0, -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0],  # groomed
+    False: [-10.0, -2.0, -1.5, -1.0, -0.5, 0.0],                   # ungroomed
+}
+# Reco keeps the native fine edges from one native bin below the first
+# interior gen edge (mirrors the default lower-edge convention).
+COARSE_RECO_LOWER = {True: -5.5, False: -2.25}
+
+
+def channel_rho_binning(
+    channel: str, groomed: bool, variant: str = "default"
+) -> RhoAnalysisBinning:
+    """Return producer-compatible rho edges for one dijet/trijet mode.
+
+    variant="coarse" swaps in the resolution-matched coarse gen binning above
+    (same for every pT slice); the default binning is unchanged.
+    """
 
     if channel not in CHANNELS:
         raise ValueError(f"Unsupported channel {channel!r}; choose from {CHANNELS}")
+    if variant not in BINNING_VARIANTS:
+        raise ValueError(
+            f"Unsupported binning variant {variant!r}; choose from {BINNING_VARIANTS}"
+        )
 
     pt_edges = [0.0, 200.0, 290.0, 400.0, 570.0, 760.0, 13000.0]
     rho_edges = [
@@ -98,6 +128,20 @@ def channel_rho_binning(channel: str, groomed: bool) -> RhoAnalysisBinning:
         -3.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0,
     ]
 
+    n_pt = len(pt_edges) - 1
+    if variant == "coarse":
+        gen_slice_edges = COARSE_GEN_EDGES[groomed][:]
+        reco_slice_edges = [-10.0] + [
+            edge for edge in rho_edges if edge >= COARSE_RECO_LOWER[groomed]
+        ]
+        return RhoAnalysisBinning(
+            pt_edges=pt_edges,
+            rho_edges=rho_edges,
+            rho_edges_gen=rho_edges_gen,
+            reco_rho_edges_by_pt=[reco_slice_edges[:] for _ in range(n_pt)],
+            gen_rho_edges_by_pt=[gen_slice_edges[:] for _ in range(n_pt)],
+        )
+
     reco_lower_edge = -4.75 if groomed else -2.75
     gen_lower_edge = -4.5 if groomed else -2.5
     reco_edges_by_pt = [-10.0] + [
@@ -106,7 +150,6 @@ def channel_rho_binning(channel: str, groomed: bool) -> RhoAnalysisBinning:
     gen_edges_by_pt = [-10.0] + [
         edge for edge in rho_edges_gen if edge >= gen_lower_edge
     ]
-    n_pt = len(pt_edges) - 1
     reco_edges_by_pt = [reco_edges_by_pt[:] for _ in range(n_pt)]
     gen_edges_by_pt = [gen_edges_by_pt[:] for _ in range(n_pt)]
 
@@ -290,6 +333,7 @@ def build_prepared_rho_inputs(
     files: RhoChannelFiles,
     *,
     systematic_renames: Mapping[str, str] | None = None,
+    binning_variant: str = "default",
 ) -> PreparedRhoInputs:
     """Adapt producer files without inventing missing systematics or samples."""
 
@@ -302,8 +346,8 @@ def build_prepared_rho_inputs(
     if systematic_renames:
         renames.update(systematic_renames)
     binning_by_mode = {
-        "ungroomed": channel_rho_binning(files.channel, False),
-        "groomed": channel_rho_binning(files.channel, True),
+        "ungroomed": channel_rho_binning(files.channel, False, binning_variant),
+        "groomed": channel_rho_binning(files.channel, True, binning_variant),
     }
     adapted_mc = {}
     adapted_data = {}

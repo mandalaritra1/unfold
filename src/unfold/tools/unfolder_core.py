@@ -540,6 +540,7 @@ class Unfolder:
         self.method = getattr(spec, "method", "tunfold")
         self.n_iter = getattr(spec, "n_iter", 4)
         self.has_jackknife = bool(compute_jackknife_stat)
+        self.channel = "zjet"
         self.has_herwig = True
         self.has_validation_inputs = True
         self.response_matrix_stat_available = True
@@ -584,6 +585,8 @@ class Unfolder:
         cms_label="Internal",
         lumi=59.7,
         com=13.0,
+        channel="prepared",
+        herwig_in_band=False,
     ):
         """Run the core unfolding from already adapted in-memory histograms.
 
@@ -595,6 +598,8 @@ class Unfolder:
 
         self = cls.__new__(cls)
         self.spec = spec
+        self.channel = channel
+        self.herwig_in_band = bool(herwig_in_band)
         self.reco_axis = spec.reco_axis
         self.gen_axis = spec.gen_axis
         self.groomed = groomed
@@ -617,13 +622,29 @@ class Unfolder:
         self.has_validation_inputs = False
         self.response_matrix_stat_available = False
         self.first_reported_pt_bin = 1
-        self.stat_uncertainty_method = "TUnfold input covariance"
+        self.stat_uncertainty_method = (
+            "RooUnfold propagated input covariance"
+            if self.method == "roounfold_bayes"
+            else "TUnfold input covariance"
+        )
         self.y_unf_dict = {}
+        self.ye_unf_dict = {}
         self.y_unf_jk_input_list = []
         self.y_unf_jk_matrix_list = []
         self._ensure_output_dirs()
         self._setup_prepared_binning(analysis_binning)
         self._load_prepared_inputs(mc_inputs, data_inputs, systematics, herwig_inputs)
+
+        # D'Agostini regularization systematic: the n_iter choice moves the
+        # result by ~1.5% (median) on dijet -- larger than the data-stat error
+        # -- so re-unfold with n_iter+-2 through the nominal response and fold
+        # the shifts into the systematic band like any other Up/Down pair.
+        if self.method == "roounfold_bayes":
+            for name in ("niterUp", "niterDown"):
+                self.mosaic_dict[name] = self.mosaic_dict["nominal"]
+                self.M_np_2d_dict[name] = self.M_np_2d_dict["nominal"]
+                if name not in self.systematics:
+                    self.systematics.append(name)
 
         self._perform_unfold(systematic="nominal")
         for systematic in self.systematics:
@@ -1130,19 +1151,22 @@ class Unfolder:
         self.pythia_4d = response_hist
 
         if herwig_inputs is not None:
-            self._setup_prepared_herwig(herwig_inputs)
+            self._setup_prepared_herwig(
+                herwig_inputs, in_band=getattr(self, "herwig_in_band", False)
+            )
         else:
             self.y_true_herwig = None
 
-    def _setup_prepared_herwig(self, herwig_inputs):
+    def _setup_prepared_herwig(self, herwig_inputs, in_band=False):
         """Build HERWIG state for the prepared-inputs path (dijet/trijet).
 
-        Mirrors the nominal MC setup for the HERWIG sample, then adds the
-        alternate-generator (model) uncertainty by registering the HERWIG
-        response as the herwigUp/herwigDown systematics: the data is re-unfolded
-        through it and the difference from nominal enters the total band (the
-        same mechanism the zjet path uses). Also stores the HERWIG gen
-        prediction and matched reco used by the HERWIG bias (non-closure) plot.
+        Mirrors the nominal MC setup for the HERWIG sample (gen overlay and
+        HERWIG bias / non-closure plot). Only when ``in_band=True`` is the
+        HERWIG response additionally registered as the herwigUp/herwigDown
+        systematics (data re-unfolded through it, difference folded into the
+        total band). Default is off for dijet/trijet: the HERWIG sample is
+        low-statistics and its response difference is dominated by amplified
+        MC noise (8-40% erratic shifts), so it is not a trusted model band.
         """
         keys = self._histogram_keys()
         reordered_herwig, mosaic_herwig = self._prepared_response_mosaic(
@@ -1172,17 +1196,19 @@ class Unfolder:
         self.herwig_gen_var_flat = herwig_gen_var
         self.has_herwig = True
 
-        # Register the HERWIG response as the herwigUp/herwigDown systematics so
-        # the existing systematics loop + _compute_total_systematic fold the
-        # alternate-generator difference in as "Model Uncertainty" (symmetric:
-        # both directions share the HERWIG mosaic).
-        self.mosaic_dict["herwigUp"] = mosaic_herwig
-        self.mosaic_dict["herwigDown"] = mosaic_herwig
-        self.M_np_2d_dict["herwigUp"] = reordered_herwig
-        self.M_np_2d_dict["herwigDown"] = reordered_herwig
-        for name in ("herwigUp", "herwigDown"):
-            if name not in self.systematics:
-                self.systematics.append(name)
+        # Optionally register the HERWIG response as the herwigUp/herwigDown
+        # systematics so the existing systematics loop +
+        # _compute_total_systematic fold the alternate-generator difference in
+        # as "Model Uncertainty" (symmetric: both directions share the HERWIG
+        # mosaic).
+        if in_band:
+            self.mosaic_dict["herwigUp"] = mosaic_herwig
+            self.mosaic_dict["herwigDown"] = mosaic_herwig
+            self.M_np_2d_dict["herwigUp"] = reordered_herwig
+            self.M_np_2d_dict["herwigDown"] = reordered_herwig
+            for name in ("herwigUp", "herwigDown"):
+                if name not in self.systematics:
+                    self.systematics.append(name)
 
     def _compute_input_stat_unc_from_covariance(self):
         """Use TUnfold's propagated data covariance when JK inputs are absent."""
@@ -2433,9 +2459,38 @@ class Unfolder:
             misses = getattr(self, "misses_2d_dict", {}).get(systematic, self.misses_2d)
         truth_flat = resp_np.sum(axis=0) + np.asarray(misses, dtype=float)
 
+        # Fake-corrected measured variances (stored sumw2), mirroring the
+        # TUnfold path: RooUnfold propagates the data histogram's bin errors
+        # into kErrors/kCovariance, so on weighted data (prescaled dijet
+        # triggers, sumw2/N ~ 250) they must be threaded through or the
+        # quoted stat errors are sqrt(N)-based and ~16x too small.
+        measured_variances = (
+            self.measured_variances
+            if uses_default_measurement and hasattr(self, "measured_variances")
+            else None
+        )
+        if measured_variances is not None:
+            fake_survival = 1.0 - np.asarray(self.fake_fraction_2d, dtype=float)
+            measured_variances = (
+                np.asarray(measured_variances, dtype=float) * np.square(fake_survival)
+            )
+            if systematic == "nominal" and not do_jk:
+                self.corrected_measured_variances = np.array(
+                    measured_variances, copy=True
+                )
+
+        # The n_iter+-2 regularization systematic re-unfolds the same data
+        # through the nominal response with more/fewer D'Agostini iterations.
+        n_iter = self.n_iter
+        if systematic == "niterUp":
+            n_iter = self.n_iter + 2
+        elif systematic == "niterDown":
+            n_iter = max(1, self.n_iter - 2)
+
         want_cov = (not do_jk) and systematic == "nominal" and not herwig_closure
-        out = bayes_unfold(resp_np, meas_flat, truth_flat, n_iter=self.n_iter,
-                           with_covariance=want_cov, tag=str(systematic))
+        out = bayes_unfold(resp_np, meas_flat, truth_flat, n_iter=n_iter,
+                           with_covariance=want_cov, tag=str(systematic),
+                           measured_variances=measured_variances)
         if want_cov:
             y_unf, ye_unf, cov = out
         else:
@@ -2463,19 +2518,15 @@ class Unfolder:
             col = np.divide(resp_np, truth_flat[None, :],
                             out=np.zeros_like(resp_np), where=truth_flat[None, :] != 0)
         self.y_meas = np.asarray(meas_flat, dtype=float)
-        self.ye_meas = np.sqrt(np.abs(self.y_meas))
+        if measured_variances is not None:
+            self.ye_meas = np.sqrt(np.clip(measured_variances, 0.0, None))
+        else:
+            self.ye_meas = np.sqrt(np.abs(self.y_meas))
         self.y_unf = y_unf
         self.ye_unf = ye_unf
         self.y_true = truth_flat
         self.x_folded = col @ y_unf
         self.L = None
-        # Fake-corrected measured variances (consumed by the dijet artifact
-        # writer and normalized-covariance code), mirroring the TUnfold path.
-        if uses_default_measurement and hasattr(self, "measured_variances"):
-            fake_survival = 1.0 - np.asarray(self.fake_fraction_2d, dtype=float)
-            self.corrected_measured_variances = (
-                np.asarray(self.measured_variances, dtype=float) * np.square(fake_survival)
-            )
         if cov is None:
             cov = np.diag(ye_unf ** 2)
         self.cov_np = cov
@@ -2918,8 +2969,10 @@ class Unfolder:
             else None
         )
         # True standalone-Vincia gen prediction (rho only; None if unavailable).
+        # The Vincia gen cache is produced with the CMS_ZJET_JETMASS selection,
+        # so the overlay is only valid for the zjet channel.
         vincia_truth = None
-        if self.spec.name == "rho":
+        if self.spec.name == "rho" and getattr(self, "channel", "zjet") == "zjet":
             try:
                 from unfold.tools.model_envelope import vincia_truth_by_pt
                 vincia_truth = vincia_truth_by_pt(self)
@@ -3329,7 +3382,7 @@ class Unfolder:
         # Save uncertainty in a file for later use
         if self.herwig_closure:
             groomed_tag = "groomed" if self.groomed else "ungroomed"
-            np.save(f"{self.spec.input_dir}herwig_closure_unc_{self.spec.name}_{groomed_tag}.npy", self.herwig_closure_unc)
+            np.save(self._herwig_closure_unc_path(groomed_tag), self.herwig_closure_unc)
             # if self.groomed:
             #     plt.xlim(0,250)
             #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
@@ -3338,6 +3391,22 @@ class Unfolder:
             #     plt.xlim(20,250)
             #     plt.xlabel("Groomed Jet Mass (GeV)" if self.groomed else "Ungroomed Jet Mass (GeV)")
             # plt.show()
+
+    def _herwig_closure_unc_path(self, groomed_tag):
+        """Target path for the herwig_closure_unc_*.npy export.
+
+        The spec's input_dir is the Z+jet inputs directory; when the shared
+        spec is reused by another channel (e.g. dijet) that directory may not
+        exist, so fall back to this run's own artifacts directory instead of
+        crashing (or silently polluting the zjet inputs).
+        """
+        input_dir = Path(self.spec.input_dir)
+        if not input_dir.is_dir():
+            input_dir = Path(self.spec.output_dir) / "artifacts"
+            input_dir.mkdir(parents=True, exist_ok=True)
+        return str(
+            input_dir / f"herwig_closure_unc_{self.spec.name}_{groomed_tag}.npy"
+        )
 
     def _ensure_herwig_bias_inputs(self):
         """Build the HERWIG reco mosaic needed for the bias test, on demand.
@@ -3525,7 +3594,7 @@ class Unfolder:
 
         # Persist the non-closure as the model-dependence systematic input.
         np.save(
-            f"{self.spec.input_dir}herwig_closure_unc_{self.spec.name}_{groomed_tag}.npy",
+            self._herwig_closure_unc_path(groomed_tag),
             np.array(self.herwig_closure_unc, dtype=object),
         )
 
@@ -4563,6 +4632,7 @@ class Unfolder:
             "fsr": "FSR",
             "jms": "JMS",
             "jmr": "JMR",
+            "niter": r"$n_\mathrm{iter}$ (D'Agostini)",
         }
         return label_map.get(base_name.lower(), base_name)
 
@@ -4595,6 +4665,7 @@ class Unfolder:
             "l1prefiring": "L1 Prefiring",
             "herwig": "Model Uncertainty",
             "modelenvelope": "Model Uncertainty",
+            "niter": "D'Agostini n_iter",
         }
         if base_lower.startswith("jes"):
             return "JES"
@@ -5015,6 +5086,11 @@ class Unfolder:
             self._finalize_plot(save_path=save_path, show=show)
 
     def plot_herwig_systematic(self, show=True):
+        if "herwigUp" not in self.y_unf_dict:
+            # HERWIG is not registered as an in-band systematic (no herwig
+            # re-unfold exists), so there is no herwig systematic to plot.
+            print("plot_herwig_systematic: skipped (herwig not in band)")
+            return
         flat_uncertainty = np.sqrt(np.diag(self.cov_data_herwig_np))/np.abs(self.y_unf_dict['herwigUp'])
         uncertainty_pt_binned = unflatten_gen_by_pt(flat_uncertainty, self.gen_edges_by_pt)
         unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf, self.gen_edges_by_pt)

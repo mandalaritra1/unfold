@@ -53,14 +53,27 @@ def load_roounfold():
     return ROOT
 
 
-def _np_to_th1(values, name):
+def _np_to_th1(values, name, variances=None):
+    """Convert a flat spectrum to a TH1D, carrying honest bin errors.
+
+    ``variances`` is the per-bin sumw2; bin errors are then
+    sqrt(max(sumw2, |content|)) -- the stored weighted variance with a Poisson
+    floor. Without it the error falls back to sqrt(|content|), which is only
+    correct for unweighted counts: on weighted spectra (prescale-weighted dijet
+    data has sumw2/N ~ 250) it underestimates the statistical error by
+    sqrt(sumw2/N), so pass the stored variances whenever they exist.
+    """
     import ROOT
 
     n = len(values)
     h = ROOT.TH1D(name, "", n, 0.0, float(n))
     for i, v in enumerate(values):
         h.SetBinContent(i + 1, float(v))
-        h.SetBinError(i + 1, float(np.sqrt(abs(v))))
+        if variances is None:
+            err = np.sqrt(abs(float(v)))
+        else:
+            err = np.sqrt(max(float(variances[i]), abs(float(v))))
+        h.SetBinError(i + 1, float(err))
     return h
 
 
@@ -85,6 +98,7 @@ def bayes_unfold(
     *,
     with_covariance=False,
     tag="rufold",
+    measured_variances=None,
 ):
     """Iterative-Bayes unfold one spectrum.
 
@@ -96,6 +110,11 @@ def bayes_unfold(
         (response_np.sum(axis=0) + misses); sets the efficiency and the prior.
     n_iter : int -- number of D'Agostini iterations (the regularization).
     with_covariance : bool -- if True also return the n_true x n_true covariance.
+    measured_variances : (n_reco,) array or None -- per-bin sumw2 of the
+        measured spectrum (already fake-corrected, matching ``measured_flat``).
+        RooUnfold's kErrors/kCovariance propagation starts from the data
+        histogram's bin errors, so on weighted data this MUST be supplied or
+        the returned errors/covariance are sqrt(N)-based and far too small.
 
     Returns
     -------
@@ -116,7 +135,7 @@ def bayes_unfold(
     h_resp = _np_to_th2(response_np, f"hResp_{sfx}")
     h_truth = _np_to_th1(truth_flat, f"hTruth_{sfx}")
     h_meas_train = _np_to_th1(response_np.sum(axis=1), f"hMeasTrain_{sfx}")
-    h_data = _np_to_th1(measured_flat, f"hData_{sfx}")
+    h_data = _np_to_th1(measured_flat, f"hData_{sfx}", variances=measured_variances)
 
     response = ROOT.RooUnfoldResponse(h_meas_train, h_truth, h_resp)
     response.UseOverflow(False)

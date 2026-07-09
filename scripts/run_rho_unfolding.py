@@ -85,6 +85,27 @@ def parse_args() -> argparse.Namespace:
         "--n-iter", type=int, default=4,
         help="D'Agostini iterations for --method roounfold_bayes (default 4).",
     )
+    parser.add_argument(
+        "--herwig-band", action="store_true",
+        help=(
+            "Fold the HERWIG-response difference into the systematic band as "
+            "herwigUp/herwigDown. Off by default: the dijet/trijet HERWIG "
+            "sample is low-statistics and its re-unfold difference is "
+            "dominated by amplified MC noise (8-40%% erratic shifts); HERWIG "
+            "remains available as a gen overlay and for the bias plot."
+        ),
+    )
+    parser.add_argument(
+        "--binning",
+        choices=("default", "coarse"),
+        default="default",
+        help=(
+            "Analysis binning variant. 'coarse' uses the resolution-matched "
+            "coarse gen binning from the dijet method study (single merged "
+            "low-rho tail bin, 0.5-wide bins above; same for every pT slice). "
+            "The default output dir gets a '_coarse' suffix."
+        ),
+    )
     args = parser.parse_args()
     if args.tau is not None and args.regularization == "none":
         parser.error("--tau requires --regularization ratio_curvature")
@@ -186,7 +207,9 @@ def main() -> None:
     # baseline outputs (mirrors the zjet '<tag>_jacobian[_reg]' convention).
     option_suffix = ("_jacobian" if args.jacobian else "") + (
         "_reg" if args.regularization != "none" else ""
-    ) + ("_bayes" if args.method == "roounfold_bayes" else "")
+    ) + ("_bayes" if args.method == "roounfold_bayes" else "") + (
+        "_coarse" if args.binning == "coarse" else ""
+    )
     output_dir = (
         args.output_dir
         if args.output_dir is not None
@@ -213,7 +236,7 @@ def main() -> None:
         args.channel,
         args.year,
     )
-    prepared = build_prepared_rho_inputs(files)
+    prepared = build_prepared_rho_inputs(files, binning_variant=args.binning)
     summaries = []
     artifacts = []
     resolved_taus = {}
@@ -245,6 +268,8 @@ def main() -> None:
             cms_label=args.cms_label,
             lumi=args.lumi,
             com=args.com,
+            channel=args.channel,
+            herwig_in_band=args.herwig_band,
         )
 
         # Keep plot definitions and formatting in the shared Z+jet Unfolder.
@@ -272,6 +297,7 @@ def main() -> None:
         "integrated_luminosity_fb-1": args.lumi,
         "center_of_mass_energy_TeV": args.com,
         "stat_propagation": "jacobian" if args.jacobian else "legacy",
+        "binning_variant": args.binning,
         "regularization": args.regularization,
         "tau": {"requested": args.tau, "resolved_by_mode": resolved_taus},
         "root_version": ROOT.gROOT.GetVersion(),
@@ -301,17 +327,31 @@ def main() -> None:
         "systematics": prepared.systematics,
         "uncertainty_scope": {
             "included": [
-                "TUnfold-propagated input data statistical covariance",
+                (
+                    "RooUnfold-propagated input data statistical covariance "
+                    "(stored sumw2 bin errors, Poisson-floored)"
+                    if args.method == "roounfold_bayes"
+                    else "TUnfold-propagated input data statistical covariance"
+                ),
                 "available MG+PYTHIA8 response variations",
             ] + (
+                ["D'Agostini n_iter+-2 regularization systematic"]
+                if args.method == "roounfold_bayes"
+                else []
+            ) + (
                 ["alternate-generator (HERWIG) model uncertainty"]
-                if prepared.herwig is not None else []
+                if (prepared.herwig is not None and args.herwig_band) else []
             ),
             "unavailable": [
                 "response-matrix statistical uncertainty (no jackknife inputs)",
             ] + (
-                [] if prepared.herwig is not None
-                else ["alternate-generator/model uncertainty (no HERWIG sample)"]
+                [] if (prepared.herwig is not None and args.herwig_band)
+                else [
+                    "alternate-generator/model uncertainty ("
+                    + ("HERWIG band disabled: low-stat sample, amplified-noise shifts"
+                       if prepared.herwig is not None else "no HERWIG sample")
+                    + ")"
+                ]
             ),
             "label": "partial",
         },
@@ -344,9 +384,10 @@ def main() -> None:
         f"systematics: {len(prepared.systematics)} including nominal",
         "plots: shared Unfolder.run_all_plots Z+jet format",
         "uncertainties: partial (input statistics + available response variations"
-        + (" + HERWIG model uncertainty)" if prepared.herwig is not None else ")"),
+        + (" + HERWIG model uncertainty)"
+           if (prepared.herwig is not None and args.herwig_band) else ")"),
         ("excluded: response MC statistics"
-         if prepared.herwig is not None
+         if (prepared.herwig is not None and args.herwig_band)
          else "excluded: response MC statistics, HERWIG/model uncertainty"),
         "validation: deferred",
     ]
