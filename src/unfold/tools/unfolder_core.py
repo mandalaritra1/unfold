@@ -288,8 +288,9 @@ RHO_FIXED_JEC_SPEC = ObservableSpec(
         "reco": "ptjet_rhojet_u_reco",
         "gen": "ptjet_rhojet_u_gen",
     },
-    x_label_groomed=r"$\log_{10}(\rho^2)$, Groomed",
-    x_label_ungroomed=r"$\log_{10}(\rho^2)$, Ungroomed",
+    # ARC round-2: lowercase groomed/ungroomed everywhere
+    x_label_groomed=r"$\log_{10}(\rho^2)$, groomed",
+    x_label_ungroomed=r"$\log_{10}(\rho^2)$, ungroomed",
     short_label_groomed=r"$\log_{10}(\rho^2)$, Groomed",
     short_label_ungroomed=r"$\log_{10}(\rho^2)$, Ungroomed",
     xlim_lower_groomed=-4.5,
@@ -4694,6 +4695,7 @@ class Unfolder:
         return grouped_fraction_dict
 
     def _plot_systematic_fraction_summary(self, grouped=False, show=True, log=True):
+        hep.style.use("CMS")
         self.syst_fraction_dicts = []
         linear_ymax = 0.5
         grouped_legend_order = [
@@ -4703,40 +4705,59 @@ class Unfolder:
             "Lepton SFs",
             "Other Theory",
             "Model Uncertainty",
+            "Shower Model",
+            "Hadronization Model",
             "Stat Unc",
             "Total",
         ]
+        # ARC round-2 casing for the legend; internal group keys unchanged.
+        display_name = {
+            "Jet Energy": "Jet energy",
+            "Jet Mass": "Jet mass",
+            "Parton Shower": "Parton shower",
+            "Lepton SFs": "Lepton scale factors",
+            "Other Theory": "Other theory",
+            "Model Uncertainty": "Model uncertainty",
+            "Shower Model": "Shower model",
+            "Hadronization Model": "Hadronization model",
+            "Stat Unc": "Stat unc.",
+        }
+        # Grouped entries on the CVD-friendly Petroff palette (ARC round-2
+        # color check); ungrouped per-systematic colors on the 10-color set.
         summary_style_map = {
-            "JES": {"color": "#1f77b4", "ls": "-"},
-            "JER": {"color": "#ff7f0e", "ls": "-"},
-            "Pileup": {"color": "#d62728", "ls": "-"},
-            "Electron RECO": {"color": "#9467bd", "ls": "-"},
-            "Electron ID": {"color": "#8c564b", "ls": "-"},
-            "Electron Trigger": {"color": "#e377c2", "ls": "-"},
-            "Muon RECO": {"color": "#7f7f7f", "ls": "-"},
-            "Muon ID": {"color": "#bcbd22", "ls": "-"},
-            "Muon Trigger": {"color": "#17becf", "ls": "-"},
-            "Muon ISO": {"color": "#4c78a8", "ls": "-"},
-            "PDF": {"color": "#f58518", "ls": "-"},
-            "Q2 Scale": {"color": "#54a24b", "ls": "-"},
-            "L1 Prefiring": {"color": "#eeca3b", "ls": "-"},
-            "ISR": {"color": "#b279a2", "ls": "-"},
-            "FSR": {"color": "#ff9da6", "ls": "-"},
-            "JMR": {"color": "#9d755d", "ls": "-"},
-            "JMS": {"color": "#bab0ab", "ls": "-"},
-            "Jet Energy": {"color": "#1f77b4", "ls": "-"},
-            "Jet Mass": {"color": "#2ca02c", "ls": "-"},
-            "Parton Shower": {"color": "#d62728", "ls": "-"},
-            "Lepton SFs": {"color": "#9467bd", "ls": "-"},
-            "Other Theory": {"color": "#8c564b", "ls": "-"},
-            "Model Uncertainty": {"color": "#7f3c8d", "ls": "-."},
-            "Stat Unc": {"color": "#4c78a8", "ls": ":"},
-            "Total": {"color": "k", "ls": "-", "lw": 3},
+            "JES": {"color": "#3f90da", "ls": "-"},
+            "JER": {"color": "#ffa90e", "ls": "-"},
+            "Pileup": {"color": "#bd1f01", "ls": "-"},
+            "Electron RECO": {"color": "#832db6", "ls": "-"},
+            "Electron ID": {"color": "#a96b59", "ls": "-"},
+            "Electron Trigger": {"color": "#e76300", "ls": "-"},
+            "Muon RECO": {"color": "#94a4a2", "ls": "-"},
+            "Muon ID": {"color": "#b9ac70", "ls": "-"},
+            "Muon Trigger": {"color": "#92dadd", "ls": "-"},
+            "Muon ISO": {"color": "#717581", "ls": "-"},
+            "PDF": {"color": "#f89c20", "ls": "--"},
+            "Q2 Scale": {"color": "#5790fc", "ls": "--"},
+            "L1 Prefiring": {"color": "#964a8b", "ls": "--"},
+            "ISR": {"color": "#e42536", "ls": "--"},
+            "FSR": {"color": "#7a21dd", "ls": "--"},
+            "JMR": {"color": "#9c9ca1", "ls": "--"},
+            "JMS": {"color": "#bd1f01", "ls": ":"},
+            "Jet Energy": {"color": "#5790fc", "ls": "-", "lw": 2.5},
+            "Jet Mass": {"color": "#f89c20", "ls": "-", "lw": 2.5},
+            "Parton Shower": {"color": "#e42536", "ls": "-.", "lw": 2.5},
+            "Lepton SFs": {"color": "#964a8b", "ls": "-", "lw": 2.5},
+            "Other Theory": {"color": "#9c9ca1", "ls": "-", "lw": 2.5},
+            "Model Uncertainty": {"color": "#7a21dd", "ls": "-.", "lw": 2.5},
+            "Shower Model": {"color": "#e42536", "ls": "-.", "lw": 2.5},
+            "Hadronization Model": {"color": "#7a21dd", "ls": "--", "lw": 2.5},
+            "Stat Unc": {"color": "k", "ls": ":", "lw": 2.5},
         }
 
         for i in self._reported_pt_indices():
             result = self.normalized_results[i]
-            fig = plt.figure(figsize=(12, 8))
+            # CMS-default canvas (a forced figsize shrinks every font in the
+            # scaled-down PDF; ARC round-2 "make all labels bigger").
+            fig = plt.figure(layout="constrained")
             pt_bin = result["pt_bin"]
             syst_fraction_dict = self._build_syst_fraction_dict(i)
             result["syst_fraction_dict"] = syst_fraction_dict
@@ -4745,6 +4766,19 @@ class Unfolder:
             plot_fraction_dict = self._group_syst_fraction_dict(syst_fraction_dict, grouped=grouped)
             rho_edges = np.asarray(self.gen_edges_by_pt[i], dtype=float)
             rho_centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
+
+            # ARC round-2 s5ff: the total drawn as a filled silhouette BEHIND
+            # the components, so the line hugging its top edge in each bin is
+            # visibly the dominant contribution.
+            hep.histplot(
+                plot_fraction_dict["Total_Up"],
+                self.gen_edges_by_pt[i],
+                histtype="fill",
+                facecolor="0.88",
+                edgecolor="black",
+                linewidth=2,
+                label="Total",
+            )
 
             plotted_labels = set()
             for syst_name, syst_fraction in plot_fraction_dict.items():
@@ -4759,7 +4793,7 @@ class Unfolder:
                 hep.histplot(
                     syst_fraction,
                     self.gen_edges_by_pt[i],
-                    label=label,
+                    label=display_name.get(label, label),
                     **style,
                 )
                 plotted_labels.add(label)
@@ -4767,14 +4801,8 @@ class Unfolder:
             hep.histplot(
                 plot_fraction_dict["Stat Unc"],
                 self.gen_edges_by_pt[i],
-                label="Stat Unc",
+                label=display_name["Stat Unc"],
                 **summary_style_map["Stat Unc"],
-            )
-            hep.histplot(
-                plot_fraction_dict["Total_Up"],
-                self.gen_edges_by_pt[i],
-                label="Total",
-                **summary_style_map["Total"],
             )
 
             if not log:
@@ -4800,26 +4828,28 @@ class Unfolder:
 
             ax = plt.gca()
             handles, labels = ax.get_legend_handles_labels()
+            # ARC round-2: legend in-canvas
             if grouped:
+                display_order = [display_name.get(l, l) for l in grouped_legend_order]
                 label_to_handle = dict(zip(labels, handles))
-                ordered_labels = [label for label in grouped_legend_order if label in label_to_handle]
+                ordered_labels = [label for label in display_order if label in label_to_handle]
                 ordered_handles = [label_to_handle[label] for label in ordered_labels]
                 ax.legend(
                     ordered_handles,
                     ordered_labels,
-                    title=rf"$p_T$  {pt_bin_label} GeV",
-                    loc="center left",
-                    bbox_to_anchor=(1.01, 0.5),
-                    borderaxespad=0.0,
+                    title=rf"$p_{{\mathrm{{T}}}}$  {pt_bin_label} GeV",
+                    loc="upper right",
+                    fontsize=19,
+                    title_fontsize=19,
                 )
             else:
                 ax.legend(
-                    title=rf"$p_T$  {pt_bin_label} GeV",
-                    loc="center left",
-                    bbox_to_anchor=(1.01, 0.5),
-                    borderaxespad=0.0,
+                    title=rf"$p_{{\mathrm{{T}}}}$  {pt_bin_label} GeV",
+                    loc="upper right",
+                    fontsize=13,
+                    title_fontsize=15,
+                    ncol=2,
                 )
-            hep.cms.label(self._cms_extra_label(), data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20, ax=ax)
             if log:
                 plt.ylim(10e-5, 1)
             else:
@@ -4827,9 +4857,15 @@ class Unfolder:
             plt.xlim(*self._observable_xlim(i))
             #plt.xlim(0,200)
             ax.set_xlabel(self._observable_label())
-            ax.set_ylabel("Fractional Uncertainty")
+            ax.set_ylabel("Fractional uncertainty")
             ax.tick_params(axis="x", pad=8)
             ax.tick_params(axis="y", pad=8)
+            # Stamp the CMS label LAST, after the axis labels: under
+            # constrained layout a later set_ylabel shrinks the axes width and
+            # the (already frozen) CMS<->suffix gap collapses. The draw lets
+            # the layout settle before mplhep measures the text.
+            fig.canvas.draw()
+            hep.cms.label(self._cms_extra_label(), data=True, lumi=self._lumi_label(), com=self._com_label(), ax=ax)
 
             if grouped:
                 if log:
