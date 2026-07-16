@@ -6,7 +6,10 @@ import numpy as np
 class bin_edges:
     def __init__(self, groomed):
         self.groomed = groomed
-        self.pt_edges = [0, 200, 290, 400, 13000]
+        # ARC round-2: the low-pT sink is [185,200], not [0,200] (plan WS1).
+        # Requires the arc_r2-era pkls; pre-arcr2 inputs carry a [0,200] axis
+        # and can no longer be re-unfolded against this module.
+        self.pt_edges = [185, 200, 290, 400, 13000]
 
         if not self.groomed:
             # self.edges = [
@@ -122,22 +125,30 @@ class bin_edges:
                 [-10,    -2.5, -2, -1.5, -1, 0],  # pt bin 4
             ]
 
+            # strict 2:1 reco:gen everywhere -- the merged gen [-1, 0] bin
+            # gets two 0.5-wide reco bins, not four 0.25 ones (2026-07-16).
             self.reco_rho_edges_by_pt = [
                 [-10.  ,     -2.75  ,   -2.5 ,  -2.25,
-                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.75,  -0.5 ,  -0.25,
+                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.5 ,
                  0.  ],
                 [-10.  ,     -2.75  ,   -2.5 ,  -2.25,
-                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.75,  -0.5 ,  -0.25,
+                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.5 ,
                  0.  ],
                 [-10.  ,      -2.75,  -2.5 ,  -2.25,
-                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.75,  -0.5 ,  -0.25,
+                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.5 ,
                  0.  ],
                 [-10.  ,      -2.75,  -2.5,  -2.25,
-                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.75,  -0.5 ,  -0.25,
+                 -2.  ,  -1.75,  -1.5 ,  -1.25,  -1.  ,  -0.5 ,
                  0.  ],
             ]
 
-            
+            # arc_r2 tag aliases: the ungroomed skimmer axes are unchanged by the
+            # ARC round-2 groomed-rho rebinning, so these point at the same lists.
+            self.rho_edges_arcr2 = self.rho_edges
+            self.rho_edges_gen_arcr2 = self.rho_edges_gen
+            self.gen_rho_edges_by_pt_arcr2 = self.gen_rho_edges_by_pt
+            self.reco_rho_edges_by_pt_arcr2 = self.reco_rho_edges_by_pt
+
             self.mass_edges_reco =self.edges
             self.mass_edges_gen  =self.edges_gen
             self.gen_mass_edges_by_pt = [[0.0, 10.0,  20.0, 30.0, 50.0, 70.0, 90.0, 110.0,1000], #pt bin 1
@@ -286,6 +297,27 @@ class bin_edges:
                  0.  ],
             ]
 
+            # arc_r2 buffer binning (settled 2026-07-10, skimmer 3593267+765d717):
+            # shown region stays 0.5-wide; the tail below -3.5 is resolved at
+            # 0.25 down to -5 as a hidden migration buffer (cropped from display
+            # via the spec xlim, not merged); deep tail stays a coarse sink.
+            # These match the arc_r2 pkl axes exactly; reco is a strict 2:1
+            # refinement of gen. Requires the arc_r2 reskims.
+            self.rho_edges_gen_arcr2 = [
+                -10, -6, -5, -4.75, -4.5, -4.25, -4, -3.75, -3.5,
+                -3, -2.5, -2, -1.5, -1, 0,
+            ]
+            self.rho_edges_arcr2 = [
+                -10, -8, -6, -5.5, -5, -4.875, -4.75, -4.625, -4.5, -4.375,
+                -4.25, -4.125, -4, -3.875, -3.75, -3.625, -3.5, -3.25, -3,
+                -2.75, -2.5, -2.25, -2, -1.75, -1.5, -1.25, -1, -0.5, 0,
+            ]
+            self.gen_rho_edges_by_pt_arcr2 = [
+                list(self.rho_edges_gen_arcr2) for _ in range(4)
+            ]
+            self.reco_rho_edges_by_pt_arcr2 = [
+                list(self.rho_edges_arcr2) for _ in range(4)
+            ]
 
             self.mass_edges_reco =self.edges
             self.mass_edges_gen  =self.edges_gen
