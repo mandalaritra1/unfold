@@ -27,6 +27,10 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from unfold.tools import binning
+from unfold.utils.cms_plot import save_cms_label_flavors
 ERAS = ("2016APV", "2016", "2017", "2018")
 ERA_DATASET_TAGS = {
     "2016APV": "UL16NanoAODAPVv9",
@@ -60,7 +64,9 @@ PLOT_CONFIGS = {
     },
     "groomed": {
         "histogram": "ptjet_rhojet_g_reco",
-        "xmin": -4.5,
+        # ARC round-2: the groomed result is not shown below the display floor,
+        # so trim the data/MC comparison to the same reported window.
+        "xmin": -3.5,
         "output_name": "data_mc_rho_groomed_run2.pdf",
     },
 }
@@ -73,15 +79,17 @@ STACK_LABELS = {
     "ZZ": "ZZ",
     "tt+jets": r"$t\bar{t}+\mathrm{jets}$",
     "Single top": "Single t",
-    "DY signal": "DYJets",
+    "DY signal": "DY+jets",
 }
+# CMS CVD-friendly Petroff 6-color scheme (arXiv:2107.02270) -- ARC round-2
+# asked whether the stack follows the official palette.
 STACK_COLORS = {
-    "WW": "blue",
-    "WZ": "green",
-    "ZZ": "orange",
-    "tt+jets": "violet",
-    "Single top": "pink",
-    "DY signal": "red",
+    "WW": "#5790fc",
+    "WZ": "#7a21dd",
+    "ZZ": "#f89c20",
+    "tt+jets": "#964a8b",
+    "Single top": "#9c9ca1",
+    "DY signal": "#e42536",
 }
 
 
@@ -128,7 +136,28 @@ def load_pickle(path: Path):
         return pkl.load(handle)
 
 
-def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal"):
+def unfold_reco_display_edges(groomed, xmin):
+    """The unfolding's reco rho edges (arc_r2 axes, displayed pT bin) clipped
+    to the display window — the data/MC comparison uses the same binning as
+    the response matrix. Groomed ends in the 0.5-wide [-1,-0.5], [-0.5,0]
+    bins; ungroomed reco stays uniform 0.25 (only its GEN axis merges [-1,0])."""
+    edges = np.asarray(
+        binning.bin_edges(groomed).reco_rho_edges_by_pt_arcr2[PT_BIN_INDEX],
+        dtype=float,
+    )
+    return edges[(edges >= xmin - 1e-9) & (edges <= 1e-9)]
+
+
+def rebin_sum(values, edges, target_edges):
+    """Merge fine bins into target bins (target edges must nest in edges)."""
+    idx = np.searchsorted(edges, target_edges)
+    if not np.allclose(np.asarray(edges)[idx], target_edges):
+        raise ValueError("target edges are not a subset of the histogram edges")
+    return np.add.reduceat(values, idx[:-1])
+
+
+def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal",
+                     target_edges=None):
     """Sum selected datasets and reported reco-pT bins into displayed rho bins."""
     rho_edges = np.asarray(histogram.axes["mpt_reco"].edges, dtype=float)
     rho_mask = (rho_edges[:-1] >= xmin) & (rho_edges[1:] <= 0.0)
@@ -141,10 +170,14 @@ def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal"):
     variances = histogram.variances()[dataset_indices, PT_BIN_INDEX, :, systematic_index]
     values = values.sum(axis=0)[rho_mask]
     variances = variances.sum(axis=0)[rho_mask]
+    if target_edges is not None:
+        values = rebin_sum(values, selected_edges, target_edges)
+        variances = rebin_sum(variances, selected_edges, target_edges)
+        selected_edges = np.asarray(target_edges, dtype=float)
     return values, variances, selected_edges
 
 
-def combine_dy_systematics(pythia_inputs, histogram_name, xmin):
+def combine_dy_systematics(pythia_inputs, histogram_name, xmin, target_edges=None):
     combined = {}
     combined_variance = None
     rho_edges = None
@@ -158,6 +191,7 @@ def combine_dy_systematics(pythia_inputs, histogram_name, xmin):
                 [dataset_name],
                 xmin,
                 systematic=systematic,
+                target_edges=target_edges,
             )
             combined[systematic] = combined.get(systematic, np.zeros_like(values)) + values
             if systematic == "nominal":
@@ -185,6 +219,47 @@ def total_mc_uncertainty(dy_systematics, total_mc_variance):
     return np.sqrt(uncertainty_up_sq), np.sqrt(uncertainty_down_sq)
 
 
+# Two-leg parton-shower / hadronization modelling uncertainty (ARC round-2,
+# plan WS4.1): PS = Vincia shower swap; HAD = envelope over CR modes 1/2 and
+# Lund fragmentation hard/soft. Reco-level gen-reweighted Pythia spectra staged
+# from the reweight_pythia_rho production. Combined in quadrature (independent
+# legs), then added to the detector+ME band.
+MODEL_DIR = ROOT / "inputs" / "zjet" / "rho" / "model_reco"
+MODEL_PS_SOURCE = "vincia"
+MODEL_HAD_SOURCES = ("cr1", "cr2", "fraghard", "fragsoft")
+
+
+def model_reco_shapes(histogram_name, xmin, target_edges):
+    """Reco DY shape for each model source at PT_BIN_INDEX, summed over eras
+    and rebinned from the fine model axis onto the display edges."""
+    shapes = {}
+    for source in (MODEL_PS_SOURCE, *MODEL_HAD_SOURCES):
+        histogram = load_pickle(MODEL_DIR / f"{source}_all.pkl")[histogram_name]
+        edges = np.asarray(histogram.axes["mpt_reco"].edges, dtype=float)
+        rho_mask = (edges[:-1] >= xmin - 1e-9) & (edges[1:] <= 1e-9)
+        selected_edges = np.concatenate((edges[:-1][rho_mask], [edges[1:][rho_mask][-1]]))
+        syst_index = histogram.axes["systematic"].index("nominal")
+        values = histogram.values()[:, PT_BIN_INDEX, :, syst_index].sum(axis=0)[rho_mask]
+        shapes[source] = rebin_sum(values, selected_edges, target_edges)
+    return shapes
+
+
+def model_ps_had_band(dy_nominal, shapes):
+    """|dy_nominal - source| after normalizing each source to the DY integral so
+    only the SHAPE enters. PS = Vincia; HAD = envelope over CR/frag; quadrature."""
+    dy_sum = dy_nominal.sum()
+
+    def shape_diff(alt):
+        a_sum = alt.sum()
+        if a_sum <= 0 or dy_sum <= 0:
+            return np.zeros_like(dy_nominal)
+        return np.abs(dy_nominal - alt * (dy_sum / a_sum))
+
+    ps = shape_diff(shapes[MODEL_PS_SOURCE])
+    had = np.max([shape_diff(shapes[s]) for s in MODEL_HAD_SOURCES], axis=0)
+    return np.sqrt(ps ** 2 + had ** 2), ps, had
+
+
 def make_plot(
     data_values,
     data_variances,
@@ -201,7 +276,8 @@ def make_plot(
         2,
         1,
         sharex=True,
-        gridspec_kw={"height_ratios": (3, 1)},
+        # ARC round-2: ratio panel close to the main panel
+        gridspec_kw={"height_ratios": (3, 1), "hspace": 0.07},
     )
 
     stack_values = [process_values[process] for process in STACK_ORDER]
@@ -243,17 +319,19 @@ def make_plot(
     )
 
     axis.set_yscale("log")
-    axis.set_ylim(0.1, max(1.0, float(data_values.max()) * 100.0))
-    axis.set_ylabel("#Events")
-    axis.legend(ncol=4, fontsize=17)
+    # ARC round-2: extra y-headroom so the legend clears the stack and the
+    # pT range fits below it, left-aligned to the legend's left edge.
+    axis.set_ylim(0.1, max(1.0, float(data_values.max()) * 1000.0))
+    axis.set_ylabel("Events")
+    axis.legend(ncol=4, fontsize=17, loc="upper left")
     displayed_lumi = int(lumi) if float(lumi).is_integer() else lumi
     hep.cms.label(cms_label, data=True, lumi=displayed_lumi, com=13, ax=axis)
     axis.text(
-        0.98,
-        0.76,
-        rf"${PT_RANGE_GEV[0]} < p_T < {PT_RANGE_GEV[1]}$ GeV",
+        0.02,
+        0.72,
+        rf"${PT_RANGE_GEV[0]} < p_{{\mathrm{{T}}}} < {PT_RANGE_GEV[1]}$ GeV",
         transform=axis.transAxes,
-        horizontalalignment="right",
+        horizontalalignment="left",
         fontsize=17,
     )
 
@@ -302,16 +380,21 @@ def make_plot(
     )
     ratio_axis.axhline(1.0, color="red", linestyle="--")
     ratio_axis.set_ylim(0.0, 2.0)
+    # No tick label at 0 or 2: the corner "0" collides with the first x tick
+    # label, and the top "2" crowds the main panel above.
+    ratio_axis.set_yticks([0.5, 1.0, 1.5])
     ratio_axis.set_ylabel("Data/MC")
+    # ARC round-2: lowercase groomed/ungroomed
     ratio_axis.set_xlabel(
-        r"$\log_{10}(\rho^2)$, Groomed"
+        r"$\log_{10}(\rho^2)$, groomed"
         if groomed
-        else r"$\log_{10}(\rho^2)$, Ungroomed"
+        else r"$\log_{10}(\rho^2)$, ungroomed"
     )
     ratio_axis.set_xlim(rho_edges[0], rho_edges[-1])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_path)
+    # One draw, all label flavors (Internal at top level + <Flavor>/ siblings).
+    save_cms_label_flavors(fig, output_path, cms_label)
     plt.close(fig)
 
 
@@ -323,11 +406,16 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def write_provenance(args, input_paths, output_paths):
+def _repo_relative(path: Path) -> str:
+    resolved = Path(path).resolve()
     try:
-        input_dir = args.input_dir.resolve().relative_to(ROOT)
+        return str(resolved.relative_to(ROOT))
     except ValueError:
-        input_dir = args.input_dir.resolve()
+        return str(resolved)
+
+
+def write_provenance(args, input_paths, output_paths):
+    input_dir = _repo_relative(args.input_dir)
 
     provenance = {
         "command": shlex.join([sys.executable, str(Path(__file__).resolve()), *sys.argv[1:]]),
@@ -356,10 +444,11 @@ def write_provenance(args, input_paths, output_paths):
                 "uncertainties are included"
             ),
         },
-        "outputs": [str(path.resolve().relative_to(ROOT)) for path in output_paths],
+        "outputs": [_repo_relative(path) for path in output_paths],
     }
 
-    for directory in (args.output_dir, args.output_dir / "Preliminary"):
+    for directory in (args.output_dir, args.output_dir / "Preliminary",
+                      args.output_dir / "PrivateWork"):
         directory.mkdir(parents=True, exist_ok=True)
         with (directory / "run2_plot_config.json").open("w", encoding="utf-8") as handle:
             json.dump(provenance, handle, indent=2)
@@ -411,11 +500,15 @@ def main() -> None:
     for mode, config in PLOT_CONFIGS.items():
         histogram_name = config["histogram"]
         xmin = config["xmin"]
+        # Display in the unfolding's reco binning (e.g. groomed [-1,-0.5,0]
+        # right-most bins), not the raw uniform validation axis.
+        target_edges = unfold_reco_display_edges(mode == "groomed", xmin)
 
         data_values, data_variances, rho_edges = histogram_arrays(
             data[histogram_name],
             DATASETS,
             xmin,
+            target_edges=target_edges,
         )
         process_values = {}
         process_variances = {}
@@ -429,6 +522,7 @@ def main() -> None:
                 backgrounds[histogram_name],
                 dataset_names,
                 xmin,
+                target_edges=target_edges,
             )
             process_values[process] = values
             process_variances[process] = variances
@@ -441,6 +535,7 @@ def main() -> None:
             single_top[histogram_name],
             single_top_datasets,
             xmin,
+            target_edges=target_edges,
         )
         process_values["Single top"] = values
         process_variances["Single top"] = variances
@@ -449,6 +544,7 @@ def main() -> None:
             pythia_inputs,
             histogram_name,
             xmin,
+            target_edges=target_edges,
         )
         if not np.array_equal(rho_edges, dy_edges):
             raise ValueError(f"Inconsistent rho binning for {mode}")
@@ -464,21 +560,44 @@ def main() -> None:
             total_mc_variance,
         )
 
-        for cms_label, subdirectory in (("Internal", Path()), ("Preliminary", Path("Preliminary"))):
-            output_path = args.output_dir / subdirectory / config["output_name"]
-            make_plot(
-                data_values,
-                data_variances,
-                process_values,
-                uncertainty_up,
-                uncertainty_down,
-                rho_edges,
-                cms_label,
-                mode == "groomed",
-                args.lumi,
-                output_path,
-            )
-            output_paths.append(output_path)
+        # ARC round-2 (WS4.1): add the two-leg PS/HAD modelling uncertainty of
+        # the DY shape in quadrature with the detector+ME band, so the data/MC
+        # ratio is covered by a band that carries the modelling difference.
+        model_shapes = model_reco_shapes(histogram_name, xmin, target_edges)
+        model_band, model_ps, model_had = model_ps_had_band(
+            dy_systematics["nominal"], model_shapes
+        )
+        uncertainty_up = np.sqrt(uncertainty_up ** 2 + model_band ** 2)
+        uncertainty_down = np.sqrt(uncertainty_down ** 2 + model_band ** 2)
+
+        # Normalize the total MC to the data integral over the shown range only
+        # (ARC round-2: the comparison is a shape test in the reported window, so
+        # the overall luminosity/k-factor offset is divided out). The same scale
+        # multiplies every stack component and the uncertainty band, so the
+        # fractional band is preserved and the ratio panel centers on 1.
+        mc_integral = float(sum(values.sum() for values in process_values.values()))
+        data_integral = float(data_values.sum())
+        norm = data_integral / mc_integral if mc_integral > 0 else 1.0
+        process_values = {name: values * norm for name, values in process_values.items()}
+        uncertainty_up = uncertainty_up * norm
+        uncertainty_down = uncertainty_down * norm
+
+        # Drawn once with the Internal label; save_cms_label_flavors inside
+        # make_plot writes the Preliminary/PrivateWork siblings.
+        output_path = args.output_dir / config["output_name"]
+        make_plot(
+            data_values,
+            data_variances,
+            process_values,
+            uncertainty_up,
+            uncertainty_down,
+            rho_edges,
+            "Internal",
+            mode == "groomed",
+            args.lumi,
+            output_path,
+        )
+        output_paths.append(output_path)
 
         total_data = data_values.sum()
         total_mc = sum(values.sum() for values in process_values.values())
