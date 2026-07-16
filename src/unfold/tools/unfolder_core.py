@@ -718,9 +718,9 @@ class Unfolder:
         if re.fullmatch(r"(?:un)?groomed_-?\d+", s):
             return "unfolded", _ptnorm("unfolded_" + s)
         # per-mode result summaries, e.g. 'groomed_summary', 'groomed_summary_linear'
-        m = re.fullmatch(r"(groomed|ungroomed)_summary(_linear)?", s)
+        m = re.fullmatch(r"(groomed|ungroomed)_summary(_linear|_ratio)?", s)
         if m:
-            return "summary", f"unfolded_summary{'_linear' if m.group(2) else ''}_{m.group(1)}"
+            return "summary", f"unfolded_summary{m.group(2) or ''}_{m.group(1)}"
         # prefix -> (category, rename); first match wins, order matters
         rules = [
             ("bottom_line_chi2",         "summary",       None),
@@ -3094,8 +3094,13 @@ class Unfolder:
                 save_path = f"./{self.spec.output_dir}unfold/groomed_{i-1}.pdf" if self.groomed else f"./{self.spec.output_dir}unfold/ungroomed_{i-1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
         
-        # Now also plot a summary plot, with all of them together, but shifted on y axis for visibility
-
+        # Summary plot: all pT slices together, offset by 10^n. ARC round-2:
+        # ratio panel added (Data / Pythia8 per slice) "to better understand
+        # the level of agreement"; CMS-default canvas; Petroff colors;
+        # Pythia8/Herwig7/Vincia casing; data as black markers with vertical
+        # + horizontal error bars carried into the legend.
+        fig, ax_main = plt.subplots()
+        ratio_inputs = []  # per-slice payload for the separate ratio figure
         for i in range(max(1, self.first_reported_pt_bin), npt):
             exponent = 2 * i - 1
             scale = 10 ** exponent
@@ -3115,32 +3120,49 @@ class Unfolder:
             pythia = np.array(self.normalized_results[i]['true'], dtype=float)
             rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
-            plt.stairs(scale * pythia, self.gen_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3)
+            summary_max = max(getattr(self, "_summary_max", 0.0), float(np.max(y_syst_up)), float(np.max(scale * pythia)))
+            self._summary_max = summary_max
+            positive = y_syst_down[y_syst_down > 0]
+            if positive.size:
+                self._summary_min = min(getattr(self, "_summary_min", np.inf), float(np.min(positive)))
+            ax_main.stairs(scale * pythia, self.gen_edges_by_pt[i], label='Pythia8', color='#5790fc', ls='dotted', lw=3)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
-                plt.errorbar(centers, scale * pythia, yerr=[scale * py_unc_down, scale * py_unc_up],
-                             fmt='none', ecolor='b', elinewidth=1.2, capsize=2)
+                ax_main.errorbar(centers, scale * pythia, yerr=[scale * py_unc_down, scale * py_unc_up],
+                                 fmt='none', ecolor='#5790fc', elinewidth=1.2, capsize=2)
             if has_herwig:
-                plt.stairs(scale * herwig_norm, self.gen_edges_by_pt[i], label='HERWIG7', color='r', ls='dashdot', lw=2)
+                ax_main.stairs(scale * herwig_norm, self.gen_edges_by_pt[i], label='Herwig7', color='#e42536', ls='dashdot', lw=2)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
-                    plt.errorbar(centers, scale * herwig_norm, yerr=[scale * hw_unc_down, scale * hw_unc_up],
-                                 fmt='none', ecolor='r', elinewidth=1.2, capsize=2)
+                    ax_main.errorbar(centers, scale * herwig_norm, yerr=[scale * hw_unc_down, scale * hw_unc_up],
+                                     fmt='none', ecolor='#e42536', elinewidth=1.2, capsize=2)
             if vincia_truth is not None:
                 vincia_norm, vincia_err = vincia_truth[i]
-                plt.stairs(scale * vincia_norm, self.gen_edges_by_pt[i], label='VINCIA', color='m', ls='dashed', lw=2)
-                plt.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
-                             fmt='none', ecolor='m', elinewidth=1.2, capsize=2)
-            plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
-            plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
-            plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
-            
+                ax_main.stairs(scale * vincia_norm, self.gen_edges_by_pt[i], label='Vincia', color='#964a8b', ls='dashed', lw=2)
+                ax_main.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
+                                 fmt='none', ecolor='#964a8b', elinewidth=1.2, capsize=2)
+            ax_main.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
+            ax_main.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
+            ax_main.errorbar(centers, scale * unfolded, yerr=scale * stat_unc,
+                             xerr=np.diff(rho_edges) / 2, fmt=markers[i], color='k',
+                             markersize=7,
+                             label=rf'Data, $10^{{{exponent}}} \times$ ({title_list[i]})')
 
-        plt.yscale('log')
-        plt.yscale('log')
+            ratio_inputs.append({
+                "i": i, "edges": self.gen_edges_by_pt[i], "centers": centers,
+                "widths": np.diff(rho_edges), "unfolded": unfolded,
+                "pythia": pythia, "syst_up": syst_up, "syst_down": syst_down,
+                "stat_unc": stat_unc,
+                "herwig": herwig_norm if has_herwig else None,
+                "vincia": vincia_truth[i][0] if vincia_truth is not None else None,
+                "pythia_unc": (py_unc_up, py_unc_down),
+                "herwig_unc": (hw_unc_up, hw_unc_down) if has_herwig else (None, None),
+                "vincia_err": vincia_truth[i][1] if vincia_truth is not None else None,
+            })
+
+        ax_main.set_yscale('log')
         # Group duplicate legend entries: keep first occurrence, hide subsequent ones
-        ax = plt.gca()
-        handles, labels = ax.get_legend_handles_labels()
+        handles, labels = ax_main.get_legend_handles_labels()
         seen = set()
         for h, l in zip(handles, labels):
             if l == "" or l in seen:
@@ -3150,14 +3172,115 @@ class Unfolder:
                     pass
             else:
                 seen.add(l)
-        plt.legend(fontsize=13)
-        plt.xlabel(self._observable_label())
-        plt.ylabel(self._normalized_ylabel())
-        hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
-        plt.xlim(*self._observable_xlim())
+        # Legend headroom on the log scale (ARC round-2 "legend must not
+        # touch the plots"): measure the legend box, then solve the decade
+        # span so the tallest histogram sits just below it.
+        legend = ax_main.legend(loc="upper right", fontsize=15)
+        fig.canvas.draw()
+        lbox = legend.get_window_extent().transformed(ax_main.transAxes.inverted())
+        # Floor just below the lowest drawn band (the autoscale bottom can be
+        # decades lower from a near-empty bin, bloating the axis range).
+        ybot = getattr(self, "_summary_min", ax_main.get_ylim()[0]) / 3.0
+        need = np.log10(self._summary_max / ybot) / max(0.2, lbox.y0 - 0.05)
+        ax_main.set_ylim(ybot, ybot * 10 ** need)
+        self._summary_max = self._summary_min = None
+        del self._summary_max, self._summary_min
+        ax_main.set_ylabel(self._normalized_ylabel())
+
+        ax_main.set_xlabel(self._observable_label())
+        ax_main.set_xlim(*self._observable_xlim())
+
+        # In-frame CMS tag: the clearance solve keeps the top-left free.
+        fig.canvas.draw()
+        hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), loc=2, ax=ax_main)
 
         save_path = f"./{self.spec.output_dir}groomed_summary.pdf" if self.groomed else f"./{self.spec.output_dir}ungroomed_summary.pdf"
-        self._finalize_plot(save_path=save_path, show=show)
+        self._finalize_plot(save_path=save_path, show=show, fig=fig)
+
+        # ARC round-2: separate RATIO figure -- a grid of panels, one per pT
+        # slice (highest pT on top, like the summary). Ratio TO DATA: the
+        # data uncertainty bands sit at 1, generator curves float around it.
+        n = len(ratio_inputs)
+        fig, axes = plt.subplots(n, 1, sharex=True, figsize=(10, 4 * n),
+                                 gridspec_kw={"hspace": 0.1})
+        axes = np.atleast_1d(axes)
+        for k, d in enumerate(ratio_inputs):
+            ax = axes[n - 1 - k]
+            edges, centers, widths = d["edges"], d["centers"], d["widths"]
+            unfolded = d["unfolded"]
+
+            def _r(arr):
+                return np.divide(arr, unfolded, out=np.zeros_like(unfolded), where=unfolded != 0)
+
+            # Data uncertainty bands hugging unity; Data/Theory curves on top.
+            ax.stairs(1.0 + _r(d["syst_up"]), edges,
+                      baseline=1.0 - _r(d["syst_down"]), fill=True,
+                      color="yellowgreen", alpha=0.8, label=total_label)
+            ax.stairs(1.0 + _r(d["stat_unc"]), edges,
+                      baseline=1.0 - _r(d["stat_unc"]), fill=True,
+                      color="darkgreen", label=stat_label)
+            ax.axhline(1.0, color='gray', ls='--', lw=1)
+
+            def _data_over(arr):
+                return np.divide(unfolded, arr, out=np.zeros_like(unfolded), where=arr != 0)
+
+            def _theory_band(theory, unc_up, unc_down, color):
+                # Theory uncertainty propagated onto Data/Theory, drawn as
+                # error-bar "sticks" at the bin centers (band was too faint).
+                if unc_up is None:
+                    return
+                ratio = _data_over(theory)
+                lo = np.divide(unfolded, theory + unc_up,
+                               out=np.zeros_like(unfolded), where=(theory + unc_up) != 0)
+                hi_den = np.clip(theory - unc_down, 1e-12, None)
+                hi = np.divide(unfolded, hi_den,
+                               out=np.zeros_like(unfolded), where=hi_den > 0)
+                ax.errorbar(centers, ratio,
+                            yerr=[np.clip(ratio - lo, 0, None),
+                                  np.clip(hi - ratio, 0, None)],
+                            fmt='none', ecolor=color, elinewidth=1.5, capsize=3)
+
+            _theory_band(d["pythia"], *d["pythia_unc"], '#5790fc')
+            ax.stairs(_data_over(d["pythia"]), edges, color='#5790fc',
+                      ls='dotted', lw=3, label='Data / Pythia8')
+            if d["herwig"] is not None:
+                _theory_band(d["herwig"], *d["herwig_unc"], '#e42536')
+                ax.stairs(_data_over(d["herwig"]), edges, color='#e42536',
+                          ls='dashdot', lw=2, label='Data / Herwig7')
+            if d["vincia"] is not None:
+                if d["vincia_err"] is not None:
+                    _theory_band(d["vincia"], d["vincia_err"], d["vincia_err"], '#964a8b')
+                ax.stairs(_data_over(d["vincia"]), edges, color='#964a8b',
+                          ls='dashed', lw=2, label='Data / Vincia')
+            ax.set_ylim(0, 2)
+            ax.set_yticks([0.5, 1.0, 1.5])
+            ax.text(0.97, 0.95, title_list[d["i"]], transform=ax.transAxes,
+                    ha="right", va="top", fontsize=17)
+        # Legend outside the frame: one row spanning the top panel's width,
+        # with the CMS label stamped above it (pad from the measured box).
+        handles, leg_labels = axes[0].get_legend_handles_labels()
+        leg = axes[0].legend(handles, leg_labels, loc="lower left",
+                             bbox_to_anchor=(0, 1.005, 1, 0), mode="expand",
+                             ncol=3, fontsize=17, frameon=False,
+                             borderaxespad=0, columnspacing=1.2,
+                             handletextpad=0.5, handlelength=1.8)
+        axes[len(axes) // 2].set_ylabel("Data/Theory")
+        axes[-1].set_xlabel(self._observable_label())
+        axes[-1].set_xlim(*self._observable_xlim())
+        fig.canvas.draw()
+        lbox = leg.get_window_extent().transformed(axes[0].transAxes.inverted())
+        label_arts = hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(),
+                                   com=self._com_label(), ax=axes[0])
+        # mplhep 1.2 has no pad kwarg: lift the label artists above the legend.
+        dy = max(0.0, lbox.y1 - 1.0) + 0.015
+        for art in label_arts:
+            if art is not None:
+                x, y = art.get_position()
+                art.set_position((x, y + dy))
+        save_path = (f"./{self.spec.output_dir}groomed_summary_ratio.pdf"
+                     if self.groomed else
+                     f"./{self.spec.output_dir}ungroomed_summary_ratio.pdf")
+        self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
     def plot_unfolded_summary_linear(self, show=True):
         markers = ['o', 's', '^', 'D', 'v', '*', 'x', '+']
