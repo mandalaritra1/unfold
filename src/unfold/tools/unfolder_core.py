@@ -2936,9 +2936,9 @@ class Unfolder:
             lo = int(self.pt_edges[i])
             if i + 1 < npt:
                 hi = int(self.pt_edges[i + 1])
-                title_list.append(rf"{lo}$<$$p_T$$<${hi} GeV")
+                title_list.append(rf"${lo} < p_{{\mathrm{{T}}}} < {hi}$ GeV")
             else:
-                title_list.append(rf"{lo}$<$$p_T$$< \, \infty$  GeV")
+                title_list.append(rf"${lo} < p_{{\mathrm{{T}}}} < \infty$ GeV")
         true_herwig_pt_binned = (
             unflatten_gen_by_pt(self.y_true_herwig, self.gen_edges_by_pt)
             if has_herwig
@@ -2953,8 +2953,11 @@ class Unfolder:
             except Exception:
                 vincia_truth = None
         for i in self._reported_pt_indices():
+            # CMS-default canvas (forced figsize shrinks fonts in the scaled
+            # PDF); ratio panel close to the main panel (ARC round-2).
             fig, (ax_main, ax_ratio) = plt.subplots(
-                2, 1, sharex=True, gridspec_kw={"height_ratios": [3, 1]}, figsize=(12, 10)
+                2, 1, sharex=True,
+                gridspec_kw={"height_ratios": [3, 1], "hspace": 0.07},
             )
             bin_widths = np.diff(self.gen_edges_by_pt[i])
             if has_herwig:
@@ -2975,6 +2978,14 @@ class Unfolder:
                 baseline = unfolded - stat_unc,
                 fill = True, color = "darkgreen" , label = stat_label)
             pythia = np.array(self.normalized_results[i]['true'], dtype=float)
+            # Track the tallest drawn curve so the legend headroom clears the
+            # predictions too, not just the data band.
+            curve_max = float(np.max(unfolded + syst_up))
+            curve_max = max(curve_max, float(np.max(pythia)))
+            if has_herwig:
+                curve_max = max(curve_max, float(np.max(herwig_norm)))
+            if vincia_truth is not None:
+                curve_max = max(curve_max, float(np.max(vincia_truth[i][0])))
             # Data-vs-MC chi2/ndf per panel using the total (stat + syst)
             # uncertainty of the unfolded shape; the per-pT normalization
             # constraint removes one dof.
@@ -2986,31 +2997,58 @@ class Unfolder:
                     ((unfolded[good] - prediction[good]) / sigma[good]) ** 2))
                 return rf"{name} ($\chi^2$/ndf = {chi2:.1f}/{ndf})"
             plt.stairs(pythia, self.gen_edges_by_pt[i],
-                       label=_mc_chi2_label('PYTHIA8', pythia),
-                       color='b', ls='dotted', lw=3)
+                       label=_mc_chi2_label('Pythia8', pythia),
+                       color='#5790fc', ls='dotted', lw=3)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
                 plt.errorbar(centers, pythia, yerr=[py_unc_down, py_unc_up], fmt='none',
-                             ecolor='b', elinewidth=1.5, capsize=3)
+                             ecolor='#5790fc', elinewidth=1.5, capsize=3)
             if has_herwig:
                 plt.stairs(herwig_norm, self.gen_edges_by_pt[i],
-                           label=_mc_chi2_label('HERWIG7', herwig_norm),
-                           color='r', ls='dashdot', lw=2)
+                           label=_mc_chi2_label('Herwig7', herwig_norm),
+                           color='#e42536', ls='dashdot', lw=2)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
                     plt.errorbar(centers, herwig_norm, yerr=[hw_unc_down, hw_unc_up], fmt='none',
-                                 ecolor='r', elinewidth=1.5, capsize=3)
+                                 ecolor='#e42536', elinewidth=1.5, capsize=3)
             if vincia_truth is not None:
                 vincia_norm, vincia_err = vincia_truth[i]
                 plt.stairs(vincia_norm, self.gen_edges_by_pt[i],
-                           label=_mc_chi2_label('VINCIA', vincia_norm),
-                           color='m', ls='dashed', lw=2)
+                           label=_mc_chi2_label('Vincia', vincia_norm),
+                           color='#964a8b', ls='dashed', lw=2)
                 plt.errorbar(centers, vincia_norm, yerr=vincia_err, fmt='none',
-                             ecolor='m', elinewidth=1.5, capsize=3)
-            plt.plot(centers, unfolded, color='k', lw=0, marker=markers[i], markersize=8, label='Unfolded')
+                             ecolor='#964a8b', elinewidth=1.5, capsize=3)
+            # ARC round-2: data as black points (not per-panel markers), with
+            # vertical (stat) AND horizontal (bin-width) error bars; the
+            # errorbar handle carries the bars into the legend.
+            plt.errorbar(centers, unfolded, yerr=stat_unc, xerr=np.diff(rho_edges) / 2,
+                         fmt='o', color='k', markersize=7, label='Unfolded data')
 
-            plt.legend(title = title_list[i], fontsize=14, title_fontsize=15)
-            hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
+            # Legend headroom, then the pT-bin info below the legend and
+            # left-aligned to it (ARC round-2).
+            ax_main.set_ylim(0, 1.9 * curve_max)
+            legend = ax_main.legend(loc="upper right", fontsize=17)
+            # In-frame CMS tag (loc=2), with the pT range right under it
+            # (Aritra's preference).
+            fig.canvas.draw()
+            label_art = hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(),
+                                      com=self._com_label(), loc=2, ax=ax_main)
+            fig.canvas.draw()
+            inv = ax_main.transAxes.inverted()
+            boxes = [t.get_window_extent().transformed(inv) for t in label_art
+                     if getattr(t, "get_text", lambda: "")()]
+            boxes = [b for b in boxes if b.y0 < 1.0]  # skip the lumi text above the frame
+            cms_x0 = min(b.x0 for b in boxes)
+            cms_y0 = min(b.y0 for b in boxes)
+            pt_text = ax_main.text(cms_x0, cms_y0 - 0.04, title_list[i],
+                                   transform=ax_main.transAxes, ha="left", va="top", fontsize=18)
+            # Final headroom: every curve stays below the CMS+pT block and the
+            # legend (all live in axes fractions, unaffected by ylim).
+            fig.canvas.draw()
+            tbox = pt_text.get_window_extent().transformed(inv)
+            lbox = legend.get_window_extent().transformed(inv)
+            clearance = min(tbox.y0, lbox.y0)
+            ax_main.set_ylim(0, curve_max / max(0.35, clearance - 0.04))
             plt.ylabel(self._normalized_ylabel())
 
             # Ratio Plot
@@ -3023,29 +3061,29 @@ class Unfolder:
 
             plt.stairs(1.0 + total_frac_up, self.gen_edges_by_pt[i], baseline=1.0 - total_frac_down, fill=True, color="yellowgreen", label=total_label)
             plt.stairs(1.0 + stat_frac, self.gen_edges_by_pt[i], baseline=1.0 - stat_frac, fill=True, color="darkgreen", label=stat_label)
-            plt.stairs(ratio_pythia, self.gen_edges_by_pt[i], color='b', ls='dotted', lw=2, label='Data / PYTHIA8')
+            plt.stairs(ratio_pythia, self.gen_edges_by_pt[i], color='#5790fc', ls='dotted', lw=2, label='Data / Pythia8')
             # PYTHIA8 uncertainty propagated onto Data/PYTHIA8 (ratio ~ 1/PYTHIA,
             # so a +sigma on PYTHIA pulls the ratio down by ratio*sigma/PYTHIA).
             if py_unc_up is not None:
                 rel_py = np.divide(np.abs(ratio_pythia), pythia, out=np.zeros_like(pythia), where=pythia != 0)
                 plt.errorbar(
                     centers, ratio_pythia, yerr=[rel_py * py_unc_down, rel_py * py_unc_up],
-                    fmt='none', ecolor='b', elinewidth=1.2, capsize=2,
+                    fmt='none', ecolor='#5790fc', elinewidth=1.2, capsize=2,
                 )
             if has_herwig:
                 ratio_herwig = np.divide(unfolded, herwig_norm)
-                plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='r', ls='dashdot', lw=2, label='Data / HERWIG7')
+                plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='#e42536', ls='dashdot', lw=2, label='Data / Herwig7')
                 if hw_unc_up is not None:
                     rel_hw = np.divide(np.abs(ratio_herwig), herwig_norm, out=np.zeros_like(herwig_norm), where=herwig_norm != 0)
                     plt.errorbar(
                         centers, ratio_herwig, yerr=[rel_hw * hw_unc_down, rel_hw * hw_unc_up],
-                        fmt='none', ecolor='r', elinewidth=1.2, capsize=2,
+                        fmt='none', ecolor='#e42536', elinewidth=1.2, capsize=2,
                     )
             if vincia_truth is not None:
                 ratio_vincia = np.divide(
                     unfolded, vincia_norm,
                     out=np.zeros_like(unfolded), where=vincia_norm != 0)
-                plt.stairs(ratio_vincia, self.gen_edges_by_pt[i], color='m', ls='dashed', lw=2, label='Data / VINCIA')
+                plt.stairs(ratio_vincia, self.gen_edges_by_pt[i], color='#964a8b', ls='dashed', lw=2, label='Data / Vincia')
             plt.ylim(0, 2)
             plt.xlabel(self._observable_label())
             plt.ylabel(r"$\frac{Data}{Simulation}$")
@@ -4863,7 +4901,9 @@ class Unfolder:
             # Stamp the CMS label LAST, after the axis labels: under
             # constrained layout a later set_ylabel shrinks the axes width and
             # the (already frozen) CMS<->suffix gap collapses. The draw lets
-            # the layout settle before mplhep measures the text.
+            # the layout settle before mplhep measures the text. Above-frame
+            # tag here: the grey Total silhouette can fill the top-left
+            # (ungroomed first bin), so in-frame loc=2 collides with it.
             fig.canvas.draw()
             hep.cms.label(self._cms_extra_label(), data=True, lumi=self._lumi_label(), com=self._com_label(), ax=ax)
 
