@@ -21,6 +21,45 @@ from unfold.utils.merge_helpers import *
 
 plt.rcParams["axes.prop_cycle"] = cycler(color=['#5790fc', '#f89c20', '#e42536', '#964a8b', '#9c9ca1', '#7a21dd'])
 
+# Every saved figure is also written once per flavor (see
+# save_cms_label_flavors): the canonical file carries the label the plot was
+# drawn with; the others land in <dir>/<Flavor>/<name>.
+DEFAULT_CMS_LABEL_FLAVORS = ("Internal", "Preliminary", "Private Work")
+
+
+def save_cms_label_flavors(fig, path, current_label,
+                           flavors=DEFAULT_CMS_LABEL_FLAVORS, **savefig_kw):
+    """Save ``fig`` at ``path``, then once per CMS-label flavor.
+
+    The figure is drawn once; for each flavor the mplhep label text artists
+    are swapped in place (plain substring replacement, so e.g.
+    "Simulation Internal" -> "Simulation Private Work") and the figure
+    re-saved under ``<path.parent>/<Flavor>/<path.name>`` (flavor dir without
+    spaces), then restored.
+    """
+    import matplotlib.text as mtext
+
+    path = Path(path)
+    fig.savefig(path, **savefig_kw)
+    if not current_label:
+        return
+    suffix_texts = {t: t.get_text() for t in fig.findobj(mtext.Text)
+                    if current_label in t.get_text()}
+    if not suffix_texts:
+        return
+    try:
+        for flavor in flavors:
+            if flavor == current_label:
+                continue
+            for t, original in suffix_texts.items():
+                t.set_text(original.replace(current_label, flavor))
+            out = path.parent / flavor.replace(" ", "") / path.name
+            out.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(out, **savefig_kw)
+    finally:
+        for t, original in suffix_texts.items():
+            t.set_text(original)
+
 
 def _declare_open_l():
     """Expose TUnfold's protected AddRegularisationCondition and scan helpers.
@@ -515,6 +554,10 @@ NON_JES_SYSTEMATICS = [
 
 
 class Unfolder:
+    # Flavors every saved plot is replicated into (see _save_label_flavors);
+    # override on an instance to restrict, e.g. u.cms_label_flavors = ()
+    cms_label_flavors = DEFAULT_CMS_LABEL_FLAVORS
+
     def __init__(
         self,
         spec,
@@ -763,11 +806,16 @@ class Unfolder:
             path = self._relocate_output(save_path)
             path.parent.mkdir(parents=True, exist_ok=True)
             target_fig = fig if fig is not None else plt.gcf()
-            target_fig.savefig(path, bbox_inches="tight", pad_inches=0.1)
+            self._save_label_flavors(target_fig, path,
+                                     bbox_inches="tight", pad_inches=0.1)
         if show:
             plt.show()
         else:
             plt.close(fig if fig is not None else plt.gcf())
+
+    def _save_label_flavors(self, fig, path, **savefig_kw):
+        save_cms_label_flavors(fig, path, self.cms_label,
+                               flavors=self.cms_label_flavors, **savefig_kw)
 
     def _cms_extra_label(self):
         return f" {self.cms_label}" if self.cms_label and not self.cms_label.startswith(" ") else self.cms_label
@@ -5580,7 +5628,7 @@ class Unfolder:
         groomed_tag = "groomed" if self.groomed else "ungroomed"
         resp_path = self._relocate_output(f"response_{groomed_tag}.pdf")
         resp_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(resp_path, dpi=300)
+        self._save_label_flavors(fig, resp_path, dpi=300)
         return fig, ax
     
     def _make_inputs_numpy(self, filenames=None):
