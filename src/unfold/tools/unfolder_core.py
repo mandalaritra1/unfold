@@ -5245,7 +5245,7 @@ class Unfolder:
             probability = probability,
             mask_zeros=True,
             log=log,                              # set False for linear
-            rlabel=f"Groomed, " if self.groomed else f"Ungroomed, ",
+            rlabel="Groomed" if self.groomed else "Ungroomed",
         )
         self._finalize_plot(show=show, fig=fig)
 
@@ -5472,7 +5472,8 @@ class Unfolder:
         probability=True,  # if True, normalize each block to sum to 1
         log=False,
         cmap="viridis",
-        rlabel=None,             # e.g. "Ungroomed, Cond. = 5.6e+16"
+        rlabel=None,             # e.g. "Ungroomed"
+        show_cond=False,         # append the condition number to rlabel (ARC r2: leaning "don't show")
         vmin=None, vmax=None,
         ax=None
     ):
@@ -5497,7 +5498,12 @@ class Unfolder:
 
         hep.style.use("CMS")
         if ax is None:
-            fig, ax = plt.subplots(figsize=(14, 12))
+            # Keep the CMS-style ~10x10 per-axes footprint (a larger canvas
+            # shrinks every font relative to it in the scaled-down PDF; ARC
+            # round-2 "make all labels much bigger") -- the extra width pays
+            # for the colorbar so the matrix axes stay square. Constrained
+            # layout keeps the CMS-label spacing and the colorbar height.
+            fig, ax = plt.subplots(figsize=(12, 10), layout="constrained")
         else:
             fig = ax.figure
 
@@ -5508,67 +5514,73 @@ class Unfolder:
         # Choose norm
         norm = LogNorm(vmin=vmin, vmax=vmax) if log else None
 
-        # Plot
-        im = ax.imshow(img, origin="lower", aspect="auto", cmap=cmap, norm=norm,
-                    vmin=None if log else vmin, vmax=None if log else vmax)
+        # ---- Physical bin coordinates: stack the per-pT-block rho edges so
+        # every cell is drawn with its true log10(rho^2) width. The matching
+        # (i,i) block diagonal is then the real y=x line -- with index-space
+        # imshow the unequal rho bin widths made it a fake diagonal.
+        def _stacked_edges(edges_by_pt):
+            coords = [0.0]
+            bounds = [0.0]
+            for edges in edges_by_pt:
+                e = np.asarray(edges, dtype=float)
+                coords.extend(bounds[-1] + (e[1:] - e[0]))
+                bounds.append(bounds[-1] + (e[-1] - e[0]))
+            return np.asarray(coords), np.asarray(bounds)
 
-        # ---- Grid lines at pT block boundaries ----
-        # Row/col counts per block:
-        nrows_by_rp = [len(e)-1 for e in reco_mass_edges_by_pt]
-        ncols_by_gp = [len(e)-1 for e in gen_mass_edges_by_pt]
+        x_coords, x_bounds = _stacked_edges(gen_mass_edges_by_pt)
+        y_coords, y_bounds = _stacked_edges(reco_mass_edges_by_pt)
 
-        # Cumulative boundaries (in pixel/bin units)
-        y_bounds = np.r_[0, np.cumsum(nrows_by_rp)]
-        x_bounds = np.r_[0, np.cumsum(ncols_by_gp)]
+        # rasterized=True: the mesh is embedded as one high-res raster image
+        # (see the dpi in savefig below) instead of per-cell vector rectangles,
+        # whose shared edges every PDF rasterizer renders as hairline seams.
+        im = ax.pcolormesh(x_coords, y_coords, img, cmap=cmap, norm=norm,
+                           vmin=None if log else vmin, vmax=None if log else vmax,
+                           antialiased=False, rasterized=True)
+        ax.set_xlim(x_coords[0], x_coords[-1])
+        ax.set_ylim(y_coords[0], y_coords[-1])
 
-        # Draw dashed lines
+        # Dashed lines at pT-block boundaries
         for y in y_bounds[1:-1]:
-            ax.axhline(y-0.5, color="r", ls="--", lw=2, alpha=0.6)
+            ax.axhline(y, color="r", ls="--", lw=2, alpha=0.6)
         for x in x_bounds[1:-1]:
-            ax.axvline(x-0.5, color="r", ls="--", lw=2, alpha=0.6)
-
-        # Optional: thin grid inside each block at every integer cell
-        ax.set_xticks(np.arange(-0.5, img.shape[1], 1), minor=True)
-        ax.set_yticks(np.arange(-0.5, img.shape[0], 1), minor=True)
-        ax.grid(which="minor", color="w", alpha=0.15, lw=0.5)
-        ax.tick_params(which="minor", bottom=False, left=False)
+            ax.axvline(x, color="r", ls="--", lw=2, alpha=0.6)
 
         # ---- Tick labels at pT bin centers ----
-        # Use block centers for labels:
-        x_centers = (x_bounds[:-1] + x_bounds[1:] - 1) / 2.0
-        y_centers = (y_bounds[:-1] + y_bounds[1:] - 1) / 2.0
+        x_centers = (x_bounds[:-1] + x_bounds[1:]) / 2.0
+        y_centers = (y_bounds[:-1] + y_bounds[1:]) / 2.0
         # Label with pT edges (lower edges are fine; pick what you prefer)
         x_labels = [f"{int(gen_pt_edges[i])}–{int(gen_pt_edges[i+1]) if i+1 < len(gen_pt_edges)-1 else '∞'}" for i in range(len(gen_pt_edges)-1)]
         y_labels = [f"{int(reco_pt_edges[i])}–{int(reco_pt_edges[i+1]) if i+1 < len(reco_pt_edges)-1 else '∞'}" for i in range(len(reco_pt_edges)-1)]
-
 
         ax.set_xticks(x_centers)
         ax.set_xticklabels(x_labels)
         ax.set_yticks(y_centers)
         ax.set_yticklabels(y_labels, rotation=90, va="center")
+        ax.tick_params(which="both", top=False, right=False)
 
-        ax.set_xlabel("GEN pT (GeV)")
-        ax.set_ylabel("RECO pT (GeV)")
+        ax.set_xlabel(r"Gen. $\log_{10}(\rho^{2}) \otimes p_{\mathrm{T}}$ (GeV)")
+        ax.set_ylabel(r"Reco. $\log_{10}(\rho^{2}) \otimes p_{\mathrm{T}}$ (GeV)")
 
-        # Diagonal block markers (optional; like your reference plot)
-        # draw a red diagonal only within the matching (i,i) blocks
+        # True y=x diagonal within the matching (i,i) blocks (gen and reco
+        # cover the same rho range per block, so corner-to-corner is exact).
         for i in range(min(len(x_bounds)-1, len(y_bounds)-1)):
-            x0, x1 = x_bounds[i]-0.5, x_bounds[i+1]-0.5
-            y0, y1 = y_bounds[i]-0.5, y_bounds[i+1]-0.5
-            ax.plot([x0, x1], [y0, y1], color="r", lw=1, alpha=0.7)
+            ax.plot([x_bounds[i], x_bounds[i+1]], [y_bounds[i], y_bounds[i+1]],
+                    color="r", lw=1, alpha=0.7)
 
         # Colorbar
         cbar = fig.colorbar(im, ax=ax)
         cbar.set_label("Probability" if probability else "Counts")
 
         # CMS label
-        hep.cms.label(self.cms_label, data=False, rlabel=(rlabel + f"Cond. = {np.linalg.cond(mosaic):.2f}") if rlabel else f"Cond. = {np.linalg.cond(mosaic):.2f}")
+        rparts = [rlabel] if rlabel else []
+        if show_cond:
+            rparts.append(f"Cond. = {np.linalg.cond(mosaic):.2f}")
+        hep.cms.label(self.cms_label, data=False, rlabel=", ".join(rparts))
 
-        fig.tight_layout()
         groomed_tag = "groomed" if self.groomed else "ungroomed"
         resp_path = self._relocate_output(f"response_{groomed_tag}.pdf")
         resp_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.savefig(resp_path)
+        plt.savefig(resp_path, dpi=300)
         return fig, ax
     
     def _make_inputs_numpy(self, filenames=None):
