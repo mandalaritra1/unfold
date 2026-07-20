@@ -193,6 +193,30 @@ class ObservableSpec:
     # the model term is added instead. False -> legacy behavior.
     model_envelope: bool = False
 
+    # Correlation prescription for the modelling covariance used by the
+    # bottom-line test:
+    #   "global_shown" -> one coherent PS and one HAD nuisance across all
+    #                     published pT/rho bins; source selection also uses
+    #                     only that shown phase space (production default).
+    #   "global_all"   -> same covariance, but choose the representative
+    #                     sources using every internal bin (diagnostic only).
+    #   "per_pt"       -> independent coherent PS/HAD nuisances in each
+    #                     published pT slice (cross-pT correlation diagnostic).
+    model_covariance_scope: str = "global_shown"
+
+    # Bottom-line test: the rho value each pT slice is cut at for display, so
+    # the chi2 is evaluated only over the SHOWN space (not the hidden buffer
+    # bins). Per-pT list aligned with the pT bins; None -> fall back to the
+    # uniform xlim_lower for the grooming mode.
+    bl_shown_floors_groomed: list | None = None
+    bl_shown_floors_ungroomed: list | None = None
+    # Normalize each pT slice over its SHOWN bins only (per-pT floors from
+    # _bl_shown_floors), so the published spectra integrate to 1 over the
+    # reported fiducial bins instead of including hidden buffer/catch-all
+    # bins in the denominator. Off by default: mass and the legacy rho tags
+    # keep the full-slice normalization.
+    normalize_over_shown: bool = False
+
 
 MASS_SPEC = ObservableSpec(
     name="mass",
@@ -312,10 +336,48 @@ RHO_FIXED_MISS_SPEC = replace(
     output_dir="outputs/zjet/rho/fixed_miss/",
 )
 
+# ARC round-2 production set (2026-07-10): pT sink 185-200 + the groomed-rho
+# buffer binning (shown region 0.5-wide, hidden 0.25 buffer over -5..-3.5,
+# display cropped at -3.5 via xlim). Inputs are the arc_r2 reskims (per-era
+# pythia with full systematics + all-era data + all-era herwig). HERWIG is used
+# ONLY for the comparison overlay and the closure/bias diagnostics -- it is NOT
+# a modelling-uncertainty leg (that is the two-leg PS/HAD envelope) and, with
+# model_envelope=True, the herwig systematic is excluded from the total. The
+# herwig-*systematic* still reads reweighted_fallback_files (kept at the pythia
+# file -> zero shift), so HERWIG cannot leak into the uncertainty band.
+# Jackknife pkls are pending; until they are dropped into input_dir the loader
+# falls back to the TUnfold-propagated input covariance for the stat error.
+RHO_ARC_R2_SPEC = replace(
+    RHO_FIXED_JEC_SPEC,
+    input_dir="./inputs/zjet/rho/arc_r2/",
+    output_dir="outputs/zjet/rho/arc_r2/",
+    herwig_file="herwig_all.pkl",
+    reweighted_fallback_files=["pythia_all.pkl"],
+    edges_reco_attr="rho_edges_arcr2",
+    edges_gen_attr="rho_edges_gen_arcr2",
+    reco_edges_by_pt_attr="reco_rho_edges_by_pt_arcr2",
+    gen_edges_by_pt_attr="gen_rho_edges_by_pt_arcr2",
+    xlim_lower_groomed=-3.5,
+    # Publication-space groomed rho floors corresponding to the documented
+    # 5 GeV mass floor in [185,200,290,400,inf] pT bins. The 185-200 entry is
+    # retained for alignment but that migration bin is not reported.
+    bl_shown_floors_groomed=[-2.5, -3.0, -3.0, -3.5],
+    # Publication choice (approval prep): report AND normalize over the shown
+    # per-pT window only; the ungroomed floors fall back to the uniform -2.5
+    # xlim, which excludes the [-10, -2.5] catch-all bin from the denominator.
+    normalize_over_shown=True,
+    # WS2 two-leg modelling uncertainty (PS = Vincia+FSR envelope, HAD =
+    # CR/frag envelope, combined in quadrature in _compute_total_systematic).
+    # The weighters were derived with the old [0,200] low-pT bin; that only
+    # approximates the (non-reported) 185-200 sink bin.
+    model_envelope=True,
+)
+
 RHO_SPECS = {
     "original": RHO_ORIGINAL_SPEC,
     "fixed_jec": RHO_FIXED_JEC_SPEC,
     "fixed_miss": RHO_FIXED_MISS_SPEC,
+    "arc_r2": RHO_ARC_R2_SPEC,
 }
 
 # Default rho spec: the "original" (pre-JEC-fix) input set. Select the
@@ -338,6 +400,7 @@ ZJET_SPECS = {
     ("rho", "original"): RHO_ORIGINAL_SPEC,
     ("rho", "fixed_jec"): RHO_FIXED_JEC_SPEC,
     ("rho", "fixed_miss"): RHO_FIXED_MISS_SPEC,
+    ("rho", "arc_r2"): RHO_ARC_R2_SPEC,
     ("mass", "nominal"): MASS_SPEC,
 }
 
@@ -568,7 +631,7 @@ class Unfolder:
         self._perform_unfold(closure=self.closure, herwig_closure=self.herwig_closure)
         for syst in self.systematics:
             self._perform_unfold(systematic=syst, closure=self.closure, herwig_closure=self.herwig_closure)
-        if compute_jackknife_stat:
+        if compute_jackknife_stat and self.has_jackknife:
             self._compute_stat_unc()
         else:
             # A fast diagnostic run still has the TUnfold-propagated input-data
@@ -847,9 +910,11 @@ class Unfolder:
         if i_pt is not None:
             edges = self.gen_edges_by_pt[i_pt]
             upper = float(edges[-1] if self.spec.name == "rho" else edges[-2])
-        else:
-            edge_index = -1 if self.spec.name == "rho" else -2
-            upper = max(float(edges[edge_index]) for edges in self.gen_edges_by_pt)
+            # Per-pT display floor (falls back to the mode's uniform
+            # xlim_lower when the spec sets no per-pT floors).
+            return (self._bl_shown_floors()[i_pt], upper)
+        edge_index = -1 if self.spec.name == "rho" else -2
+        upper = max(float(edges[edge_index]) for edges in self.gen_edges_by_pt)
         lower = self.spec.xlim_lower_groomed if self.groomed else self.spec.xlim_lower_ungroomed
         return (lower, upper)
 
@@ -1323,12 +1388,27 @@ class Unfolder:
         if filename_jk_data is None:
             filename_jk_data = self.spec.input_dir + self.spec.jk_data_file
         self._merge_eras()
-        self._merge_eras_jk()
+        # Jackknife replicas are a separate skim product; when an input set does
+        # not ship them yet, fall back to the TUnfold-propagated input-data
+        # covariance instead of failing (the matrix-stat jackknife term is then
+        # absent). Dropping the jk pkls into input_dir later restores the full
+        # production stat treatment with no code change.
+        _jk_paths = [Path(self.spec.input_dir + f) for f in self.spec.era_jk_files]
+        _jk_paths.append(Path(filename_jk_data))
+        if self.has_jackknife and not all(p.exists() for p in _jk_paths):
+            missing = [str(p) for p in _jk_paths if not p.exists()]
+            print(
+                "WARNING: jackknife pkls missing -> statistical uncertainty falls "
+                "back to the TUnfold-propagated input covariance (no jackknife, "
+                "no matrix-stat term). Missing: " + ", ".join(missing)
+            )
+            self.has_jackknife = False
+        if self.has_jackknife:
+            self._merge_eras_jk()
+            output_pythia_jk = self.pythia_hists_jk
         output_pythia = self.pythia_hists
-        output_pythia_jk = self.pythia_hists_jk
         print("Keys in pythia file:", output_pythia.keys())
         filename_data = self._resolve_input_path(filename_data, self.spec.input_dir + "data_all.pkl")
-        filename_jk_data = self._resolve_input_path(filename_jk_data, self.spec.input_dir + "jk_data_all.pkl")
         filename_herwig = self._resolve_input_path(
             filename_herwig,
             self.spec.input_dir + "herwig_all.pkl",
@@ -1336,19 +1416,21 @@ class Unfolder:
 
         output_herwig = self._load_pickle(filename_herwig)
         output_data = self._load_pickle(filename_data)
-        output_jk_data = self._load_pickle(filename_jk_data)
-        print("Keys in jk data file:", output_jk_data.keys())
+        if self.has_jackknife:
+            filename_jk_data = self._resolve_input_path(filename_jk_data, self.spec.input_dir + "jk_data_all.pkl")
+            output_jk_data = self._load_pickle(filename_jk_data)
+            print("Keys in jk data file:", output_jk_data.keys())
 
         sys_matrix_dic = self.sys_matrix_dic
         keys = self._histogram_keys()
 
         pythia4d = output_pythia[keys["response"]]
-        pythia4d_jk = output_pythia_jk[keys["response"]]
+        pythia4d_jk = output_pythia_jk[keys["response"]] if self.has_jackknife else None
         herwig4d = output_herwig[keys["response"]]
         pythia2d = output_pythia[keys["reco"]]
         herwig2d = output_herwig[keys["reco"]]
         data2d = output_data[keys["reco"]]
-        data2d_jk = output_jk_data[keys["reco"]]
+        data2d_jk = output_jk_data[keys["reco"]] if self.has_jackknife else None
         pythia_gen2d = output_pythia[keys["gen"]]
         herwig_gen2d = output_herwig[keys["gen"]]
 
@@ -1412,21 +1494,25 @@ class Unfolder:
 
         print("Loaded pkl files and rebinned histograms.")
 
-        print("Processing jk inputs...")
-        self.mosaic_2d_jk_list = self._prepare_jackknife_inputs(
-            data2d_jk,
-            mass_edges_reco,
-            pt_edges,
-            reco_mass_edges_by_pt,
-        )
-        self.mosaic_jk_list = self._prepare_jackknife_response_matrices(
-            pythia4d_jk,
-            mass_edges_reco,
-            mass_edges_gen,
-            pt_edges,
-            reco_mass_edges_by_pt,
-            gen_mass_edges_by_pt,
-        )
+        if self.has_jackknife:
+            print("Processing jk inputs...")
+            self.mosaic_2d_jk_list = self._prepare_jackknife_inputs(
+                data2d_jk,
+                mass_edges_reco,
+                pt_edges,
+                reco_mass_edges_by_pt,
+            )
+            self.mosaic_jk_list = self._prepare_jackknife_response_matrices(
+                pythia4d_jk,
+                mass_edges_reco,
+                mass_edges_gen,
+                pt_edges,
+                reco_mass_edges_by_pt,
+                gen_mass_edges_by_pt,
+            )
+        else:
+            self.mosaic_2d_jk_list = None
+            self.mosaic_jk_list = None
 
         for syst in self.systematics:
             if syst == 'nominal':
@@ -1590,7 +1676,7 @@ class Unfolder:
                 efficiency_pt_binned[i],
                 self.gen_edges_by_pt[i],
                 yerr=efficiency_unc_pt_binned[i] if efficiency_unc_pt_binned is not None else None,
-                label=r"Efficiency $= N_{\mathrm{gen}\wedge\mathrm{reco}}/N_{\mathrm{gen}}$",
+                label=r"Acceptance $\times$ efficiency $= N_{\mathrm{gen}\wedge\mathrm{reco}}/N_{\mathrm{gen}}$",
                 lw=1.5,
                 histtype="step",
             )
@@ -1725,6 +1811,7 @@ class Unfolder:
 
     def plot_input_data_mc(self, show=True):
         """Reco-level overlay of Data vs PYTHIA vs HERWIG per pt bin, with a ratio pad."""
+        hep.style.use("CMS")
         pt_edges = np.asarray(self.bins.pt_edges, dtype=float)
         mode = "groomed" if self.groomed else "ungroomed"
         x_label = self.spec.x_label_groomed if self.groomed else self.spec.x_label_ungroomed
@@ -1759,7 +1846,7 @@ class Unfolder:
         n_pt = len(pt_edges) - 1
         for bin_idx in range(n_pt):
             lo, hi = pt_edges[bin_idx], pt_edges[bin_idx + 1]
-            pt_label = (rf"{lo:g}$-\infty$ GeV" if not np.isfinite(hi)
+            pt_label = (rf"{lo:g}$-\infty$ GeV" if (not np.isfinite(hi) or hi >= 13000)
                         else f"{lo:g}-{hi:g} GeV")
 
             data_vals, data_var = _slice(h_data, lo, hi)
@@ -1802,6 +1889,12 @@ class Unfolder:
             ax_ratio.set_xlabel(x_label)
             ax_ratio.set_ylabel("Theory / Data")
             ax_ratio.set_ylim(0, 2)
+
+            # Trim the display to the SHOWN rho window for this pT slice (drop the
+            # low-rho migration buffer that is only there to catch feed-in). The
+            # shared x-axis carries the limit to both pads.
+            floor = self._bl_shown_floors()[bin_idx]
+            ax_ratio.set_xlim(floor, reco_axis_edges[-1])
 
             save_path = f"./{self.spec.output_dir}input_{mode}_{bin_idx}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
@@ -2094,8 +2187,50 @@ class Unfolder:
             "condition": condition,
         }
 
+    def _model_cov_unfolded(self, gidx):
+        """Correlated PS/HAD modelling covariance on the unfolded data, in
+        the un-normalized gen space, restricted to flat gen indices ``gidx``.
+
+        ARC round-2: the bottom-line test folds the modelling uncertainty into
+        the *unfolded data* covariance (the detector-level data carries no
+        modelling term, so the smeared side is untouched). The stored
+        The stored signed PS/HAD shifts are fractional variations of the
+        normalized per-pT shape. Multiplying them by the un-normalized
+        ``y_unf`` gives the absolute nuisance vectors (the per-pT normalization
+        is a common scale, so shape-fraction == count-fraction to the accuracy
+        of this test). Their outer products retain the bin-to-bin correlations.
+        Returns ``None`` when no modelling envelope is available.
+        """
+        scope = getattr(
+            getattr(self, "spec", None),
+            "model_covariance_scope",
+            "global_shown",
+        )
+        ps_frac = getattr(self, "model_ps_shift_flat", None)
+        had_frac = getattr(self, "model_had_shift_flat", None)
+        if ps_frac is None or had_frac is None:
+            return None
+        gidx = list(gidx)
+        y = np.asarray(self.y_unf, float)[gidx]
+        if scope == "per_pt":
+            covariance = np.zeros((len(gidx), len(gidx)), dtype=float)
+            for ps_full, had_full in zip(
+                    self.model_ps_shifts_by_pt_flat,
+                    self.model_had_shifts_by_pt_flat):
+                ps_abs = np.asarray(ps_full, float)[gidx] * y
+                had_abs = np.asarray(had_full, float)[gidx] * y
+                covariance += (
+                    np.outer(ps_abs, ps_abs) + np.outer(had_abs, had_abs)
+                )
+            return covariance
+        if scope not in ("global_shown", "global_all"):
+            raise ValueError(f"Unknown model_covariance_scope: {scope}")
+        ps_abs = np.asarray(ps_frac, float)[gidx] * y
+        had_abs = np.asarray(had_frac, float)[gidx] * y
+        return np.outer(ps_abs, ps_abs) + np.outer(had_abs, had_abs)
+
     def bottom_line_test(self):
-        """Evaluate the data-stat-only bottom-line test for the nominal model.
+        """Evaluate the bottom-line test for the nominal model.
 
         The detector-space comparison is between the fake-corrected measured
         data and the matched reconstructed PYTHIA prediction.  The unfolded
@@ -2133,24 +2268,92 @@ class Unfolder:
             reco_residual,
             np.diag(np.asarray(measured_variances, dtype=float)),
         )
-        unfolded = self._chi2_from_covariance(
-            truth_residual, unfolded_covariance,
-            ndof=self._effective_ndof(range(reco_residual.size)),
+        ndof_unf = self._effective_ndof(range(reco_residual.size))
+        unfolded_stat = self._chi2_from_covariance(
+            truth_residual, unfolded_covariance, ndof=ndof_unf,
         )
+        model_cov = self._model_cov_unfolded(range(truth_residual.size))
+        if model_cov is not None:
+            unfolded = self._chi2_from_covariance(
+                truth_residual, unfolded_covariance + model_cov, ndof=ndof_unf,
+            )
+        else:
+            unfolded = unfolded_stat
         return {
-            "scope": "data-stat-only; fake-rate and response treated as fixed",
+            "scope": ("data stat + modelling uncertainty on the unfolded data"
+                      if model_cov is not None else "data-stat-only"),
+            "model_uncertainty_included": model_cov is not None,
             "regularization": self.regularization,
             "tau": float(self.tau) if self.tau is not None else 0.0,
             "smeared": smeared,
             "unfolded": unfolded,
+            "unfolded_stat_only": unfolded_stat,
             "chi2_difference_unfolded_minus_smeared": (
                 unfolded["chi2"] - smeared["chi2"]
             ),
             "inequality_holds": bool(unfolded["chi2"] <= smeared["chi2"] + 1e-9),
         }
 
-    def bottom_line_test_by_pt(self, min_edge=None):
+    def _bl_shown_floors(self):
+        """Per-pT rho floor of the SHOWN space (aligned with ``pt_edges``).
+
+        Uses the spec's ``bl_shown_floors_{groomed,ungroomed}`` when set (so the
+        chi2 is evaluated only up to the rho value each slice is cut at for
+        display), else falls back to the uniform ``xlim_lower`` for the mode.
+        """
+        floors = (self.spec.bl_shown_floors_groomed if self.groomed
+                  else self.spec.bl_shown_floors_ungroomed)
+        if floors is not None:
+            return list(floors)
+        lo = (self.spec.xlim_lower_groomed if self.groomed
+              else self.spec.xlim_lower_ungroomed)
+        return [lo] * (len(self.pt_edges) - 1)
+
+    def _shown_gen_mask(self, i):
+        """Boolean mask over the gen bins of slice ``i`` that are shown/reported.
+
+        All-True unless ``spec.normalize_over_shown`` is set; then a bin is in
+        the mask when its lower edge sits at or above the slice's shown floor.
+        """
+        edges = np.asarray(self.gen_edges_by_pt[i], dtype=float)
+        if not getattr(self.spec, "normalize_over_shown", False):
+            return np.ones(len(edges) - 1, dtype=bool)
+        return edges[:-1] >= self._bl_shown_floors()[i] - 1e-9
+
+    def _shown_reco_mask(self, i):
+        """Reco-binning companion of :meth:`_shown_gen_mask`."""
+        edges = np.asarray(self.reco_edges_by_pt[i], dtype=float)
+        if not getattr(self.spec, "normalize_over_shown", False):
+            return np.ones(len(edges) - 1, dtype=bool)
+        return edges[:-1] >= self._bl_shown_floors()[i] - 1e-9
+
+    def _shown_norm_total(self, values, i, reco=False):
+        """Slice-normalization denominator: sum of ``values`` over shown bins."""
+        mask = self._shown_reco_mask(i) if reco else self._shown_gen_mask(i)
+        return float(np.asarray(values, dtype=float)[mask].sum())
+
+    @staticmethod
+    def _reco_to_gen_rebin_1d(reco_vals, reco_edges, gen_edges):
+        """Sum reco-binned values into gen bins (reco edges nest in gen edges).
+        Works for counts and for variances (both add)."""
+        reco_edges = np.asarray(reco_edges, float)
+        gen_edges = np.asarray(gen_edges, float)
+        reco_vals = np.asarray(reco_vals, float)
+        out = np.zeros(len(gen_edges) - 1)
+        for k in range(len(gen_edges) - 1):
+            m = ((reco_edges[:-1] >= gen_edges[k] - 1e-9)
+                 & (reco_edges[1:] <= gen_edges[k + 1] + 1e-9))
+            out[k] = reco_vals[m].sum()
+        return out
+
+    def bottom_line_test_by_pt(self, min_edge=None, smeared_binning="reco"):
         """Per-pT-slice bottom-line test, plus a reported-range global row.
+
+        ``smeared_binning="gen"`` rebins the detector level onto the gen binning
+        before forming chi2_smeared (the ARC's alternative: with the reco side
+        rebinned to gen, K is square and chi2_unfold == chi2_smeared is the
+        expectation for an unregularized unfold). Default "reco" keeps the
+        native 2x-finer reco binning.
 
         Same residual / covariance definitions as :meth:`bottom_line_test`,
         sliced per reported pT bin (>= 200 GeV; the 0-200 GeV migration sink is
@@ -2160,9 +2363,13 @@ class Unfolder:
         ``([], None)`` when the data-stat inputs are unavailable.
 
         ``min_edge`` restricts both the gen and reco chi2 sums to bins whose
-        LOWER edge is >= min_edge (e.g. -2.5 drops the resolution-limited
-        low-rho merged bins from the comparison on both sides).
+        LOWER edge is >= the floor. It may be a scalar (uniform floor), a
+        per-pT sequence aligned with ``pt_edges``, or the string ``"shown"`` to
+        use the per-pT display floors from :meth:`_bl_shown_floors` (evaluate
+        each slice only up to the rho value it is cut at).
         """
+        if min_edge == "shown":
+            min_edge = self._bl_shown_floors()
         var_y = getattr(self, "corrected_measured_variances", None)
         cov_x = getattr(self, "cov_data_np", None)
         if var_y is None or cov_x is None:
@@ -2181,39 +2388,74 @@ class Unfolder:
         rstart, rcount = offsets(self.reco_edges_by_pt)
 
         rows, g_gen, g_reco = [], [], []
+        g_sm_resid, g_sm_var = [], []   # gen-rebinned smeared accumulators
         for i in self._reported_pt_indices():
             if self.pt_edges[i] < 200:
                 continue
             gidx = list(range(gstart[i], gstart[i] + gcount[i]))
             ridx = list(range(rstart[i], rstart[i] + rcount[i]))
             if min_edge is not None:
+                floor_i = (min_edge[i] if isinstance(min_edge, (list, tuple, np.ndarray))
+                           else min_edge)
                 gedges = np.asarray(self.gen_edges_by_pt[i], float)
                 redges = np.asarray(self.reco_edges_by_pt[i], float)
                 gidx = [gstart[i] + j for j in range(gcount[i])
-                        if gedges[j] >= min_edge - 1e-9]
+                        if gedges[j] >= floor_i - 1e-9]
                 ridx = [rstart[i] + j for j in range(rcount[i])
-                        if redges[j] >= min_edge - 1e-9]
+                        if redges[j] >= floor_i - 1e-9]
                 if not gidx or not ridx:
                     continue
             hi = int(self.pt_edges[i + 1]) if i + 1 < len(self.pt_edges) - 1 else None
+            cov_unf = cov_x[np.ix_(gidx, gidx)]
+            unf_stat = self._chi2_from_covariance(
+                truth_resid[gidx], cov_unf, ndof=self._effective_ndof(ridx))
+            model_cov = self._model_cov_unfolded(gidx)
+            unf = self._chi2_from_covariance(
+                truth_resid[gidx], cov_unf + model_cov,
+                ndof=self._effective_ndof(ridx),
+            ) if model_cov is not None else unf_stat
+            if smeared_binning == "gen":
+                r_full = slice(rstart[i], rstart[i] + rcount[i])
+                resid_g = self._reco_to_gen_rebin_1d(
+                    reco_resid[r_full], self.reco_edges_by_pt[i], self.gen_edges_by_pt[i])
+                var_g = self._reco_to_gen_rebin_1d(
+                    var_y[r_full], self.reco_edges_by_pt[i], self.gen_edges_by_pt[i])
+                gen_local = [gi - gstart[i] for gi in gidx]
+                sm_resid_i = resid_g[gen_local]
+                sm_var_i = var_g[gen_local]
+                smeared_row = self._chi2_from_covariance(sm_resid_i, np.diag(sm_var_i))
+                g_sm_resid.append(sm_resid_i)
+                g_sm_var.append(sm_var_i)
+            else:
+                smeared_row = self._chi2_from_covariance(reco_resid[ridx], np.diag(var_y[ridx]))
             rows.append({
                 "i": i, "pt_lo": int(self.pt_edges[i]), "pt_hi": hi,
-                "smeared": self._chi2_from_covariance(reco_resid[ridx], np.diag(var_y[ridx])),
-                "unfolded": self._chi2_from_covariance(
-                    truth_resid[gidx], cov_x[np.ix_(gidx, gidx)],
-                    ndof=self._effective_ndof(ridx),
-                ),
+                "smeared": smeared_row,
+                "unfolded": unf,
+                "unfolded_stat_only": unf_stat,
             })
             g_gen.extend(gidx)
             g_reco.extend(ridx)
         if not rows:
             return [], None
+        g_model_cov = self._model_cov_unfolded(g_gen)
+        g_cov = cov_x[np.ix_(g_gen, g_gen)]
+        g_unf_stat = self._chi2_from_covariance(
+            truth_resid[g_gen], g_cov, ndof=self._effective_ndof(g_reco))
+        if smeared_binning == "gen":
+            g_sm_resid = np.concatenate(g_sm_resid)
+            g_sm_var = np.concatenate(g_sm_var)
+            glob_smeared = self._chi2_from_covariance(g_sm_resid, np.diag(g_sm_var))
+        else:
+            glob_smeared = self._chi2_from_covariance(reco_resid[g_reco], np.diag(var_y[g_reco]))
         glob = {
-            "smeared": self._chi2_from_covariance(reco_resid[g_reco], np.diag(var_y[g_reco])),
-            "unfolded": self._chi2_from_covariance(
-                truth_resid[g_gen], cov_x[np.ix_(g_gen, g_gen)],
-                ndof=self._effective_ndof(g_reco),
-            ),
+            "smeared": glob_smeared,
+            "unfolded": (self._chi2_from_covariance(
+                truth_resid[g_gen], g_cov + g_model_cov,
+                ndof=self._effective_ndof(g_reco))
+                if g_model_cov is not None else g_unf_stat),
+            "unfolded_stat_only": g_unf_stat,
+            "model_uncertainty_included": g_model_cov is not None,
         }
         return rows, glob
 
@@ -2225,32 +2467,34 @@ class Unfolder:
         return f"{ndof:.0f}" if abs(ndof - round(ndof)) < 1e-6 else f"{ndof:.1f}"
 
     def _bottom_line_panel_text(self, slice_row, global_row):
-        """Annotation text: this slice's chi2 + the global test, with p-values."""
-        def pstr(metric):
-            p = metric.get("pvalue", float("nan"))
-            if not np.isfinite(p):
-                return ""
-            return r" ($p<10^{-3}$)" if p < 1e-3 else fr" ($p={p:.3f}$)"
+        """Annotation text: the global chi2/ndof (the headline number the ARC
+        asked for) plus this slice's chi2/ndof, evaluated over the shown space."""
+        def rndf(metric):
+            n = metric.get("ndof", float("nan"))
+            return metric["chi2"] / n if n and np.isfinite(n) and n > 0 else float("nan")
 
+        with_model = bool((global_row or slice_row or {}).get(
+            "model_uncertainty_included", False))
+        unc = "stat + model" if with_model else "data stat"
         lines = []
-        if slice_row is not None:
-            sm, un = slice_row["smeared"], slice_row["unfolded"]
-            ok = un["chi2"] <= sm["chi2"] + 1e-9
-            lines += [
-                "This slice (data-stat only):",
-                fr"$\chi^2_\mathrm{{smear}}={sm['chi2']:.0f}/{self._fmt_ndof(sm['ndof'])}${pstr(sm)}",
-                fr"$\chi^2_\mathrm{{unfold}}={un['chi2']:.0f}/{self._fmt_ndof(un['ndof'])}${pstr(un)}",
-                (r"  $\chi^2_\mathrm{unfold}\leq\chi^2_\mathrm{smear}$  $\checkmark$"
-                 if ok else r"  $\chi^2_\mathrm{unfold}>\chi^2_\mathrm{smear}$  $\times$"),
-            ]
         if global_row is not None:
             gsm, gun = global_row["smeared"], global_row["unfolded"]
-            gok = gun["chi2"] <= gsm["chi2"] + 1e-9
+            grsm, grun = rndf(gsm), rndf(gun)
+            gok = grun <= grsm + 1e-9
+            lines += [
+                fr"Global $\chi^2/n_\mathrm{{dof}}$ ({unc}, shown range):",
+                fr"  smeared $={grsm:.2f}$   unfolded $={grun:.2f}$  "
+                + (r"$\checkmark$" if gok else r"$\times$"),
+            ]
+        if slice_row is not None:
+            sm, un = slice_row["smeared"], slice_row["unfolded"]
+            rsm, run_ = rndf(sm), rndf(un)
             lines += [
                 "",
-                fr"Global: $\chi^2_\mathrm{{unf}}={gun['chi2']:.0f}/{self._fmt_ndof(gun['ndof'])}$ "
-                fr"$\leq$ $\chi^2_\mathrm{{smear}}={gsm['chi2']:.0f}/{self._fmt_ndof(gsm['ndof'])}$ "
-                + (r"$\checkmark$" if gok else r"$\times$"),
+                fr"This slice: $\chi^2/n_\mathrm{{dof}}$ "
+                fr"smear $={rsm:.2f}$, unfold $={run_:.2f}$",
+                fr"  ($\chi^2_\mathrm{{unf}}={un['chi2']:.0f}/{self._fmt_ndof(un['ndof'])}$, "
+                fr"$\chi^2_\mathrm{{sm}}={sm['chi2']:.0f}/{self._fmt_ndof(sm['ndof'])}$)",
             ]
         return "\n".join(lines)
 
@@ -2655,12 +2899,19 @@ class Unfolder:
 
 
 
-    def plot_bottom_line(self, show=True):
+    def plot_bottom_line(self, show=True, rebin_reco_to_gen=False):
         # This remains a visual diagnostic.  The quantitative test is evaluated
         # in the full unnormalised space below and printed on every panel so the
         # plot cannot be mistaken for a bin-by-bin chi-square test.
+        # Evaluate the test only over the SHOWN space (each slice up to the rho
+        # value it is cut at for display), matching what the panel displays.
+        # ``rebin_reco_to_gen`` puts the detector level on the gen binning (the
+        # ARC's alternative: square K, so chi2_smeared and chi2_unfold are
+        # directly comparable). Both ratio curves then share the gen axis.
+        smeared_binning = "gen" if rebin_reco_to_gen else "reco"
         try:
-            bl_rows, bl_global = self.bottom_line_test_by_pt()
+            bl_rows, bl_global = self.bottom_line_test_by_pt(
+                min_edge="shown", smeared_binning=smeared_binning)
         except RuntimeError:
             bl_rows, bl_global = [], None
         bl_by_i = {r["i"]: r for r in bl_rows}
@@ -2716,15 +2967,28 @@ class Unfolder:
                         where=true != 0,
                     )
             
-            bin_widths_reco = np.diff(self.reco_edges_by_pt[i])
-            measured = measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum()
-            reco_mc = reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum()
+            if rebin_reco_to_gen:
+                # Detector level rebinned onto the gen binning: both curves share
+                # the gen axis and the smeared side is a square-K comparison.
+                meas_counts = self._reco_to_gen_rebin_1d(
+                    measured_pt_binned[i], self.reco_edges_by_pt[i], self.gen_edges_by_pt[i])
+                recomc_counts = self._reco_to_gen_rebin_1d(
+                    reco_mc_pt_binned[i], self.reco_edges_by_pt[i], self.gen_edges_by_pt[i])
+                measured = meas_counts / bin_widths / meas_counts.sum()
+                reco_mc = recomc_counts / bin_widths / recomc_counts.sum()
+                meas_edges = self.gen_edges_by_pt[i]
+            else:
+                bin_widths_reco = np.diff(self.reco_edges_by_pt[i])
+                measured = measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum()
+                reco_mc = reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum()
+                meas_edges = self.reco_edges_by_pt[i]
             ratio_meas_reco = np.divide(measured, reco_mc, out=np.full_like(measured, np.nan), where=reco_mc != 0)
-            
+
             ax.axhline(1.0, color='gray', ls='--')
             hep.histplot(ratio_unf_true, self.gen_edges_by_pt[i], yerr=ratio_unf_true_err,
                          label='Unfolded / True', color='k', ls='--')
-            hep.histplot(ratio_meas_reco, self.reco_edges_by_pt[i],  label='Measured / Reco_MC', color='#e42536', ls=':')
+            reco_label = 'Measured / Reco_MC (rebinned to gen)' if rebin_reco_to_gen else 'Measured / Reco_MC'
+            hep.histplot(ratio_meas_reco, meas_edges,  label=reco_label, color='#e42536', ls=':')
             ax.set_ylabel('Ratio')
             ax.set_xlim(self.gen_edges_by_pt[i][0], self.gen_edges_by_pt[i][-1])
             ax.set_ylim(0.5, 1.5)
@@ -2746,7 +3010,8 @@ class Unfolder:
                 )
             hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
             mode = "groomed" if self.groomed else "ungroomed"
-            save_path = Path(self.spec.output_dir) / f"bottom_line_{mode}_{i - 1}.pdf"
+            tag = "_rebinned" if rebin_reco_to_gen else ""
+            save_path = Path(self.spec.output_dir) / f"bottom_line{tag}_{mode}_{i - 1}.pdf"
             self._finalize_plot(save_path=save_path, show=show, fig=fig)
 
     def plot_bottom_line_chi2_summary(self, show=True, normalized=False,
@@ -2761,12 +3026,13 @@ class Unfolder:
         regularization is below the gen bin count. Data-stat-only, per
         bottom_line_test_by_pt.
 
-        ``normalized=True`` plots chi2/ndf instead, as a per-dof goodness-of-fit
-        diagnostic. This is NOT the bottom-line comparison: the smeared and
-        unfolded statistics have different ndf (reco bin count vs effective gen
-        rank), so their chi2/ndf are not directly comparable and the unfolded
-        bar can sit above the smeared one even when the test passes. The
-        PASS/FAIL flag therefore always reflects the raw-chi2 inequality.
+        ``normalized=True`` plots chi2/ndf instead -- the quantity the ARC asked
+        to compare (they no longer want the absolute chi2). The smeared ndf is
+        the reco bin count and the unfolded ndf is the effective rank of
+        K J J^T K^T (CMS Stat Committee / TUnfold TWiki); the single global
+        chi2/ndf for each is annotated on the plot. The raw-chi2 inequality
+        (the underlying bottom-line theorem) is still evaluated and printed to
+        the log, but is no longer stamped on the figure.
         """
         rows, glob = self.bottom_line_test_by_pt(min_edge=min_edge)
         if not rows:
@@ -2786,14 +3052,23 @@ class Unfolder:
         w = 0.38
         c_sm = [val(g, "smeared") for g in groups]
         c_unf = [val(g, "unfolded") for g in groups]
+        with_model = bool(glob.get("model_uncertainty_included", False))
+        unf_label = (r"$\chi^2_\mathrm{unfold}$  (truth space, unfolded"
+                     + (r"$\oplus$model" if with_model else "")
+                     + " vs PYTHIA gen)")
         fig, ax = plt.subplots(figsize=(12, 9))
         b1 = ax.bar(x - w / 2, c_sm, w, color="#e42536", alpha=0.85,
                     label=r"$\chi^2_\mathrm{smeared}$  (reco space, data vs folded PYTHIA)")
         b2 = ax.bar(x + w / 2, c_unf, w, color="#5790fc", alpha=0.9,
-                    label=r"$\chi^2_\mathrm{unfold}$  (truth space, unfolded vs PYTHIA gen)")
+                    label=unf_label)
         ax.set_yscale("log")
-        ax.set_ylabel(r"$\chi^2/\mathrm{ndf}$ vs PYTHIA8 (data stat only)" if normalized
-                      else r"$\chi^2$ vs PYTHIA8 (data stat only)")
+        ax.set_ylabel(r"$\chi^2/n_\mathrm{dof}$ vs PYTHIA8" if normalized
+                      else r"$\chi^2$ vs PYTHIA8")
+        if with_model:
+            ax.text(0.03, 0.03,
+                    r"smeared: data stat  ·  unfolded: stat$\oplus$model",
+                    transform=ax.transAxes, ha="left", va="bottom",
+                    fontsize=11, color="#555555")
         ax.set_xlabel(r"$p_T$ slice (GeV)")
         ax.set_xticks(x)
         ax.set_xticklabels(labels)
@@ -2805,24 +3080,35 @@ class Unfolder:
                 ax.annotate(note,
                             (rect.get_x() + rect.get_width() / 2, rect.get_height()),
                             ha="center", va="bottom", fontsize=9)
-        # PASS/FAIL is always the raw-chi2 inequality -- never chi2/ndf.
-        # Keep the canvas lean: only the two legend entries in-plot. The test
-        # statement, PASS/FAIL verdict, and bin-range note belong in the
-        # caption (deck/AN); the verdict is still printed for the log.
+        # Resolve a human/file label for the cut region.
+        is_shown = (min_edge == "shown")
+        is_seq = isinstance(min_edge, (list, tuple, np.ndarray))
+        if min_edge is None:
+            cut_word, cut_tag = "full range", ""
+        elif is_shown or is_seq:
+            cut_word, cut_tag = "shown range", "_shown"
+        else:
+            cut_word = rf"$\log_{{10}}(\rho^2)\geq{min_edge:g}$"
+            cut_tag = f"_above{abs(min_edge):g}".replace(".", "")
+
         passed = all(g["unfolded"]["chi2"] <= g["smeared"]["chi2"] + 1e-9 for g in groups)
         mode = "Groomed" if self.groomed else "Ungroomed"
-        cut_note = "" if min_edge is None else f" (rho >= {min_edge:g})"
-        print(f"[bottom-line {mode.lower()}{cut_note}] "
-              + ("PASS" if passed else "FAIL"))
-        panel_id = mode if min_edge is None else (
-            mode + rf", $\log_{{10}}(\rho^2) \geq {min_edge:g}$")
-        ax.text(0.03, 0.97, panel_id, transform=ax.transAxes,
+        gsm_r = glob["smeared"]["chi2"] / max(glob["smeared"]["ndof"], 1e-9)
+        gun_r = glob["unfolded"]["chi2"] / max(glob["unfolded"]["ndof"], 1e-9)
+        print(f"[bottom-line {mode.lower()} ({cut_word})] "
+              + ("PASS" if passed else "FAIL")
+              + f" | GLOBAL chi2/ndf: smeared={gsm_r:.2f} unfolded={gun_r:.2f}")
+        ax.text(0.03, 0.97, f"{mode}, {cut_word}", transform=ax.transAxes,
                 ha="left", va="top", fontsize=18)
+        # The single global chi2/ndof number the ARC asked to compare.
+        ax.text(0.03, 0.88,
+                fr"Global $\chi^2/n_\mathrm{{dof}}$:  smeared $={gsm_r:.2f}$,  "
+                fr"unfolded $={gun_r:.2f}$", transform=ax.transAxes,
+                ha="left", va="top", fontsize=14, color="#333333")
         ax.legend(loc="upper right", fontsize=16)
         ax.set_ylim(top=max(max(c_sm), max(c_unf)) * 4)
         hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
         suffix = "groomed" if self.groomed else "ungroomed"
-        cut_tag = f"_above{abs(min_edge):g}".replace(".", "") if min_edge is not None else ""
         stem = f"bottom_line_chi2{'_perndf' if normalized else ''}_summary{cut_tag}_{suffix}.pdf"
         self._finalize_plot(
             save_path=Path(self.spec.output_dir) / stem,
@@ -2850,7 +3136,7 @@ class Unfolder:
         def norm_shape(full_gen_flat):
             pt_binned = unflatten_gen_by_pt(full_gen_flat, self.gen_edges_by_pt)[i]
             bin_widths = np.diff(self.gen_edges_by_pt[i])
-            total = pt_binned.sum()
+            total = self._shown_norm_total(pt_binned, i)
             if total == 0:
                 return np.zeros_like(pt_binned, dtype=float)
             return pt_binned / bin_widths / total
@@ -2904,7 +3190,7 @@ class Unfolder:
         if val_flat is not None and var_flat is not None:
             counts = unflatten_gen_by_pt(np.asarray(val_flat, float), self.gen_edges_by_pt)[i]
             variance = unflatten_gen_by_pt(np.asarray(var_flat, float), self.gen_edges_by_pt)[i]
-            total = counts.sum()
+            total = self._shown_norm_total(counts, i)
             if total > 0:
                 norm_shape = counts / bin_widths / total
                 rel = np.divide(
@@ -2961,7 +3247,7 @@ class Unfolder:
             )
             bin_widths = np.diff(self.gen_edges_by_pt[i])
             if has_herwig:
-                herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
+                herwig_norm = true_herwig_pt_binned[i] / bin_widths / self._shown_norm_total(true_herwig_pt_binned[i], i)
             unfolded = np.array(self.normalized_results[i]['unfolded'], dtype=float)
             stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
             syst_up = np.array(self.normalized_results[i]['syst_unc']['up'], dtype=float)
@@ -2988,10 +3274,12 @@ class Unfolder:
                 curve_max = max(curve_max, float(np.max(vincia_truth[i][0])))
             # Data-vs-MC chi2/ndf per panel using the total (stat + syst)
             # uncertainty of the unfolded shape; the per-pT normalization
-            # constraint removes one dof.
+            # constraint removes one dof. Restricted to the shown bins so the
+            # quoted agreement covers exactly what the panel displays.
+            shown = self._shown_gen_mask(i)
             def _mc_chi2_label(name, prediction):
                 sigma = np.maximum(syst_up, syst_down)
-                good = (sigma > 0) & np.isfinite(prediction)
+                good = (sigma > 0) & np.isfinite(prediction) & shown
                 ndf = max(int(good.sum()) - 1, 1)
                 chi2 = float(np.sum(
                     ((unfolded[good] - prediction[good]) / sigma[good]) ** 2))
@@ -3110,54 +3398,70 @@ class Unfolder:
             stat_unc = np.array(self.normalized_results[i]['stat_unc'], dtype=float)
             bin_widths = np.diff(self.gen_edges_by_pt[i])
             if has_herwig:
-                herwig_norm = true_herwig_pt_binned[i] / bin_widths / true_herwig_pt_binned[i].sum()
+                herwig_norm = true_herwig_pt_binned[i] / bin_widths / self._shown_norm_total(true_herwig_pt_binned[i], i)
+
+            # Crop every per-slice array to the SHOWN bins: on the shared
+            # x-axis (deepest floor for the mode) each slice's curves then
+            # span exactly its reported window instead of leaking below its
+            # own floor. k0 = 0 when no per-pT floors are set.
+            k0 = int(np.argmax(self._shown_gen_mask(i)))
+            rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)[k0:]
+            unfolded = unfolded[k0:]
+            syst_up = syst_up[k0:]
+            syst_down = syst_down[k0:]
+            stat_unc = stat_unc[k0:]
+            bin_widths = bin_widths[k0:]
+            if has_herwig:
+                herwig_norm = herwig_norm[k0:]
 
             y_syst_up = scale * (unfolded + syst_up)
             y_syst_down = scale * (unfolded - syst_down)
             y_syst_down = np.maximum(y_syst_down, scale * unfolded * 1e-1)
             y_stat_up = scale * (unfolded + stat_unc)
             y_stat_down = scale * (unfolded - stat_unc)
-            pythia = np.array(self.normalized_results[i]['true'], dtype=float)
-            rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)
+            pythia = np.array(self.normalized_results[i]['true'], dtype=float)[k0:]
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
             summary_max = max(getattr(self, "_summary_max", 0.0), float(np.max(y_syst_up)), float(np.max(scale * pythia)))
             self._summary_max = summary_max
             positive = y_syst_down[y_syst_down > 0]
             if positive.size:
                 self._summary_min = min(getattr(self, "_summary_min", np.inf), float(np.min(positive)))
-            ax_main.stairs(scale * pythia, self.gen_edges_by_pt[i], label='Pythia8', color='#5790fc', ls='dotted', lw=3)
+            ax_main.stairs(scale * pythia, rho_edges, label='Pythia8', color='#5790fc', ls='dotted', lw=3)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
+                py_unc_up, py_unc_down = py_unc_up[k0:], py_unc_down[k0:]
                 ax_main.errorbar(centers, scale * pythia, yerr=[scale * py_unc_down, scale * py_unc_up],
                                  fmt='none', ecolor='#5790fc', elinewidth=1.2, capsize=2)
             if has_herwig:
-                ax_main.stairs(scale * herwig_norm, self.gen_edges_by_pt[i], label='Herwig7', color='#e42536', ls='dashdot', lw=2)
+                ax_main.stairs(scale * herwig_norm, rho_edges, label='Herwig7', color='#e42536', ls='dashdot', lw=2)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
+                    hw_unc_up, hw_unc_down = hw_unc_up[k0:], hw_unc_down[k0:]
                     ax_main.errorbar(centers, scale * herwig_norm, yerr=[scale * hw_unc_down, scale * hw_unc_up],
                                      fmt='none', ecolor='#e42536', elinewidth=1.2, capsize=2)
             if vincia_truth is not None:
                 vincia_norm, vincia_err = vincia_truth[i]
-                ax_main.stairs(scale * vincia_norm, self.gen_edges_by_pt[i], label='Vincia', color='#964a8b', ls='dashed', lw=2)
+                vincia_norm, vincia_err = vincia_norm[k0:], vincia_err[k0:]
+                ax_main.stairs(scale * vincia_norm, rho_edges, label='Vincia', color='#964a8b', ls='dashed', lw=2)
                 ax_main.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
                                  fmt='none', ecolor='#964a8b', elinewidth=1.2, capsize=2)
-            ax_main.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
-            ax_main.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
+            ax_main.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
+            ax_main.stairs(y_stat_up, rho_edges, baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
             ax_main.errorbar(centers, scale * unfolded, yerr=scale * stat_unc,
                              xerr=np.diff(rho_edges) / 2, fmt=markers[i], color='k',
                              markersize=7,
                              label=rf'Data, $10^{{{exponent}}} \times$ ({title_list[i]})')
 
             ratio_inputs.append({
-                "i": i, "edges": self.gen_edges_by_pt[i], "centers": centers,
+                "i": i, "edges": rho_edges, "centers": centers,
                 "widths": np.diff(rho_edges), "unfolded": unfolded,
                 "pythia": pythia, "syst_up": syst_up, "syst_down": syst_down,
                 "stat_unc": stat_unc,
                 "herwig": herwig_norm if has_herwig else None,
-                "vincia": vincia_truth[i][0] if vincia_truth is not None else None,
+                "vincia": vincia_norm if vincia_truth is not None else None,
                 "pythia_unc": (py_unc_up, py_unc_down),
                 "herwig_unc": (hw_unc_up, hw_unc_down) if has_herwig else (None, None),
-                "vincia_err": vincia_truth[i][1] if vincia_truth is not None else None,
+                "vincia_err": vincia_err if vincia_truth is not None else None,
             })
 
         ax_main.set_yscale('log')
@@ -3376,7 +3680,7 @@ class Unfolder:
 
             pythia_norm = np.array(self.normalized_results[i]['true'], dtype=float)
             herwig_raw = true_herwig_pt_binned[i]
-            herwig_norm = herwig_raw / bin_widths / herwig_raw.sum()
+            herwig_norm = herwig_raw / bin_widths / self._shown_norm_total(herwig_raw, i)
 
             # Unsigned gen-level difference
             gen_model_diff = np.abs(np.divide(
@@ -3732,12 +4036,16 @@ class Unfolder:
         for i in range(len(self.pt_edges)-1):
             bin_widths = np.diff(gen_mass_bin_edges_by_pt[i])
             bin_widths_reco = np.diff(reco_mass_bin_edges_by_pt[i])
+            # Denominators run over the SHOWN bins of the slice (full slice
+            # unless spec.normalize_over_shown): the published spectra
+            # integrate to 1 over the reported fiducial window, so hidden
+            # buffer / catch-all bins do not enter the normalization.
             result = {
-                "true": true_pt_binned[i]/bin_widths/true_pt_binned[i].sum(),
-                "unfolded": unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(), # Taking absolute values to avoid negative bins
-                "unfolded_err": error_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum(),
-                "measured": measured_pt_binned[i]/bin_widths_reco/measured_pt_binned[i].sum(),
-                "reco_mc": reco_mc_pt_binned[i]/bin_widths_reco/reco_mc_pt_binned[i].sum(),
+                "true": true_pt_binned[i]/bin_widths/self._shown_norm_total(true_pt_binned[i], i),
+                "unfolded": unfolded_pt_binned[i]/bin_widths/self._shown_norm_total(unfolded_pt_binned[i], i),
+                "unfolded_err": error_pt_binned[i]/bin_widths/self._shown_norm_total(unfolded_pt_binned[i], i),
+                "measured": measured_pt_binned[i]/bin_widths_reco/self._shown_norm_total(measured_pt_binned[i], i, reco=True),
+                "reco_mc": reco_mc_pt_binned[i]/bin_widths_reco/self._shown_norm_total(reco_mc_pt_binned[i], i, reco=True),
                 "pt_bin": (self.pt_edges[i], self.pt_edges[i+1] if i+1 < len(self.pt_edges)-1 else float('inf')),
                 "mgen_edges": self.gen_edges_by_pt[i]
             }
@@ -3756,7 +4064,7 @@ class Unfolder:
                 if syst == 'nominal':
                     continue
                 unfolded_pt_binned = unflatten_gen_by_pt(self.y_unf_dict[syst], gen_mass_bin_edges_by_pt)
-                unfolded[syst] = unfolded_pt_binned[i]/bin_widths/unfolded_pt_binned[i].sum() # Taking absolute values to avoid negative bins
+                unfolded[syst] = unfolded_pt_binned[i]/bin_widths/self._shown_norm_total(unfolded_pt_binned[i], i)
             self.normalized_systematics.append({
             "pt_bin": pt_bin,
             "unfolded": unfolded # Taking absolute values to avoid negative bins
@@ -4401,15 +4709,18 @@ class Unfolder:
         n = len(self.y_unf)
         jacobian = np.zeros((n, n))
         offset = 0
-        for edges in self.gen_edges_by_pt:
+        for k, edges in enumerate(self.gen_edges_by_pt):
             nbins = len(edges) - 1
             block = slice(offset, offset + nbins)
             x = np.asarray(self.y_unf[block], dtype=float)
             widths = np.diff(edges)
-            total = x.sum()
+            # S_k sums shown bins only (all bins unless normalize_over_shown):
+            # dy_i/dx_j picks up the -x_i/S term only for j in the denominator.
+            mask = self._shown_gen_mask(k).astype(float)
+            total = float((x * mask).sum())
             if total != 0:
                 jacobian[block, block] = (
-                    np.eye(nbins) - np.outer(x, np.ones(nbins)) / total
+                    np.eye(nbins) - np.outer(x, mask) / total
                 ) / (widths[:, None] * total)
             offset += nbins
         return jacobian
@@ -4546,6 +4857,9 @@ class Unfolder:
             raw_shifts = compute_model_shifts(self)
             self.model_shift_components = group_model_shifts(
                 raw_shifts, len(self.gen_edges_by_pt))
+            self.model_signed_shifts = raw_shifts
+            self.model_signed_shifts["fsrUp"] = {}
+            self.model_signed_shifts["fsrDown"] = {}
         # Systematic-axis entries folded into the model envelope instead of the
         # quadrature sum when model_envelope is on.
         _model_superseded = ("herwig", "fsr", "isr")
@@ -4614,24 +4928,50 @@ class Unfolder:
                         var, np.zeros_like(nominal))
                     if np.any(varied):
                         with np.errstate(divide='ignore', invalid='ignore'):
-                            frac = np.abs(np.divide(
+                            signed_frac = np.divide(
                                 varied - nominal, nominal,
-                                out=np.zeros_like(nominal), where=nominal != 0))
-                        fsr_frac = np.maximum(fsr_frac, frac)
+                                out=np.zeros_like(nominal), where=nominal != 0)
+                        self.model_signed_shifts[var][i] = np.where(
+                            sensitive, signed_frac, 0.0)
+                        fsr_frac = np.maximum(fsr_frac, np.abs(signed_frac))
+                    else:
+                        self.model_signed_shifts[var][i] = np.zeros_like(nominal)
                 fsr_frac = np.where(sensitive, fsr_frac, 0.0)
-                model_frac = fsr_frac.copy()
                 for name in ("Vincia", "CR", "frag"):
                     comp = np.where(
                         sensitive, self.model_shift_components[name][i], 0.0)
                     self.model_shift_components[name][i] = comp
-                    model_frac = np.maximum(model_frac, comp)
+                for source in ("vincia", "cr1", "cr2", "fraghard", "fragsoft"):
+                    self.model_signed_shifts[source][i] = np.where(
+                        sensitive, self.model_signed_shifts[source][i], 0.0)
+                # ARC round-2 prescription (plan WS2): the shower and the
+                # hadronization modelling are two INDEPENDENT uncertainties,
+                # each an envelope over its own variations, combined in
+                # quadrature -- never one max envelope over everything.
+                #   PS leg  = Vincia shower swap (hadronization kept nominal),
+                #             enveloped with the FSR PSWeight scale variation;
+                #   HAD leg = hadronization-parameter variations on the default
+                #             shower (CR modes 1/2, Lund frag hard/soft).
+                ps_frac = np.maximum(
+                    fsr_frac, self.model_shift_components["Vincia"][i])
+                had_frac = np.maximum(
+                    self.model_shift_components["CR"][i],
+                    self.model_shift_components["frag"][i])
+                model_frac = np.sqrt(ps_frac**2 + had_frac**2)
                 if not hasattr(self, "model_fsr_frac"):
                     self.model_fsr_frac = {}
+                if not hasattr(self, "model_ps_frac"):
+                    self.model_ps_frac = {}
+                    self.model_had_frac = {}
                 self.model_fsr_frac[i] = fsr_frac
+                self.model_ps_frac[i] = ps_frac
+                self.model_had_frac[i] = had_frac
                 model_unc = model_frac * np.abs(nominal)
                 syst_up_total += model_unc**2
                 syst_down_total += model_unc**2
                 self.normalized_results[i]['model_unc_frac'] = model_frac
+                self.normalized_results[i]['model_ps_frac'] = ps_frac
+                self.normalized_results[i]['model_had_frac'] = had_frac
             if use_jacobian:
                 # Errors of the normalized result itself: the Jacobian removes
                 # the fluctuation common to all bins of a pT slice.
@@ -4670,6 +5010,114 @@ class Unfolder:
             self.normalized_results[i]['input_stat_unc'] = input_stat_unc
             self.normalized_results[i]['matrix_stat_unc'] = matrix_stat_unc
             self.normalized_results[i]['stat_unc'] = stat_unc
+
+        # Flat per-gen-bin model-uncertainty fraction, concatenated over pT
+        # slices in the same order as gen_edges_by_pt -> used by the bottom-line
+        # test to fold the modelling uncertainty into the unfolded-data
+        # covariance (ARC round-2 request). Zeros when no model envelope.
+        if use_model_envelope:
+            self.model_unc_frac_flat = np.concatenate([
+                np.asarray(
+                    self.normalized_results[i].get(
+                        "model_unc_frac",
+                        np.zeros(len(self.gen_edges_by_pt[i]) - 1)),
+                    float)
+                for i in range(len(self.normalized_results))
+            ])
+            # Preserve physical bin-to-bin correlations in the bottom-line
+            # covariance. Select one coherent, signed variation for each model
+            # leg using its global L2 norm over the full unfolded space; never
+            # splice a different envelope source into each bin.
+            def _flat_signed(source):
+                return np.concatenate([
+                    np.asarray(self.model_signed_shifts[source][i], float)
+                    for i in range(len(self.normalized_results))
+                ])
+
+            ps_candidates = {
+                source: _flat_signed(source)
+                for source in ("vincia", "fsrUp", "fsrDown")
+            }
+            had_candidates = {
+                source: _flat_signed(source)
+                for source in ("cr1", "cr2", "fraghard", "fragsoft")
+            }
+            # Source selection mask: the production prescription uses exactly
+            # the publication phase space. The 185-200 migration bin and the
+            # hidden low-rho buffers remain in the response but cannot decide
+            # which variation represents the reported covariance.
+            shown_mask_parts = []
+            shown_local_masks = []
+            floors = self._bl_shown_floors()
+            for i, edges in enumerate(self.gen_edges_by_pt):
+                lower_edges = np.asarray(edges[:-1], float)
+                local = ((self.pt_edges[i] >= 200)
+                         & (lower_edges >= floors[i] - 1e-9))
+                shown_local_masks.append(local)
+                shown_mask_parts.append(local)
+            shown_mask = np.concatenate(shown_mask_parts)
+            scope = getattr(
+                self.spec, "model_covariance_scope", "global_shown")
+            selection_mask = (
+                np.ones_like(shown_mask, dtype=bool)
+                if scope == "global_all" else shown_mask
+            )
+
+            def _selected_norm(vector, mask):
+                return np.linalg.norm(np.asarray(vector)[mask])
+
+            self.model_ps_source = max(
+                ps_candidates,
+                key=lambda source: _selected_norm(
+                    ps_candidates[source], selection_mask))
+            self.model_had_source = max(
+                had_candidates,
+                key=lambda source: _selected_norm(
+                    had_candidates[source], selection_mask))
+            self.model_ps_shift_flat = ps_candidates[self.model_ps_source]
+            self.model_had_shift_flat = had_candidates[self.model_had_source]
+
+            # Diagnostic prescription with independent PS/HAD nuisances per
+            # published pT slice. Each vector is embedded in the full flat
+            # space, making _model_cov_unfolded block diagonal across pT.
+            offsets = np.concatenate([
+                [0], np.cumsum([
+                    len(edges) - 1 for edges in self.gen_edges_by_pt
+                ])
+            ]).astype(int)
+            self.model_ps_shifts_by_pt_flat = []
+            self.model_had_shifts_by_pt_flat = []
+            self.model_ps_sources_by_pt = {}
+            self.model_had_sources_by_pt = {}
+            for i, local_mask in enumerate(shown_local_masks):
+                block = slice(offsets[i], offsets[i + 1])
+                if self.pt_edges[i] < 200 or not np.any(local_mask):
+                    continue
+                ps_source = max(
+                    ps_candidates,
+                    key=lambda source: np.linalg.norm(
+                        ps_candidates[source][block][local_mask]))
+                had_source = max(
+                    had_candidates,
+                    key=lambda source: np.linalg.norm(
+                        had_candidates[source][block][local_mask]))
+                ps_vector = np.zeros_like(self.model_ps_shift_flat)
+                had_vector = np.zeros_like(self.model_had_shift_flat)
+                ps_vector[block] = ps_candidates[ps_source][block]
+                had_vector[block] = had_candidates[had_source][block]
+                self.model_ps_shifts_by_pt_flat.append(ps_vector)
+                self.model_had_shifts_by_pt_flat.append(had_vector)
+                self.model_ps_sources_by_pt[i] = ps_source
+                self.model_had_sources_by_pt[i] = had_source
+            print(
+                "Bottom-line model covariance: correlated coherent shifts "
+                f"scope={scope}, PS={self.model_ps_source}, "
+                f"HAD={self.model_had_source}"
+            )
+        else:
+            self.model_unc_frac_flat = None
+            self.model_ps_shift_flat = None
+            self.model_had_shift_flat = None
 
     def plot_statistical_fraction(self, show=True):
         for i in self._reported_pt_indices():
@@ -4725,6 +5173,10 @@ class Unfolder:
             return "Jet Mass"
         if syst_lower.startswith("ele") or syst_lower.startswith("mu"):
             return "Lepton SFs"
+        if syst_lower.startswith("showermodel"):
+            return "Shower Model"
+        if syst_lower.startswith("hadmodel"):
+            return "Hadronization Model"
         if syst_lower.startswith("isr") or syst_lower.startswith("fsr"):
             return "Parton Shower"
         if syst_lower.startswith("modelenvelope") or syst_lower.startswith("herwig"):
@@ -4747,6 +5199,8 @@ class Unfolder:
             "pdf": "PDF",
             "herwig": "Model Uncertainty",
             "modelenvelope": "Model Uncertainty",
+            "showermodel": "Shower Model",
+            "hadmodel": "Hadronization Model",
             "isr": "ISR",
             "fsr": "FSR",
             "jms": "JMS",
@@ -4783,6 +5237,8 @@ class Unfolder:
             "l1prefiring": "L1 Prefiring",
             "herwig": "Model Uncertainty",
             "modelenvelope": "Model Uncertainty",
+            "showermodel": "Shower Model",
+            "hadmodel": "Hadronization Model",
         }
         if base_lower.startswith("jes"):
             return "JES"
@@ -4816,9 +5272,15 @@ class Unfolder:
             syst_fraction = np.abs(np.divide(diff, nominal, out=np.zeros_like(diff), where=nominal != 0))
             syst_fraction_dict[syst_name] = syst_fraction
 
-        if use_model_envelope and "model_unc_frac" in result:
-            # The actual model term entering the total: envelope of the
-            # Vincia/CR/frag re-unfold shifts and the FSR variation.
+        if use_model_envelope and "model_ps_frac" in result:
+            # The two independent modelling legs entering the total in
+            # quadrature (ARC round-2): shower (Vincia + FSR envelope) and
+            # hadronization (CR/frag envelope). Shown separately.
+            syst_fraction_dict["showermodelUp"] = np.asarray(
+                result["model_ps_frac"], float)
+            syst_fraction_dict["hadmodelUp"] = np.asarray(
+                result["model_had_frac"], float)
+        elif use_model_envelope and "model_unc_frac" in result:
             syst_fraction_dict["modelenvelopeUp"] = np.asarray(
                 result["model_unc_frac"], float)
 
@@ -5440,6 +5902,25 @@ class Unfolder:
         hep.cms.label(self.cms_label, data=True, lumi=self._lumi_label(), com=self._com_label(), fontsize=20)
         save_path = f'{self.spec.output_dir}unfold/correlation_groomed.pdf' if self.groomed else f'{self.spec.output_dir}unfold/correlation_ungroomed.pdf'
         self._finalize_plot(save_path=save_path, show=show)
+    def _crop_matrix_view_to_floor(self, matrix, reco_by, gen_by, floor):
+        """Drop per-pT rho bins below ``floor`` from both axes of a reported
+        response-matrix view (display only). Returns the cropped matrix and the
+        trimmed per-pT edge lists; the unfolding itself is unaffected."""
+        def mask_and_edges(edges_by_pt):
+            masks, new_edges = [], []
+            for e in edges_by_pt:
+                e = np.asarray(e, float)
+                keep = e[:-1] >= floor - 1e-9      # bins whose lower edge >= floor
+                masks.append(keep)
+                idx = np.flatnonzero(keep)
+                new_edges.append(list(e[idx[0]:idx[-1] + 2]) if idx.size else list(e[-1:]))
+            return np.concatenate(masks), new_edges
+
+        rmask, new_reco = mask_and_edges(reco_by)
+        gmask, new_gen = mask_and_edges(gen_by)
+        cropped = np.asarray(matrix)[np.ix_(rmask, gmask)]
+        return cropped, new_reco, new_gen
+
     def plot_response_matrix(self, probability=True, log=False, show=True):
         (
             reported_mosaic,
@@ -5447,6 +5928,15 @@ class Unfolder:
             reported_gen_edges,
             reported_pt_edges,
         ) = self._reported_matrix_view(self.mosaic)
+        # Display "cheat" (ARC round-2): show the response matrix only over the
+        # reported window (rho >= the display floor), hiding the low-rho buffer
+        # bins that the unfold uses but that we never plot.
+        floor = (self.spec.xlim_lower_groomed if self.groomed
+                 else self.spec.xlim_lower_ungroomed)
+        reported_mosaic, reported_reco_edges, reported_gen_edges = (
+            self._crop_matrix_view_to_floor(
+                reported_mosaic, reported_reco_edges, reported_gen_edges, floor)
+        )
         fig, ax = self._plot_response_mosaic_cms(
             reported_mosaic,
             reco_mass_edges_by_pt=reported_reco_edges,
@@ -5661,12 +6151,16 @@ class Unfolder:
         self.plot_response_matrix(probability=True, show=show)
         self.plot_folded(show=show)
         self.plot_bottom_line(show=show)
+        # ARC round-2 (WS3.3): detector level rebinned to the gen binning, so
+        # K is square and chi2_smeared is directly comparable to chi2_unfold.
+        self.plot_bottom_line(show=show, rebin_reco_to_gen=True)
+        # PRIMARY (ARC round-2): chi2/ndof over the SHOWN space only -- each
+        # slice cut at the rho value it is displayed to, with one global number.
+        self.plot_bottom_line_chi2_summary(show=show, normalized=True, min_edge="shown")
+        self.plot_bottom_line_chi2_summary(show=show, min_edge="shown")
+        # Reference: the full-range and raw-chi2 versions.
         self.plot_bottom_line_chi2_summary(show=show)
         self.plot_bottom_line_chi2_summary(show=show, normalized=True)
-        # Restricted variant: drop the resolution-limited low-rho bins
-        # (< -2.5) from both sides of the comparison.
-        self.plot_bottom_line_chi2_summary(show=show, min_edge=-2.5)
-        self.plot_bottom_line_chi2_summary(show=show, normalized=True, min_edge=-2.5)
         self.plot_fakes_misses(show=show)
         self.plot_purity_stability(show=show)
         if self.has_validation_inputs:

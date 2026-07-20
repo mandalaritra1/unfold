@@ -78,19 +78,24 @@ def _coarsened_nominal(groomed):
     v = v[:, ::2] + v[:, 1::2]                       # reco 96 -> 48
     v = v[:, :, :, ::2] + v[:, :, :, 1::2]           # gen  48 -> 24
     e24 = np.asarray(h.axes["mpt_gen"].edges)[::2]
+    e48 = np.asarray(h.axes["mpt_reco"].edges)[::2]
     gh = d[f"ptjet_rhojet_{tag}_gen"]
     gv = gh.view(flow=False)["value"].sum(axis=0)[..., 0]
     gv = gv[:, ::2] + gv[:, 1::2]
-    return v, gv, e24
+    return v, gv, e24, e48
 
 
-def _mosaic_inputs(uf, resp, gen, e24):
+def _mosaic_inputs(uf, resp, gen, e24, e48):
     """Turn a (ptreco, mreco48, ptgen, mgen24) response + gen hist into the
-    (mosaic, misses_flat, fake_fraction) triple ``_perform_unfold`` needs."""
-    v = resp[:, ::2] + resp[:, 1::2]                 # reco 48 -> 24 analysis bins
-    Mv = np.transpose(v, (2, 3, 0, 1))               # (ptgen, mgen24, ptreco, mreco24)
-    M2d, _ = reorder_to_expected(Mv, uf.edges, uf.pt_edges, e24)
-    mosaic, _ = mosaic_no_padding(M2d, uf.edges, e24, uf.reco_edges_by_pt,
+    (mosaic, misses_flat, fake_fraction) triple ``_perform_unfold`` needs.
+
+    The reco side stays at the 48-bin half-analysis binning and is merged into
+    ``uf.reco_edges_by_pt`` by the mosaic builder, so any spec whose reported
+    reco edges are a subset of the 48-edge set works unchanged (the legacy
+    24-bin binning and the arc_r2 28-bin buffer binning both are)."""
+    Mv = np.transpose(resp, (2, 3, 0, 1))            # (ptgen, mgen24, ptreco, mreco48)
+    M2d, _ = reorder_to_expected(Mv, e48, uf.pt_edges, e24)
+    mosaic, _ = mosaic_no_padding(M2d, e48, e24, uf.reco_edges_by_pt,
                                   uf.gen_edges_by_pt)
     misses = np.clip(gen - Mv.sum(axis=(2, 3)), 0.0, None).T
     misses_flat = merge_mass_flat(misses, e24, uf.gen_edges_by_pt)
@@ -115,12 +120,12 @@ def _unfold_with(uf, mosaic, misses_flat, fake_fraction, key):
 def compute_model_shifts(uf):
     """Per-source, per-pt-bin fractional shifts of the normalized result.
 
-    Returns ``{source: {i: |frac shift| array}}`` for ``i`` indexing
+    Returns ``{source: {i: signed frac shift array}}`` for ``i`` indexing
     ``uf.gen_edges_by_pt`` (same convention as ``normalized_results``).
     Shifts are on the per-pT normalized shape, so they apply directly to
     ``normalized_results[i]['unfolded']``.
     """
-    resp_nom, gen_nom, e24 = _coarsened_nominal(uf.groomed)
+    resp_nom, gen_nom, e24, e48 = _coarsened_nominal(uf.groomed)
     eb = uf.gen_edges_by_pt
     n_pt = len(eb)
 
@@ -129,7 +134,7 @@ def compute_model_shifts(uf):
         return {i: _safe_ratio(y[i], y[i].sum()) for i in range(n_pt)}
 
     y_base = _norm_by_pt(_unfold_with(
-        uf, *_mosaic_inputs(uf, resp_nom, gen_nom, e24), key="model_nom"))
+        uf, *_mosaic_inputs(uf, resp_nom, gen_nom, e24, e48), key="model_nom"))
 
     centers = 0.5 * (e24[:-1] + e24[1:])
     shifts = {}
@@ -138,10 +143,10 @@ def compute_model_shifts(uf):
         resp_var = resp_nom * w[None, None, :, :]
         gen_var = gen_nom * w
         y_var = _norm_by_pt(_unfold_with(
-            uf, *_mosaic_inputs(uf, resp_var, gen_var, e24),
+            uf, *_mosaic_inputs(uf, resp_var, gen_var, e24, e48),
             key=f"model_{source}"))
         shifts[source] = {
-            i: np.abs(_safe_ratio(y_var[i], y_base[i]) - 1.0)
+            i: _safe_ratio(y_var[i], y_base[i]) - 1.0
             for i in range(n_pt)
         }
     return shifts
@@ -170,7 +175,7 @@ def vincia_truth_by_pt(uf):
         h, _ = np.histogram(rho[m], bins=edges, weights=w[m])
         h2, _ = np.histogram(rho[m], bins=edges, weights=w[m] ** 2)
         widths = np.diff(edges)
-        total = h.sum()
+        total = uf._shown_norm_total(h, i)
         if total <= 0:
             out[i] = (np.zeros(len(widths)), np.zeros(len(widths)))
             continue
@@ -184,9 +189,9 @@ def group_model_shifts(shifts, n_pt):
     CR = max(cr1, cr2); frag = max(fraghard, fragsoft); Vincia as-is.
     Returns ``{component: {i: frac array}}``.
     """
-    grouped = {"Vincia": shifts["vincia"]}
-    grouped["CR"] = {i: np.maximum(shifts["cr1"][i], shifts["cr2"][i])
+    grouped = {"Vincia": {i: np.abs(shifts["vincia"][i]) for i in range(n_pt)}}
+    grouped["CR"] = {i: np.maximum(np.abs(shifts["cr1"][i]), np.abs(shifts["cr2"][i]))
                      for i in range(n_pt)}
-    grouped["frag"] = {i: np.maximum(shifts["fraghard"][i], shifts["fragsoft"][i])
+    grouped["frag"] = {i: np.maximum(np.abs(shifts["fraghard"][i]), np.abs(shifts["fragsoft"][i]))
                        for i in range(n_pt)}
     return grouped
