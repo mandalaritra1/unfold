@@ -3286,7 +3286,7 @@ class Unfolder:
                 return rf"{name} ($\chi^2$/ndf = {chi2:.1f}/{ndf})"
             plt.stairs(pythia, self.gen_edges_by_pt[i],
                        label=_mc_chi2_label('Pythia8', pythia),
-                       color='#5790fc', ls='dotted', lw=3)
+                       color='#5790fc', ls='dotted', lw=3, baseline=None)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
                 plt.errorbar(centers, pythia, yerr=[py_unc_down, py_unc_up], fmt='none',
@@ -3294,7 +3294,7 @@ class Unfolder:
             if has_herwig:
                 plt.stairs(herwig_norm, self.gen_edges_by_pt[i],
                            label=_mc_chi2_label('Herwig7', herwig_norm),
-                           color='#e42536', ls='dashdot', lw=2)
+                           color='#e42536', ls='dashdot', lw=2, baseline=None)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
                     plt.errorbar(centers, herwig_norm, yerr=[hw_unc_down, hw_unc_up], fmt='none',
@@ -3303,7 +3303,7 @@ class Unfolder:
                 vincia_norm, vincia_err = vincia_truth[i]
                 plt.stairs(vincia_norm, self.gen_edges_by_pt[i],
                            label=_mc_chi2_label('Vincia', vincia_norm),
-                           color='#964a8b', ls='dashed', lw=2)
+                           color='#964a8b', ls='dashed', lw=2, baseline=None)
                 plt.errorbar(centers, vincia_norm, yerr=vincia_err, fmt='none',
                              ecolor='#964a8b', elinewidth=1.5, capsize=3)
             # ARC round-2: data as black points (not per-panel markers), with
@@ -3349,7 +3349,7 @@ class Unfolder:
 
             plt.stairs(1.0 + total_frac_up, self.gen_edges_by_pt[i], baseline=1.0 - total_frac_down, fill=True, color="yellowgreen", label=total_label)
             plt.stairs(1.0 + stat_frac, self.gen_edges_by_pt[i], baseline=1.0 - stat_frac, fill=True, color="darkgreen", label=stat_label)
-            plt.stairs(ratio_pythia, self.gen_edges_by_pt[i], color='#5790fc', ls='dotted', lw=2, label='Data / Pythia8')
+            plt.stairs(ratio_pythia, self.gen_edges_by_pt[i], color='#5790fc', ls='dotted', lw=2, label='Data / Pythia8', baseline=None)
             # PYTHIA8 uncertainty propagated onto Data/PYTHIA8 (ratio ~ 1/PYTHIA,
             # so a +sigma on PYTHIA pulls the ratio down by ratio*sigma/PYTHIA).
             if py_unc_up is not None:
@@ -3360,7 +3360,7 @@ class Unfolder:
                 )
             if has_herwig:
                 ratio_herwig = np.divide(unfolded, herwig_norm)
-                plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='#e42536', ls='dashdot', lw=2, label='Data / Herwig7')
+                plt.stairs(ratio_herwig, self.gen_edges_by_pt[i], color='#e42536', ls='dashdot', lw=2, label='Data / Herwig7', baseline=None)
                 if hw_unc_up is not None:
                     rel_hw = np.divide(np.abs(ratio_herwig), herwig_norm, out=np.zeros_like(herwig_norm), where=herwig_norm != 0)
                     plt.errorbar(
@@ -3371,7 +3371,7 @@ class Unfolder:
                 ratio_vincia = np.divide(
                     unfolded, vincia_norm,
                     out=np.zeros_like(unfolded), where=vincia_norm != 0)
-                plt.stairs(ratio_vincia, self.gen_edges_by_pt[i], color='#964a8b', ls='dashed', lw=2, label='Data / Vincia')
+                plt.stairs(ratio_vincia, self.gen_edges_by_pt[i], color='#964a8b', ls='dashed', lw=2, label='Data / Vincia', baseline=None)
             plt.ylim(0, 2)
             plt.xlabel(self._observable_label())
             plt.ylabel(r"$\frac{Data}{Simulation}$")
@@ -3426,14 +3426,14 @@ class Unfolder:
             positive = y_syst_down[y_syst_down > 0]
             if positive.size:
                 self._summary_min = min(getattr(self, "_summary_min", np.inf), float(np.min(positive)))
-            ax_main.stairs(scale * pythia, rho_edges, label='Pythia8', color='#5790fc', ls='dotted', lw=3)
+            ax_main.stairs(scale * pythia, rho_edges, label='Pythia8', color='#5790fc', ls='dotted', lw=3, baseline=None)
             py_unc_up, py_unc_down = self._prediction_uncertainty(i, "pythia")
             if py_unc_up is not None:
                 py_unc_up, py_unc_down = py_unc_up[k0:], py_unc_down[k0:]
                 ax_main.errorbar(centers, scale * pythia, yerr=[scale * py_unc_down, scale * py_unc_up],
                                  fmt='none', ecolor='#5790fc', elinewidth=1.2, capsize=2)
             if has_herwig:
-                ax_main.stairs(scale * herwig_norm, rho_edges, label='Herwig7', color='#e42536', ls='dashdot', lw=2)
+                ax_main.stairs(scale * herwig_norm, rho_edges, label='Herwig7', color='#e42536', ls='dashdot', lw=2, baseline=None)
                 hw_unc_up, hw_unc_down = self._prediction_uncertainty(i, "herwig")
                 if hw_unc_up is not None:
                     hw_unc_up, hw_unc_down = hw_unc_up[k0:], hw_unc_down[k0:]
@@ -3442,7 +3442,7 @@ class Unfolder:
             if vincia_truth is not None:
                 vincia_norm, vincia_err = vincia_truth[i]
                 vincia_norm, vincia_err = vincia_norm[k0:], vincia_err[k0:]
-                ax_main.stairs(scale * vincia_norm, rho_edges, label='Vincia', color='#964a8b', ls='dashed', lw=2)
+                ax_main.stairs(scale * vincia_norm, rho_edges, label='Vincia', color='#964a8b', ls='dashed', lw=2, baseline=None)
                 ax_main.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
                                  fmt='none', ecolor='#964a8b', elinewidth=1.2, capsize=2)
             ax_main.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
@@ -3546,16 +3546,16 @@ class Unfolder:
 
             _theory_band(d["pythia"], *d["pythia_unc"], '#5790fc')
             ax.stairs(_data_over(d["pythia"]), edges, color='#5790fc',
-                      ls='dotted', lw=3, label='Data / Pythia8')
+                      ls='dotted', lw=3, label='Data / Pythia8', baseline=None)
             if d["herwig"] is not None:
                 _theory_band(d["herwig"], *d["herwig_unc"], '#e42536')
                 ax.stairs(_data_over(d["herwig"]), edges, color='#e42536',
-                          ls='dashdot', lw=2, label='Data / Herwig7')
+                          ls='dashdot', lw=2, label='Data / Herwig7', baseline=None)
             if d["vincia"] is not None:
                 if d["vincia_err"] is not None:
                     _theory_band(d["vincia"], d["vincia_err"], d["vincia_err"], '#964a8b')
                 ax.stairs(_data_over(d["vincia"]), edges, color='#964a8b',
-                          ls='dashed', lw=2, label='Data / Vincia')
+                          ls='dashed', lw=2, label='Data / Vincia', baseline=None)
             ax.set_ylim(0, 2)
             ax.set_yticks([0.5, 1.0, 1.5])
             ax.text(0.97, 0.95, title_list[d["i"]], transform=ax.transAxes,
@@ -3618,7 +3618,7 @@ class Unfolder:
             y_stat_up = scale * (unfolded + stat_unc)
             y_stat_down = scale * (unfolded - stat_unc)
 
-            plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.gen_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3)
+            plt.stairs(scale * np.array(self.normalized_results[i]['true'], dtype=float), self.gen_edges_by_pt[i], label='PYTHIA8', color='b', ls='dotted', lw=3, baseline=None)
             plt.stairs(y_syst_up, self.gen_edges_by_pt[i], baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha=0.8)
             plt.stairs(y_stat_up, self.gen_edges_by_pt[i], baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
             rho_edges = np.array(self.gen_edges_by_pt[i], dtype=float)
@@ -5320,7 +5320,11 @@ class Unfolder:
     def _plot_systematic_fraction_summary(self, grouped=False, show=True, log=True):
         hep.style.use("CMS")
         self.syst_fraction_dicts = []
-        linear_ymax = 0.5
+        # Linear y-range per grooming (Sal, approval dry-run): the groomed
+        # totals peak at ~0.15, so a shared 0.5 ceiling left the groomed
+        # panels mostly whitespace; the ungroomed first bin genuinely needs
+        # 0.5 (its 0.77 total is clipped + annotated).
+        linear_ymax = 0.2 if self.groomed else 0.5
         grouped_legend_order = [
             "Jet Energy",
             "Jet Mass",
