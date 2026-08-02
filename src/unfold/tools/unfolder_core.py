@@ -1688,7 +1688,7 @@ class Unfolder:
         # and drops it, so it would leak out of both and bias the result. Summing
         # only the in-range pt bins puts those events where they belong: gen<185 &
         # reco>=185 -> fake, reco<185 & gen>=185 -> miss. No-op while the pt axis
-        # starts at 0 (pt flow is empty); see scripts/study_pt_sink_flow.py.
+        # starts at 0 (pt flow is empty); see scripts/diagnostics/study_pt_sink_flow.py.
         def _sum_inrange_pt(h, pt_axis):
             return h[{pt_axis: slice(0, len(h.axes[pt_axis]), sum)}]
 
@@ -2278,7 +2278,7 @@ class Unfolder:
         (1/m0, -2/m1, 1/m2) so that any spectrum proportional to the prior m
         (the nominal MC truth) has exactly zero penalty; only shape deviations
         from the prior are smoothed. No conditions cross pT-slice boundaries.
-        Validated in scripts/study_regularization_rho.py: exact self-closure
+        Validated in scripts/studies/study_regularization_rho.py: exact self-closure
         at any tau, <1% added HERWIG-closure bias at the L-curve tau.
         """
         offset = 0

@@ -6,7 +6,7 @@ regularization matrix `L` is built.
 
 Implementation: [`Unfolder._add_ratio_curvature_conditions`](../src/unfold/tools/unfolder_core.py)
 (`regularization="ratio_curvature"`). Figure produced by
-[`scripts/make_lmatrix_figure.py`](../scripts/make_lmatrix_figure.py).
+[`scripts/plotting/make_lmatrix_figure.py`](../scripts/plotting/make_lmatrix_figure.py).
 
 ![Modified regularization L-matrix: block-diagonal curvature-of-ratio conditions, with each row weighted by 1/m so any spectrum proportional to the MC prior carries zero penalty](figures/ratio_curvature_lmatrix.png)
 

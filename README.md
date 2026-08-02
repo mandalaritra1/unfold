@@ -39,8 +39,12 @@ src/unfold/tools/
   hepdata_export.py    # HEPData export
   merge_data.py        # per-era pickle merger
 src/unfold/utils/      # integrate_and_rebin, merge_helpers
-scripts/               # run_unfolding.py (unified), run_rho_unfolding.py, hepdata,
-                       # purity, and study_*/plot_* cross-checks (see "Studies")
+scripts/               # supported runners and environment helpers; see scripts/README.md
+  staging/              # input preparation helpers
+  diagnostics/          # validation and printed checks
+  plotting/             # figure and gallery tools
+  studies/              # explicit non-production studies
+  release/              # HEPData packaging/export
 notebooks/             # interactive runners (unfolder_v4_{rho,mass}, data_mc_rho_fancy)
 inputs/                # gitignored data; see inputs/README.md for the layout
   zjet/{rho/{original,fixed_jec},mass,validation}/
@@ -102,7 +106,7 @@ python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_
 # custom L rows penalize the curvature of x/x_MC per pT slice (zero penalty
 # for spectra proportional to the MC prior), tau from an L-curve scan on the
 # nominal data unfold and frozen for systematic/jackknife re-unfolds.
-# Validation: scripts/study_regularization_rho.py (exact self-closure, <1%
+# Validation: scripts/studies/study_regularization_rho.py (exact self-closure, <1%
 # added HERWIG-closure bias, roughly halved input-stat uncertainties).
 python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_jacobian_reg
 
@@ -181,7 +185,7 @@ Then open the generated `index.html` in the chosen `--root`.
 To combine selected PNG/JPEG plots into a configurable slide-ready grid:
 
 ```bash
-python scripts/serve_image_grid.py
+python scripts/plotting/serve_image_grid.py
 ```
 
 The local webpage supports folder selection, thumbnail filtering and
@@ -214,33 +218,33 @@ current archive and provenance policy.
 source scripts/setup_root.sh
 
 # Regularization L-curve / closure study (tau scan, self-closure, HERWIG bias)
-python scripts/study_regularization_rho.py
+python scripts/studies/study_regularization_rho.py
 
 # Response reweight-to-data: rebuild the response from a data-matched gen prior
-python scripts/study_response_reweight.py            # -> outputs/zjet/rho/reweight_test/
+python scripts/studies/study_response_reweight.py            # -> outputs/zjet/rho/reweight_test/
 
 # Data-prior response test: unfold through a response whose gen prior is
 # reweighted toward the unfolded data (needs the weighted producer pickle)
-python scripts/study_data_prior.py --weighted-mc /path/to/weighted_pythia_all.pkl
-python scripts/plot_data_prior_unfolded_comparison.py  # redraw from committed npz, no ROOT
+python scripts/studies/study_data_prior.py --weighted-mc /path/to/weighted_pythia_all.pkl
+python scripts/plotting/plot_data_prior_unfolded_comparison.py  # redraw from committed npz, no ROOT
 #   -> outputs/zjet/rho/original_data_prior_test/
 
 # Rho-averaged-per-pT jackknife stat-uncertainty convergence sheet
-python scripts/plot_jk_convergence_pt_avg.py --tag original
+python scripts/plotting/plot_jk_convergence_pt_avg.py --tag original
 #   -> outputs/zjet/rho/original/unfold/jackknife_convergence_pt_avg_{mode}.pdf
 
 # D'Agostini (iterative Bayes) via RooUnfold vs TUnfold, reusing the same
 # jackknife replicas for the stat uncertainty (needs a built libRooUnfold)
 source scripts/setup_roounfold.sh
-python scripts/study_roounfold_bayes.py --tag original --n-iter 4
+python scripts/studies/study_roounfold_bayes.py --tag original --n-iter 4
 #   -> outputs/zjet/rho/original/roounfold_bayes/
 ```
 
 ## HEPData export
 
 ```bash
-python scripts/run_hepdata_export.py --spec fixed_jec        # -> outputs/zjet/rho/hepdata
-python scripts/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
+python scripts/release/run_hepdata_export.py --spec fixed_jec        # -> outputs/zjet/rho/hepdata
+python scripts/release/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
 ```
 
 ## Tests

@@ -52,7 +52,7 @@ Expected filenames mirror the rho set with a `mass_` prefix
 ## zjet — validation (`inputs/zjet/validation/`)
 
 Run 2 detector-level Data/MC validation, read by
-`notebooks/data_mc_rho_fancy.py` and `scripts/compute_dy_purity.py`:
+`notebooks/data_mc_rho_fancy.py` and `scripts/diagnostics/compute_dy_purity.py`:
 `validation_pythia_<era>.pkl`, `validation_data.pkl`,
 `validation_backgrounds_all.pkl`, `validation_st_all.pkl`.
 

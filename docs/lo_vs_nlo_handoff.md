@@ -67,7 +67,7 @@ comparison at NNLO 6077 pb to match the LO k-factor convention exactly, multiply
 
 ## 3. Wiring into the unfolder (guidance, not prescriptive)
 The unfolder expects `inputs/zjet/rho/<tag>/` with files named `pythia_<era>.pkl`,
-`data_all.pkl`, `herwig_all.pkl`, … (`scripts/organize_inputs.py` renames producer
+`data_all.pkl`, `herwig_all.pkl`, … (`scripts/staging/organize_inputs.py` renames producer
 pickles and back-fills missing ones from a base tag via symlink). To treat NLO as the
 signal:
 1. Put the 4 NLO pickles in a raw folder.

@@ -123,9 +123,9 @@ once their desired destinations are confirmed.
 | Location | Current behavior | Safe replacement direction |
 |---|---|---|
 | `notebooks/plot_channel_split_rho.py` | Takes explicit `--input` and `--output-dir` arguments; defaults preserve the local AN handoff. | Override destinations on another machine or for an archive-only run. |
-| `scripts/study_bottom_line_ratio.py`, `scripts/study_bottom_line_merge30.py`, `scripts/study_purity_stability_figs.py` | Take `--slide-dir` and `--no-slide-copy`; defaults preserve the local review handoff. | Use `--no-slide-copy` for a generated-output-only run. |
-| `scripts/derive_vincia_reweight.py` | Takes `--vincia-dir`, `--pythia-input`, and `--output-dir`; the local CERNBox directory remains the default and `VINCIA_DIR` is still honoured. | Supply explicit paths and retain the source hash for a result. |
-| `scripts/study_nlo_response_unfold.py` and `docs/lo_vs_nlo_handoff.md` | Take explicit NLO input and output paths; `~/Downloads` remains a local development default. | Record the staged NLO source and hash in a run manifest. |
+| `scripts/diagnostics/study_bottom_line_ratio.py`, `scripts/diagnostics/study_bottom_line_merge30.py`, `scripts/diagnostics/study_purity_stability_figs.py` | Take `--slide-dir` and `--no-slide-copy`; defaults preserve the local review handoff. | Use `--no-slide-copy` for a generated-output-only run. |
+| `scripts/studies/derive_vincia_reweight.py` | Takes `--vincia-dir`, `--pythia-input`, and `--output-dir`; the local CERNBox directory remains the default and `VINCIA_DIR` is still honoured. | Supply explicit paths and retain the source hash for a result. |
+| `scripts/studies/study_nlo_response_unfold.py` and `docs/lo_vs_nlo_handoff.md` | Take explicit NLO input and output paths; `~/Downloads` remains a local development default. | Record the staged NLO source and hash in a run manifest. |
 | `inputs/zjet/nlo_skims` | Local symlink to a CERNBox sync directory. | Ignore it in Git and document the canonical external source before it is used in a run. |
 
 `scripts/setup_root.sh` also supplies a macOS-local default ROOT location, but
