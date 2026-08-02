@@ -6,9 +6,11 @@ no detector systematics.
 
 LO result: the full Unfolder init on the original_jacobian spec.
 NLO result: the SAME unfolder, re-unfolding the same data through the NLO response
-matrix (built from ~/Downloads/minimal_rho_nlo_ptz_all.pkl, dataset axis summed),
-then _compute_input_stat_unc_from_covariance + _normalize_result (jacobian stat).
+matrix (dataset axis summed), then _compute_input_stat_unc_from_covariance +
+_normalize_result (jacobian stat). The NLO pkl and output directory are explicit
+CLI options; their defaults preserve the local development setup.
 """
+import argparse
 import os
 import pickle
 import shutil
@@ -30,9 +32,11 @@ import numpy as np
 from unfold.tools.unfolder_core import Unfolder, RHO_ORIGINAL_SPEC, _with_jacobian_stat
 
 hep.style.use(hep.style.CMS)
-OUT = REPO / "outputs/zjet/rho/nlo_vs_lo_response"
-OUT.mkdir(parents=True, exist_ok=True)
-NLO_PKL = Path.home() / "Downloads" / "minimal_rho_nlo_ptz_all.pkl"
+DEFAULT_OUTPUT_DIR = REPO / "outputs/zjet/rho/nlo_vs_lo_response"
+DEFAULT_NLO_PKL = Path.home() / "Downloads" / "minimal_rho_nlo_ptz_all.pkl"
+OUT = DEFAULT_OUTPUT_DIR
+NLO_PKL = DEFAULT_NLO_PKL
+BL = OUT / "bottomline"
 
 
 def nlo_hists_dataset_summed():
@@ -83,9 +87,6 @@ def extract(nr, reco_edges_by_pt):
             reco_mc=np.asarray(r["reco_mc"], float),
         ))
     return out
-
-
-BL = OUT / "bottomline"
 
 
 def _stash_bottomline(uf, resp, mode):
@@ -271,6 +272,18 @@ def bl_ratio(mode, lo, nlo, groomed):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--nlo-input", type=Path, default=DEFAULT_NLO_PKL,
+                        help=f"PtZ-stitched NLO pkl (default: {DEFAULT_NLO_PKL})")
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
+                        help=f"generated-output directory (default: {DEFAULT_OUTPUT_DIR})")
+    args = parser.parse_args()
+    NLO_PKL = args.nlo_input.expanduser()
+    OUT = args.output_dir.expanduser()
+    BL = OUT / "bottomline"
+    if not NLO_PKL.is_file():
+        raise SystemExit(f"missing NLO input: {NLO_PKL}")
+    OUT.mkdir(parents=True, exist_ok=True)
     for groomed in (False, True):
         mode, lo, nlo, lo_bl, nlo_bl = run_mode(groomed)
         plot(mode, lo, nlo, groomed)

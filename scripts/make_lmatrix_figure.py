@@ -27,9 +27,19 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import mplhep as hep
 from matplotlib.colors import TwoSlopeNorm
 
 from unfold.tools.unfolder_core import Unfolder, get_spec
+from unfold.utils.cms_plot import (
+    PUB_ANNOTATION_FONTSIZE,
+    PUB_LABEL_FONTSIZE,
+    PUB_LEGEND_FONTSIZE,
+    PUB_TICK_FONTSIZE,
+    stamp_figure,
+)
+
+hep.style.use(hep.style.CMS)
 
 OUT = REPO_ROOT / "docs" / "figures"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -50,11 +60,9 @@ def main():
     rownorm = Lmat / np.where(np.abs(Lmat).max(axis=1, keepdims=True) > 0,
                               np.abs(Lmat).max(axis=1, keepdims=True), 1.0)
 
-    fig, (axL, axR) = plt.subplots(1, 2, figsize=(16, 6.3),
+    # 1x2 grid -> uniform ~10x10-per-axes CMS footprint (skill rule 2).
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(21, 10.6), layout="constrained",
                                    gridspec_kw={"width_ratios": [1.2, 1]})
-    fig.suptitle("CMS Simulation — modified regularization $L$-matrix "
-                 r"(penalty $\tau^2\,|Lx|^2$, curvature of $x/x_\mathrm{MC}$)",
-                 fontsize=14, fontweight="bold", x=0.5, y=0.99)
 
     # ---- Panel A: structure of L ----
     im = axL.imshow(rownorm, aspect="auto", cmap="RdBu_r",
@@ -63,14 +71,22 @@ def main():
         axL.axvline(s - 0.5, color="k", lw=1.3)
     mid = [starts[i] + counts[i] / 2 - 0.5 for i in range(len(counts))]
     labels = ["0-200", "200-290", "290-400", "400-∞"]
-    for x, lab in zip(mid, labels):
-        axL.text(x, 1.2, f"{lab} GeV", ha="center", va="top", fontsize=9, color="0.25")
-    axL.set_xlabel("gen bin index  (4 pT-slice blocks)")
-    axL.set_ylabel("regularisation condition (row of $L$)")
-    axL.set_title("block-diagonal: 8 curvature rows per pT slice, "
-                  "none cross a slice boundary", fontsize=12, pad=10)
+    # L is block-diagonal, so each column block's own rows are occupied; drop the
+    # label into whichever half of that column is empty (above or below the block).
+    row_counts = [max(c - 2, 0) for c in counts]
+    row_starts = np.concatenate([[0], np.cumsum(row_counts)[:-1]])
+    n_rows = rownorm.shape[0]
+    for i, (x, lab) in enumerate(zip(mid, labels)):
+        r0, r1 = row_starts[i], row_starts[i] + row_counts[i]
+        y = (r0 / 2.0 - 0.5) if r0 > (n_rows - r1) else ((r1 + n_rows) / 2.0 - 0.5)
+        axL.text(x, y, f"{lab} GeV", ha="center", va="center",
+                 fontsize=PUB_ANNOTATION_FONTSIZE - 4, color="0.25")
+    axL.set_xlabel("gen bin index  (4 pT-slice blocks)", fontsize=PUB_LABEL_FONTSIZE)
+    axL.set_ylabel("regularisation condition (row of $L$)", fontsize=PUB_LABEL_FONTSIZE)
+    axL.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
     cb = fig.colorbar(im, ax=axL, fraction=0.046, pad=0.02)
-    cb.set_label("row of $L$ (normalised)")
+    cb.set_label("row of $L$ (normalised)", fontsize=PUB_LABEL_FONTSIZE)
+    cb.ax.tick_params(labelsize=PUB_TICK_FONTSIZE)
 
     # ---- Panel B: the 1/m reweighting and zero-penalty property ----
     i_pt = 1
@@ -81,27 +97,37 @@ def main():
     axR.plot(centers, m / m.max(), "o-", color="#5790fc", lw=2,
              label=r"MC prior $m_j$ (PYTHIA gen)")
     k = 3
-    for kk, w, dy in ((k - 1, r"$+1/m_{j-1}$", 14), (k, r"$-2/m_j$", -22),
-                      (k + 1, r"$+1/m_{j+1}$", 14)):
+    for kk, w, dy in ((k - 1, r"$+1/m_{j-1}$", 22), (k, r"$-2/m_j$", -34),
+                      (k + 1, r"$+1/m_{j+1}$", 22)):
         axR.annotate(w, (centers[kk], m[kk] / m.max()), textcoords="offset points",
-                     xytext=(0, dy), ha="center", color="#e42536", fontsize=12,
-                     fontweight="bold")
+                     xytext=(0, dy), ha="center", color="#e42536",
+                     fontsize=PUB_ANNOTATION_FONTSIZE - 4, fontweight="bold")
     axR.plot(centers[k - 1:k + 2], m[k - 1:k + 2] / m.max(), "s", ms=11, mfc="none",
              mec="#e42536", mew=2)
     axR.set_yscale("log")
     axR.set_xlim(-4.5, 0)
-    axR.set_xlabel(r"$\log_{10}(\rho^2)$  (200-290 GeV slice)")
-    axR.set_ylabel(r"prior $m_j$ (normalised)")
-    axR.set_title("one curvature row, weighted by $1/m_j$", fontsize=12)
+    # Open an empty band below the curve for the equation box, and headroom above
+    # so the "+1/m" annotations clear the top spine.
+    norm_prior = m / m.max()
+    axR.set_ylim(float(norm_prior[norm_prior > 0].min()) / 60.0, 3.0)
+    axR.set_xlabel(r"$\log_{10}(\rho^2)$  (200-290 GeV slice)", fontsize=PUB_LABEL_FONTSIZE)
+    axR.set_ylabel(r"prior $m_j$ (normalised)", fontsize=PUB_LABEL_FONTSIZE)
+    axR.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
     axR.text(0.035, 0.045,
              r"$(Lx)_r=\dfrac{x_{j-1}}{m_{j-1}}-2\dfrac{x_j}{m_j}+\dfrac{x_{j+1}}{m_{j+1}}$"
              "\n\n"
              r"$x_j\propto m_j\ \Rightarrow\ (Lx)_r=c-2c+c=0$",
-             transform=axR.transAxes, fontsize=12.5, va="bottom",
+             transform=axR.transAxes, fontsize=PUB_ANNOTATION_FONTSIZE - 4, va="bottom",
              bbox=dict(boxstyle="round", fc="#fff6e6", ec="0.6"))
-    axR.legend(loc="upper right", fontsize=11)
+    axR.legend(loc="upper right", fontsize=PUB_LEGEND_FONTSIZE)
 
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    # loc=0 (above the frame) on both panels: the left panel is a heatmap with a
+    # colorbar, so there is no clear in-frame corner, and a split placement
+    # across the two panels of one figure reads as a mistake.
+    hep.cms.label("Internal", data=False, loc=0, ax=axL, rlabel="block-diagonal $L$")
+    hep.cms.label("Internal", data=False, loc=0, ax=axR, rlabel=r"row weights $1/m_j$")
+
+    stamp_figure(fig, inputs="zjet rho original_jacobian_reg")
     for ext in ("png", "pdf"):
         fig.savefig(OUT / f"ratio_curvature_lmatrix.{ext}", dpi=140)
     print(f"wrote {OUT}/ratio_curvature_lmatrix.png / .pdf  "

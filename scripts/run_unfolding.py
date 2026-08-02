@@ -108,6 +108,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-syst", action="store_true", help="zjet: skip systematic variations"
     )
+    parser.add_argument(
+        "--model-covariance-scope",
+        choices=("global_shown", "global_all", "per_pt"),
+        default=None,
+        help=(
+            "zjet model covariance used by the bottom-line test: one PS/HAD "
+            "pair selected in the shown phase space (global_shown), selected "
+            "using all internal bins (global_all), or an independent pair per "
+            "published pT slice (per_pt). Default: the tag's setting."
+        ),
+    )
     parser.add_argument("--no-gallery", action="store_true")
     return parser.parse_args()
 
@@ -154,6 +165,9 @@ def resolve_zjet_spec(args: argparse.Namespace):
             suffix += "_bayes"
     if args.n_iter is not None:
         spec = replace(spec, n_iter=args.n_iter)
+    if args.model_covariance_scope is not None:
+        spec = replace(
+            spec, model_covariance_scope=args.model_covariance_scope)
     if suffix:
         spec = replace(spec, output_dir=spec.output_dir.rstrip("/") + suffix + "/")
 

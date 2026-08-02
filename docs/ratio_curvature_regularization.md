@@ -10,6 +10,15 @@ Implementation: [`Unfolder._add_ratio_curvature_conditions`](../src/unfold/tools
 
 ![Modified regularization L-matrix: block-diagonal curvature-of-ratio conditions, with each row weighted by 1/m so any spectrum proportional to the MC prior carries zero penalty](figures/ratio_curvature_lmatrix.png)
 
+**Left:** `L` is block-diagonal — one curvature row per interior gen bin of each
+pT slice (`n_bins - 2` rows per slice; 4 per slice for the current 6-bin
+binning), none crossing a slice boundary. Rows are normalised so the
+`(+1, -2, +1)` stencil is visible
+regardless of the per-bin `1/m` scaling. **Right:** one such curvature row, whose
+weights are `(1/m_{j-1}, -2/m_j, 1/m_{j+1})` with `m` the MC prior, so the
+penalised quantity is the curvature of `x_j/m_j` and any `x` proportional to the
+prior carries exactly zero penalty.
+
 ## 1. What regularization does
 
 TUnfold minimizes

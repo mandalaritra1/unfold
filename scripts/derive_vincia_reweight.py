@@ -22,6 +22,7 @@ Outputs -> outputs/zjet/rho/vincia_reweight/:
     reweight_rho_{g,u}_fine.png    reweight-axis overlay + w(rho)
     vincia_reweight.npz            coarse_{g,u}, rw_edges_{g,u}, w_{g,u}, pt_edges
 """
+import argparse
 import os, re, glob, pickle, sys
 from pathlib import Path
 import numpy as np
@@ -30,10 +31,13 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 from unfold.tools.binning import bin_edges
 
-VINCIA_DIR = os.environ.get(
-    "VINCIA_DIR", "/Users/aritra/cernbox (2)/vincia_prod/vincia")
-PKL = REPO / "inputs/zjet/rho/finebins/minimal_rho_fine_pythia_2018.pkl"
-OUT = REPO / "outputs/zjet/rho/vincia_reweight"
+DEFAULT_VINCIA_DIR = Path(os.environ.get(
+    "VINCIA_DIR", "/Users/aritra/cernbox (2)/vincia_prod/vincia"))
+DEFAULT_PYTHIA_INPUT = REPO / "inputs/zjet/rho/finebins/minimal_rho_fine_pythia_2018.pkl"
+DEFAULT_OUTPUT_DIR = REPO / "outputs/zjet/rho/vincia_reweight"
+VINCIA_DIR = DEFAULT_VINCIA_DIR
+PKL = DEFAULT_PYTHIA_INPUT
+OUT = DEFAULT_OUTPUT_DIR
 CACHE = OUT / "vincia_gen_cache.npz"
 
 PT_EDGES = np.array([200., 290., 400., 13000.])          # analysis pt bins 1,2,3
@@ -184,8 +188,30 @@ def _panels(mode, edges, top_py, top_vin, ratio, ratio_label, fname, zoom, ylim_
 
 
 def main():
+    global VINCIA_DIR, PKL, OUT, CACHE
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--vincia-dir", type=Path, default=DEFAULT_VINCIA_DIR,
+                        help=f"Vincia production directory (default: {DEFAULT_VINCIA_DIR})")
+    parser.add_argument("--pythia-input", type=Path, default=DEFAULT_PYTHIA_INPUT,
+                        help=f"fine-binned nominal Pythia pkl (default: {DEFAULT_PYTHIA_INPUT})")
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR,
+                        help=f"generated-output directory (default: {DEFAULT_OUTPUT_DIR})")
+    parser.add_argument("--reload", action="store_true",
+                        help="rebuild the cached Vincia gen arrays")
+    args = parser.parse_args()
+
+    VINCIA_DIR = args.vincia_dir.expanduser()
+    PKL = args.pythia_input.expanduser()
+    OUT = args.output_dir.expanduser()
+    CACHE = OUT / "vincia_gen_cache.npz"
+    if not PKL.is_file():
+        raise SystemExit(f"missing Pythia input: {PKL}")
+    if not VINCIA_DIR.is_dir():
+        raise SystemExit(f"missing Vincia production directory: {VINCIA_DIR}")
+
     OUT.mkdir(parents=True, exist_ok=True)
-    if CACHE.exists() and "--reload" not in sys.argv:
+    if CACHE.exists() and not args.reload:
         z = np.load(CACHE); V = {k[2:]: z[k] for k in z if k.startswith("v_")}
         print("loaded", CACHE)
     else:

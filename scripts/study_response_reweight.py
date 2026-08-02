@@ -20,6 +20,7 @@ and a README.md tying them together.
 No changes to unfold/tools/unfolder_core.py -- everything is built from the
 public Unfolder attributes and the merge helpers.
 """
+import argparse
 import sys
 from pathlib import Path
 
@@ -29,9 +30,18 @@ sys.path.insert(0, str(REPO / "src"))
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import mplhep as hep
 import numpy as np
 
 from unfold.tools.unfolder_core import Unfolder, get_spec
+from unfold.utils.cms_plot import (
+    PUB_LABEL_FONTSIZE,
+    PUB_LEGEND_FONTSIZE,
+    PUB_TICK_FONTSIZE,
+    stamp_figure,
+)
+
+hep.style.use(hep.style.CMS)
 from unfold.utils.merge_helpers import (
     reorder_to_expected,
     reorder_to_expected_2d,
@@ -41,7 +51,16 @@ from unfold.utils.merge_helpers import (
 )
 
 N_ITER = 3
+DEFAULT_TAG = "original"
+# Set from --tag in main(); the "original" run keeps its historical directory so
+# the committed outputs/zjet/rho/reweight_test/ study is reproduced in place.
 OUTDIR = REPO / "outputs/zjet/rho/reweight_test"
+
+
+def outdir_for_tag(tag):
+    if tag == DEFAULT_TAG:
+        return REPO / "outputs/zjet/rho/reweight_test"
+    return REPO / f"outputs/zjet/rho/{tag}_reweight_test"
 
 
 def safe_ratio(num, den):
@@ -68,6 +87,38 @@ def build_reweighted_response(uf, w_fine):
     return mosaic_rw, misses_rw, fake_fraction_rw
 
 
+def export_weight_lookup(uf, w_fine, mode):
+    """Save the final data-prior rho weights in the processor lookup format.
+
+    Consumed by the skimmer's `reweight_data_prior_rho` mode via
+    corrections.get_data_prior_rho_weight_{g,u} (PtBinnedVarWeighter), which
+    does a plain bin lookup -- the weights are therefore stored on the discrete
+    fine truth-rho binning used to derive them and must NOT be interpolated or
+    smoothed downstream.
+
+    The pt/rho edges written here come from the spec, so a run with --tag arc_r2
+    exports weights on the ARC round-2 axes ([185, 200, 290, 400, inf] pT, the
+    arc_r2 fine gen rho axis) rather than the legacy [0, 200, ...] ones.
+    """
+    fine_edges = np.asarray(uf.edges_gen, dtype=float)
+
+    rho_edges = []
+    weight_grids = []
+    for i in range(len(uf.pt_edges) - 1):
+        rho_edges.append(fine_edges.copy())
+        weight_grids.append(np.asarray(w_fine[i], dtype=float))
+
+    out_path = OUTDIR / f"data_prior_rho_binned_{mode}.npz"
+    np.savez(
+        out_path,
+        pt_edges=np.asarray(uf.pt_edges, dtype=float),
+        rho_edges=np.asarray(rho_edges, dtype=object),
+        w_grids=np.asarray(weight_grids, dtype=object),
+    )
+    print("  wrote processor binned weights:", out_path)
+    return out_path
+
+
 def unfold_with(uf, mosaic_rw, misses_rw, fake_fraction_rw):
     """Re-unfold the same data with a reweighted response (no nominal clobber)."""
     uf.misses_2d_dict = getattr(uf, "misses_2d_dict", {})
@@ -89,11 +140,48 @@ def fine_truth(uf):
     return matched_gen_fine + np.asarray(uf.h2d_misses, float).T
 
 
-def interp_to_fine(uf, ratio_flat):
+def target_masks(uf, y_unf_nom):
+    """Per-pT gen-bin mask of bins the reweighting is allowed to fit.
+
+    A bin is a valid data-driven target only if it is SHOWN (reported) and its
+    nominal unfolded content is positive. Two arc_r2 failure modes motivate this:
+
+    * the hidden low-rho buffer bins carry a noisy, partly negative unfolded
+      result -- fitting them drove the weights onto the clip rails instead of
+      onto the data;
+    * the non-reported 185-200 GeV pT sink bin has negative unfolded content in
+      its first shown rho bin (it absorbs migration), so its shape ratio is 0 and
+      the slice never converges.
+
+    Where there is no reported, positive data to reweight toward, the PYTHIA
+    prior is left alone (w = 1). The mask is built once from the NOMINAL unfolded
+    result so the fitted bin set is fixed across iterations. For a spec without
+    ``normalize_over_shown`` and an all-positive unfolded result this is all-True,
+    i.e. the legacy `original` behaviour.
+    """
+    unf_by_pt = unflatten_gen_by_pt(np.asarray(y_unf_nom, float), uf.gen_edges_by_pt)
+    return [uf._shown_gen_mask(i) & (np.asarray(a, float) > 0)
+            for i, a in enumerate(unf_by_pt)]
+
+
+def change_by_pt(uf, shape_new, shape_old, masks):
+    """Per-pT max |shape_new/shape_old - 1| over the fitted bins."""
+    new_by_pt = unflatten_gen_by_pt(shape_new, uf.gen_edges_by_pt)
+    old_by_pt = unflatten_gen_by_pt(shape_old, uf.gen_edges_by_pt)
+    out = []
+    for i, fit in enumerate(masks):
+        r = safe_ratio(np.asarray(new_by_pt[i], float), np.asarray(old_by_pt[i], float))
+        out.append(float(np.max(np.abs(r[fit] - 1))) if fit.any() else 0.0)
+    return out
+
+
+def interp_to_fine(uf, ratio_flat, masks):
     """Interpolate a per-analysis-gen-bin ratio onto the fine gen axis per pT.
 
     Linear interpolation across analysis bin centers gives a within-bin gradient
-    (the only thing that changes the response at tau=0).
+    (the only thing that changes the response at tau=0). Only the ``masks`` bins
+    (see :func:`target_masks`) drive the interpolation, and the weight is pinned
+    to 1 below the lowest fitted bin.
     """
     ratio_by_pt = unflatten_gen_by_pt(ratio_flat, uf.gen_edges_by_pt)
     fine_edges = np.asarray(uf.edges_gen, float)
@@ -104,7 +192,13 @@ def interp_to_fine(uf, ratio_flat):
         ana_edges = np.asarray(uf.gen_edges_by_pt[i], float)
         ana_centers = 0.5 * (ana_edges[:-1] + ana_edges[1:])
         r = np.asarray(ratio_by_pt[i], float)
-        w_fine[i] = np.interp(fine_centers, ana_centers, r, left=r[0], right=r[-1])
+        fit = masks[i]
+        if fit.sum() < 2:
+            continue                                   # nothing to interpolate
+        w = np.interp(fine_centers, ana_centers[fit], r[fit],
+                      left=r[fit][0], right=r[fit][-1])
+        w[fine_centers < ana_edges[:-1][fit][0]] = 1.0
+        w_fine[i] = w
     return w_fine
 
 
@@ -144,7 +238,8 @@ def herwig_closure_comparison(uf, mosaic_rw, misses_rw, mode, labels):
     rw_pt = density_by_pt(y_h_rw)
 
     n_pt = len(labels)
-    fig, axes = plt.subplots(1, n_pt, figsize=(4 * n_pt, 3.6), squeeze=False)
+    fig, axes = plt.subplots(1, n_pt, figsize=(10.5 * n_pt, 10.6), squeeze=False,
+                             layout="constrained")
     nom_means, rw_means = [], []
     for i in range(n_pt):
         e = np.asarray(uf.gen_edges_by_pt[i], float)
@@ -157,15 +252,16 @@ def herwig_closure_comparison(uf, mosaic_rw, misses_rw, mode, labels):
         ax.plot(c, nc_nom, "s-", ms=3, color="red", label="nominal response")
         ax.plot(c, nc_rw, "o-", ms=3, color="green", label="reweighted response")
         ax.axhline(0, color="gray", ls="--", lw=1)
-        ax.set_title(labels[i], fontsize=10)
-        ax.set_xlabel(r"$\rho$ (gen)")
-        ax.set_ylim(0, max(0.3, 1.05 * max(nc_nom.max(), nc_rw.max())))
+        ax.set_xlabel(r"$\rho$ (gen)", fontsize=PUB_LABEL_FONTSIZE)
+        ax.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
+        # Headroom for the upper-left CMS block; never a hard cap.
+        ax.set_ylim(0, max(0.3, 1.55 * max(nc_nom.max(), nc_rw.max())))
         if i == 0:
-            ax.set_ylabel("|HERWIG − unfolded| / HERWIG")
-            ax.legend(fontsize=8)
+            ax.set_ylabel("|HERWIG − unfolded| / HERWIG", fontsize=PUB_LABEL_FONTSIZE)
+            ax.legend(fontsize=PUB_LEGEND_FONTSIZE, loc="upper right")
         ax.grid(alpha=0.3)
-    fig.suptitle(f"HERWIG non-closure: nominal vs reweighted response ({mode})")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+        hep.cms.label("Internal", data=False, loc=2, ax=ax, rlabel=labels[i])
+    stamp_figure(fig, inputs=f"{mode} response reweight, {N_ITER} iters")
     fig.savefig(OUTDIR / f"{mode}_herwig_closure.png", dpi=130)
     plt.close(fig)
     return float(np.mean(nom_means)), float(np.mean(rw_means))
@@ -180,10 +276,10 @@ def pt_labels(uf):
     return labels
 
 
-def run_mode(groomed):
+def run_mode(groomed, tag=DEFAULT_TAG):
     mode = "groomed" if groomed else "ungroomed"
-    print(f"\n========== {mode} ==========")
-    spec = get_spec("zjet", "rho")
+    print(f"\n========== {mode} ({tag}) ==========")
+    spec = get_spec("zjet", "rho", tag)
     uf = Unfolder(spec, groomed, do_syst=False, cms_label="Internal")
 
     y_true = np.asarray(uf.y_true, float)             # nominal MC gen truth (analysis)
@@ -200,10 +296,24 @@ def run_mode(groomed):
     # difference and the sparse low-rho tails make absolute ratios blow up, and
     # the pT-to-pT normalization is a no-op at tau=0 anyway. Clip the per-step
     # ratio and the cumulative weight so sparse/negative bins can't diverge.
+    #
+    # The shape is normalized over the fitted bins only (see target_masks); the
+    # rest are zeroed so safe_ratio leaves them at weight 1. Without
+    # normalize_over_shown, and with an all-positive unfolded result, the mask is
+    # all-True and this is the historical whole-slice normalization.
+    masks = target_masks(uf, y_unf_nom)
+
     def pt_shape(flat):
         out = unflatten_gen_by_pt(np.clip(np.asarray(flat, float), 0.0, None),
                                   uf.gen_edges_by_pt)
-        return np.concatenate([a / a.sum() if a.sum() > 0 else a for a in out])
+        parts = []
+        for i, a in enumerate(out):
+            fit = masks[i]
+            b = np.zeros_like(a)
+            total = a[fit].sum()
+            b[fit] = a[fit] / total if total > 0 else a[fit]
+            parts.append(b)
+        return np.concatenate(parts)
 
     w_cum = np.ones_like(truth_fine)
     current_unf = y_unf_nom.copy()
@@ -214,15 +324,22 @@ def run_mode(groomed):
         ratio = np.clip(safe_ratio(pt_shape(current_unf), pt_shape(rw_truth_analysis)),
                         0.25, 4.0)                            # data/MC shape per gen bin
         step_max.append(float(np.max(np.abs(ratio - 1))))
-        w_cum = np.clip(w_cum * interp_to_fine(uf, ratio), 0.1, 10.0)
+        w_cum = np.clip(w_cum * interp_to_fine(uf, ratio, masks), 0.1, 10.0)
         mosaic_rw, misses_rw, ff_rw = build_reweighted_response(uf, w_cum)
         current_unf = unfold_with(uf, mosaic_rw, misses_rw, ff_rw)
         history.append(current_unf.copy())
+        # Per-pT convergence, not a single global max: the non-reported low-pT
+        # migration sink slice chases its own tail (its unfolded content is not a
+        # physical spectrum) and would otherwise mask the reported slices, which
+        # do converge.
+        chg = change_by_pt(uf, pt_shape(history[-1]), pt_shape(history[-2]), masks)
         print(f"  iter {it+1}: max|data/MC shape-1| before = {step_max[-1]:.3f}; "
-              f"max|unf change| = {float(np.max(np.abs(safe_ratio(pt_shape(history[-1]), pt_shape(history[-2])) - 1))):.4f}")
+              f"|unf change| by pT = [{', '.join(f'{c:.4f}' for c in chg)}]")
 
     y_unf_rw = current_unf
     mosaic_rw, misses_rw, ff_rw = build_reweighted_response(uf, w_cum)
+    OUTDIR.mkdir(parents=True, exist_ok=True)
+    export_weight_lookup(uf, w_cum, mode)
 
     # ---- reco-level closure: MC reco (matched+fakes) vs data reco ----
     data_reco = np.asarray(uf.mosaic_2d, float)
@@ -234,21 +351,22 @@ def run_mode(groomed):
     n_pt = len(labels)
 
     # ---------- Fig 1: reweight function ----------
-    fig, axes = plt.subplots(1, n_pt, figsize=(4 * n_pt, 3.4), squeeze=False)
+    fig, axes = plt.subplots(1, n_pt, figsize=(10.5 * n_pt, 10.6), squeeze=False,
+                             layout="constrained")
     w_by_pt = w_cum  # (n_ptgen, n_gen_fine)
     fine_edges = np.asarray(uf.edges_gen, float)
     fc = 0.5 * (fine_edges[:-1] + fine_edges[1:])
     for i in range(n_pt):
         ax = axes[0][i]
-        ax.plot(fc, w_by_pt[i], "o-", ms=3)
+        ax.plot(fc, w_by_pt[i], "o-", ms=3, color="#5790fc")
         ax.axhline(1, color="gray", ls="--", lw=1)
-        ax.set_title(labels[i], fontsize=10)
-        ax.set_xlabel(r"$\rho$ (gen)")
+        ax.set_xlabel(r"$\rho$ (gen)", fontsize=PUB_LABEL_FONTSIZE)
+        ax.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
         if i == 0:
-            ax.set_ylabel("cumulative gen weight  w(ρ)")
+            ax.set_ylabel("cumulative gen weight  w(ρ)", fontsize=PUB_LABEL_FONTSIZE)
         ax.grid(alpha=0.3)
-    fig.suptitle(f"Response gen-reweight function ({mode}, {N_ITER} iters)")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+        hep.cms.label("Internal", data=False, loc=2, ax=ax, rlabel=labels[i])
+    stamp_figure(fig, inputs=f"{mode} response reweight, {N_ITER} iters")
     fig.savefig(OUTDIR / f"{mode}_reweight_function.png", dpi=130)
     plt.close(fig)
 
@@ -260,23 +378,29 @@ def run_mode(groomed):
     d_pt = norm_pt(data_reco, uf.reco_edges_by_pt)
     n_pt_mc = norm_pt(mc_reco_nom, uf.reco_edges_by_pt)
     r_pt_mc = norm_pt(mc_reco_rw, uf.reco_edges_by_pt)
-    fig, axes = plt.subplots(1, n_pt, figsize=(4 * n_pt, 3.6), squeeze=False)
+    fig, axes = plt.subplots(1, n_pt, figsize=(10.5 * n_pt, 10.6), squeeze=False,
+                             layout="constrained")
     for i in range(n_pt):
         ax = axes[0][i]
         e = np.asarray(uf.reco_edges_by_pt[i], float)
         c = 0.5 * (e[:-1] + e[1:])
-        ax.plot(c, safe_ratio(n_pt_mc[i], d_pt[i]), "s-", ms=3, color="red", label="nominal MC / data")
-        ax.plot(c, safe_ratio(r_pt_mc[i], d_pt[i]), "o-", ms=3, color="green", label="reweighted MC / data")
+        r_nom = safe_ratio(n_pt_mc[i], d_pt[i])
+        r_rw = safe_ratio(r_pt_mc[i], d_pt[i])
+        ax.plot(c, r_nom, "s-", ms=3, color="#e42536", label="nominal MC / data")
+        ax.plot(c, r_rw, "o-", ms=3, color="#5790fc", label="reweighted MC / data")
         ax.axhline(1, color="gray", ls="--", lw=1)
-        ax.set_ylim(0.6, 1.4)
-        ax.set_title(labels[i], fontsize=10)
-        ax.set_xlabel(r"$\rho$ (reco)")
+        # Keep the +-40% window but widen it rather than clip an excursion.
+        span = np.nanmax(np.abs(np.r_[r_nom, r_rw] - 1.0))
+        half = max(0.4, float(span) * 1.1) if np.isfinite(span) else 0.4
+        ax.set_ylim(1.0 - half, 1.0 + half * 1.4)
+        ax.set_xlabel(r"$\rho$ (reco)", fontsize=PUB_LABEL_FONTSIZE)
+        ax.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
         if i == 0:
-            ax.set_ylabel("MC reco / data reco (shape)")
-            ax.legend(fontsize=8)
+            ax.set_ylabel("MC reco / data reco (shape)", fontsize=PUB_LABEL_FONTSIZE)
+            ax.legend(fontsize=PUB_LEGEND_FONTSIZE, loc="upper right")
         ax.grid(alpha=0.3)
-    fig.suptitle(f"Reco-level closure: response reweighted to data ({mode})")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+        hep.cms.label("Internal", data=True, loc=2, ax=ax, rlabel=labels[i])
+    stamp_figure(fig, inputs=f"{mode} response reweight, {N_ITER} iters")
     fig.savefig(OUTDIR / f"{mode}_reco_closure.png", dpi=130)
     plt.close(fig)
 
@@ -284,29 +408,41 @@ def run_mode(groomed):
     u_nom = norm_pt(y_unf_nom, uf.gen_edges_by_pt)
     u_rw = norm_pt(y_unf_rw, uf.gen_edges_by_pt)
     t_pt = norm_pt(y_true, uf.gen_edges_by_pt)
-    fig, axes = plt.subplots(2, n_pt, figsize=(4 * n_pt, 5.2), squeeze=False,
+    fig, axes = plt.subplots(2, n_pt, figsize=(10.5 * n_pt, 14.0), squeeze=False,
+                             layout="constrained",
                              gridspec_kw={"height_ratios": [3, 1]})
     for i in range(n_pt):
         e = np.asarray(uf.gen_edges_by_pt[i], float)
         c = 0.5 * (e[:-1] + e[1:])
         ax, axr = axes[0][i], axes[1][i]
-        ax.step(c, t_pt[i], where="mid", color="blue", lw=1, label="PYTHIA gen")
+        ax.step(c, t_pt[i], where="mid", color="#5790fc", lw=1, label="PYTHIA gen")
         ax.plot(c, u_nom[i], "k.-", ms=4, label="unfolded (nominal)")
-        ax.plot(c, u_rw[i], "g.--", ms=4, label="unfolded (reweighted)")
+        ax.plot(c, u_rw[i], ".--", color="#f89c20", ms=4, label="unfolded (reweighted)")
         ax.set_yscale("log")
-        ax.set_title(labels[i], fontsize=10)
+        # A decade of headroom on the log axis so the upper-left CMS block
+        # clears the curves in the high-pT panels (they start near the top).
+        vals = np.concatenate([t_pt[i], u_nom[i], u_rw[i]])
+        vals = vals[np.isfinite(vals) & (vals > 0)]
+        if vals.size:
+            ax.set_ylim(vals.min() * 0.5, vals.max() * 12.0)
+        ax.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
         if i == 0:
-            ax.set_ylabel("norm. (shape)")
-            ax.legend(fontsize=8)
-        axr.plot(c, safe_ratio(u_rw[i], u_nom[i]), "g.-", ms=4)
+            ax.set_ylabel("norm. (shape)", fontsize=PUB_LABEL_FONTSIZE)
+            ax.legend(fontsize=PUB_LEGEND_FONTSIZE, loc="upper right")
+        hep.cms.label("Internal", data=True, loc=2, ax=ax, rlabel=labels[i])
+        ratio = safe_ratio(u_rw[i], u_nom[i])
+        axr.plot(c, ratio, ".-", color="#f89c20", ms=4)
         axr.axhline(1, color="gray", ls="--", lw=1)
-        axr.set_ylim(0.9, 1.1)
-        axr.set_xlabel(r"$\rho$ (gen)")
+        # Keep the +-10% window but widen rather than clip.
+        span = np.nanmax(np.abs(ratio - 1.0))
+        half = max(0.1, float(span) * 1.1) if np.isfinite(span) else 0.1
+        axr.set_ylim(1.0 - half, 1.0 + half)
+        axr.set_xlabel(r"$\rho$ (gen)", fontsize=PUB_LABEL_FONTSIZE)
+        axr.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
         if i == 0:
-            axr.set_ylabel("rw / nom")
+            axr.set_ylabel("rw / nom", fontsize=PUB_LABEL_FONTSIZE)
         axr.grid(alpha=0.3)
-    fig.suptitle(f"Unfolded result stability under response reweighting ({mode})")
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    stamp_figure(fig, inputs=f"{mode} response reweight, {N_ITER} iters")
     fig.savefig(OUTDIR / f"{mode}_unfolded_stability.png", dpi=130)
     plt.close(fig)
 
@@ -323,6 +459,9 @@ def run_mode(groomed):
     return {
         "mode": mode,
         "step_max": step_max,
+        "pt_labels": labels,
+        "final_change_by_pt": change_by_pt(uf, pt_shape(history[-1]),
+                                           pt_shape(history[-2]), masks),
         "reco_nom_dev": float(reco_nom_dev),
         "reco_rw_dev": float(reco_rw_dev),
         "unf_shift": float(unf_shift),
@@ -331,11 +470,20 @@ def run_mode(groomed):
     }
 
 
-def write_markdown(results):
+def write_markdown(results, tag=DEFAULT_TAG):
     md = OUTDIR / "README.md"
     lines = []
     A = lines.append
     A("# Response reweighting (reweight-to-data) study — z+jet ρ\n")
+    A(f"Production tag: `{tag}`.\n")
+    A("\n> **Fitted-bin policy.** The reweighting only fits gen bins that are both\n"
+      "> SHOWN (reported) and have positive nominal unfolded content; everywhere else\n"
+      "> the PYTHIA prior is left at w = 1. Without this the arc_r2 axes drove the\n"
+      "> weights onto the clip rails: the hidden low-ρ buffer bins carry a noisy,\n"
+      "> partly negative unfolded result, and the non-reported low-pT migration sink\n"
+      "> slice has negative content in its first shown ρ bin. Convergence is therefore\n"
+      "> quoted per pT slice — the sink slice is not expected to converge, since its\n"
+      "> unfolded content is not a physical spectrum.\n\n")
     A("## Motivation\n")
     A("The nominal unfolding is run **unregularized** (TUnfold `DoUnfold(0.0)`), so it "
       "carries **no regularization/prior bias**. What remains is *model dependence* "
@@ -377,8 +525,12 @@ def write_markdown(results):
     for r in results:
         m = r["mode"]
         A(f"\n### {m}\n")
-        A(f"Per-iteration max |data/MC shape − 1| (gen): "
+        A(f"Per-iteration max |data/MC shape − 1| (gen, fitted bins): "
           f"{', '.join(f'{x:.3f}' for x in r['step_max'])}\n")
+        A("\nFinal-iteration |unfolded change| per pT slice: "
+          + ", ".join(f"{lab} {chg:.4f}"
+                      for lab, chg in zip(r["pt_labels"], r["final_change_by_pt"]))
+          + "\n")
         A(f"\n**Gen reweight function**\n\n![reweight]({m}_reweight_function.png)\n")
         A(f"\n**Reco-level closure (MC vs data, before/after)**\n\n![closure]({m}_reco_closure.png)\n")
         A(f"\n**Unfolded stability (nominal vs reweighted)**\n\n![stability]({m}_unfolded_stability.png)\n")
@@ -407,6 +559,18 @@ def write_markdown(results):
     print("wrote", md)
 
 
+def main():
+    global OUTDIR
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--tag", default=DEFAULT_TAG,
+                    help="zjet rho spec tag (e.g. original, arc_r2). Selects the "
+                         "input production AND the pT/rho axes the exported "
+                         "data-prior weight lookup is written on.")
+    args = ap.parse_args()
+    OUTDIR = outdir_for_tag(args.tag)
+    results = [run_mode(g, args.tag) for g in (True, False)]
+    write_markdown(results, args.tag)
+
+
 if __name__ == "__main__":
-    results = [run_mode(g) for g in (True, False)]
-    write_markdown(results)
+    main()

@@ -24,13 +24,20 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
+from matplotlib.ticker import LogLocator
 
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from unfold.tools import binning
-from unfold.utils.cms_plot import save_cms_label_flavors
+from unfold.utils.cms_plot import (
+    PUB_ANNOTATION_FONTSIZE,
+    PUB_LABEL_FONTSIZE,
+    PUB_LEGEND_FONTSIZE,
+    PUB_TICK_FONTSIZE,
+    save_cms_label_flavors,
+)
 ERAS = ("2016APV", "2016", "2017", "2018")
 ERA_DATASET_TAGS = {
     "2016APV": "UL16NanoAODAPVv9",
@@ -48,6 +55,12 @@ DATASETS = (
     "EGamma_UL2018",
     "SingleMuon_UL2018",
 )
+ERA_DATA_DATASETS = {
+    "2016APV": ("SingleElectron_UL2016APV", "SingleMuon_UL2016APV"),
+    "2016": ("SingleElectron_UL2016", "SingleMuon_UL2016"),
+    "2017": ("SingleElectron_UL2017", "SingleMuon_UL2017"),
+    "2018": ("EGamma_UL2018", "SingleMuon_UL2018"),
+}
 PROCESS_DATASETS = {
     "WW": lambda tag: f"ww_{tag}",
     "WZ": lambda tag: f"wz_{tag}",
@@ -72,6 +85,17 @@ PLOT_CONFIGS = {
 }
 PT_BIN_INDEX = 1
 PT_RANGE_GEV = (200, 290)
+# Per-era mode (--per-era): one plot per data-taking era, integrated over the
+# reported jet-pT bins instead of showing a single one. Index 0 is the 185-200
+# GeV buffer bin, which is unfolded but not reported, so it is left out.
+REPORTED_PT_INDICES = (1, 2, 3)
+REPORTED_PT_MIN_GEV = 200
+ERA_LUMI_FBINV = {
+    "2016APV": 19.52,
+    "2016": 16.81,
+    "2017": 41.48,
+    "2018": 59.83,
+}
 STACK_ORDER = ("WW", "WZ", "ZZ", "tt+jets", "Single top", "DY signal")
 STACK_LABELS = {
     "WW": "WW",
@@ -81,16 +105,25 @@ STACK_LABELS = {
     "Single top": "Single t",
     "DY signal": "DY+jets",
 }
-# CMS CVD-friendly Petroff 6-color scheme (arXiv:2107.02270) -- ARC round-2
-# asked whether the stack follows the official palette.
+# CMS CVD-friendly Petroff scheme (arXiv:2107.02270) -- ARC round-2 asked
+# whether the stack follows the official palette. tt+jets takes the 10-colour
+# scheme's #92dadd instead of the 6-colour #964a8b: that mauve and the WZ
+# violet read as the same purple in the legend at PAS scale.
 STACK_COLORS = {
     "WW": "#5790fc",
     "WZ": "#7a21dd",
     "ZZ": "#f89c20",
-    "tt+jets": "#964a8b",
+    "tt+jets": "#92dadd",
     "Single top": "#9c9ca1",
     "DY signal": "#e42536",
 }
+
+# The PAS includes these at 0.49\textwidth, so on-page type is roughly a third
+# of the drawn size; the shared PUB_* sizes carry that convention.
+LABEL_FONTSIZE = PUB_LABEL_FONTSIZE
+TICK_FONTSIZE = PUB_TICK_FONTSIZE
+LEGEND_FONTSIZE = PUB_LEGEND_FONTSIZE
+ANNOTATION_FONTSIZE = PUB_ANNOTATION_FONTSIZE
 
 
 hep.style.use("CMS")
@@ -122,6 +155,12 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=138.0,
         help="Integrated luminosity displayed on the plots in fb^-1.",
+    )
+    parser.add_argument(
+        "--per-era",
+        action="store_true",
+        help="One plot per data-taking era, integrated over the reported jet-pT "
+             "bins, instead of the combined Run 2 plot in a single pT bin.",
     )
     parser.add_argument(
         "--no-gallery",
@@ -157,7 +196,7 @@ def rebin_sum(values, edges, target_edges):
 
 
 def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal",
-                     target_edges=None):
+                     target_edges=None, pt_indices=(PT_BIN_INDEX,)):
     """Sum selected datasets and reported reco-pT bins into displayed rho bins."""
     rho_edges = np.asarray(histogram.axes["mpt_reco"].edges, dtype=float)
     rho_mask = (rho_edges[:-1] >= xmin) & (rho_edges[1:] <= 0.0)
@@ -166,10 +205,11 @@ def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal",
     dataset_indices = [histogram.axes["dataset"].index(name) for name in dataset_names]
     systematic_index = histogram.axes["systematic"].index(systematic)
 
-    values = histogram.values()[dataset_indices, PT_BIN_INDEX, :, systematic_index]
-    variances = histogram.variances()[dataset_indices, PT_BIN_INDEX, :, systematic_index]
-    values = values.sum(axis=0)[rho_mask]
-    variances = variances.sum(axis=0)[rho_mask]
+    selector = np.ix_(dataset_indices, list(pt_indices))
+    values = histogram.values()[..., systematic_index][selector]
+    variances = histogram.variances()[..., systematic_index][selector]
+    values = values.sum(axis=(0, 1))[rho_mask]
+    variances = variances.sum(axis=(0, 1))[rho_mask]
     if target_edges is not None:
         values = rebin_sum(values, selected_edges, target_edges)
         variances = rebin_sum(variances, selected_edges, target_edges)
@@ -177,12 +217,13 @@ def histogram_arrays(histogram, dataset_names, xmin, systematic="nominal",
     return values, variances, selected_edges
 
 
-def combine_dy_systematics(pythia_inputs, histogram_name, xmin, target_edges=None):
+def combine_dy_systematics(pythia_inputs, histogram_name, xmin, target_edges=None,
+                           eras=ERAS, pt_indices=(PT_BIN_INDEX,)):
     combined = {}
     combined_variance = None
     rho_edges = None
 
-    for era in ERAS:
+    for era in eras:
         histogram = pythia_inputs[era][histogram_name]
         dataset_name = PROCESS_DATASETS["DY signal"](ERA_DATASET_TAGS[era])
         for systematic in histogram.axes["systematic"]:
@@ -192,6 +233,7 @@ def combine_dy_systematics(pythia_inputs, histogram_name, xmin, target_edges=Non
                 xmin,
                 systematic=systematic,
                 target_edges=target_edges,
+                pt_indices=pt_indices,
             )
             combined[systematic] = combined.get(systematic, np.zeros_like(values)) + values
             if systematic == "nominal":
@@ -229,9 +271,14 @@ MODEL_PS_SOURCE = "vincia"
 MODEL_HAD_SOURCES = ("cr1", "cr2", "fraghard", "fragsoft")
 
 
-def model_reco_shapes(histogram_name, xmin, target_edges):
-    """Reco DY shape for each model source at PT_BIN_INDEX, summed over eras
-    and rebinned from the fine model axis onto the display edges."""
+def model_reco_shapes(histogram_name, xmin, target_edges, pt_indices=(PT_BIN_INDEX,)):
+    """Reco DY shape for each model source over the selected reco-pT bins, summed
+    over eras and rebinned from the fine model axis onto the display edges.
+
+    The model samples are produced inclusively over the data-taking periods, so
+    in per-era mode the same Run 2 shape band is used for every era. This is the
+    intended behaviour: the parton-shower and hadronization shape difference is a
+    property of the generator, not of the data-taking conditions."""
     shapes = {}
     for source in (MODEL_PS_SOURCE, *MODEL_HAD_SOURCES):
         histogram = load_pickle(MODEL_DIR / f"{source}_all.pkl")[histogram_name]
@@ -239,7 +286,7 @@ def model_reco_shapes(histogram_name, xmin, target_edges):
         rho_mask = (edges[:-1] >= xmin - 1e-9) & (edges[1:] <= 1e-9)
         selected_edges = np.concatenate((edges[:-1][rho_mask], [edges[1:][rho_mask][-1]]))
         syst_index = histogram.axes["systematic"].index("nominal")
-        values = histogram.values()[:, PT_BIN_INDEX, :, syst_index].sum(axis=0)[rho_mask]
+        values = histogram.values()[:, list(pt_indices), :, syst_index].sum(axis=(0, 1))[rho_mask]
         shapes[source] = rebin_sum(values, selected_edges, target_edges)
     return shapes
 
@@ -271,6 +318,8 @@ def make_plot(
     groomed,
     lumi,
     output_path,
+    pt_range=PT_RANGE_GEV,
+    era_label=None,
 ):
     fig, (axis, ratio_axis) = plt.subplots(
         2,
@@ -321,18 +370,38 @@ def make_plot(
     axis.set_yscale("log")
     # ARC round-2: extra y-headroom so the legend clears the stack and the
     # pT range fits below it, left-aligned to the legend's left edge.
-    axis.set_ylim(0.1, max(1.0, float(data_values.max()) * 1000.0))
-    axis.set_ylabel("Events")
-    axis.legend(ncol=4, fontsize=17, loc="upper left")
+    axis.set_ylim(0.1, max(1.0, float(data_values.max()) * 5000.0))
+    # One label per decade: at this type size the default locator thins them out
+    # to every other decade.
+    axis.yaxis.set_major_locator(LogLocator(base=10.0, numticks=20))
+    axis.set_ylabel("Events", fontsize=LABEL_FONTSIZE)
+    axis.tick_params(axis="both", which="major", labelsize=TICK_FONTSIZE)
+    # Approval comments (A. Meyer): Data first in the legend, Total Unc. last.
+    handles, labels = axis.get_legend_handles_labels()
+    order = sorted(range(len(labels)),
+                   key=lambda k: (labels[k] != "Data", labels[k] == "Total Unc."))
+    # Two columns: the larger type needs the column width, and the log
+    # y-headroom easily absorbs the extra rows.
+    axis.legend([handles[k] for k in order], [labels[k] for k in order],
+                ncol=2, fontsize=LEGEND_FONTSIZE, loc="upper left",
+                columnspacing=1.2, handletextpad=0.5)
     displayed_lumi = int(lumi) if float(lumi).is_integer() else lumi
     hep.cms.label(cms_label, data=True, lumi=displayed_lumi, com=13, ax=axis)
+    if pt_range is not None:
+        annotation = rf"${pt_range[0]} < p_{{\mathrm{{T}}}} < {pt_range[1]}$ GeV"
+    else:
+        annotation = rf"$p_{{\mathrm{{T}}}} > {REPORTED_PT_MIN_GEV}$ GeV"
+    if era_label is not None:
+        annotation = f"{era_label}, {annotation}"
+    # Top right, opposite the two-column legend.
     axis.text(
-        0.02,
-        0.72,
-        rf"${PT_RANGE_GEV[0]} < p_{{\mathrm{{T}}}} < {PT_RANGE_GEV[1]}$ GeV",
+        0.97,
+        0.96,
+        annotation,
         transform=axis.transAxes,
-        horizontalalignment="left",
-        fontsize=17,
+        horizontalalignment="right",
+        verticalalignment="top",
+        fontsize=ANNOTATION_FONTSIZE,
     )
 
     ratio = np.divide(
@@ -383,12 +452,14 @@ def make_plot(
     # No tick label at 0 or 2: the corner "0" collides with the first x tick
     # label, and the top "2" crowds the main panel above.
     ratio_axis.set_yticks([0.5, 1.0, 1.5])
-    ratio_axis.set_ylabel("Data/MC")
+    ratio_axis.set_ylabel("Data/MC", fontsize=LABEL_FONTSIZE)
+    ratio_axis.tick_params(axis="both", which="major", labelsize=TICK_FONTSIZE)
     # ARC round-2: lowercase groomed/ungroomed
     ratio_axis.set_xlabel(
         r"$\log_{10}(\rho^2)$, groomed"
         if groomed
-        else r"$\log_{10}(\rho^2)$, ungroomed"
+        else r"$\log_{10}(\rho^2)$, ungroomed",
+        fontsize=LABEL_FONTSIZE,
     )
     ratio_axis.set_xlim(rho_edges[0], rho_edges[-1])
 

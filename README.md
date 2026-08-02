@@ -46,7 +46,7 @@ inputs/                # gitignored data; see inputs/README.md for the layout
   zjet/{rho/{original,fixed_jec},mass,validation}/
   {dijet,trijet}/rho/
   _archive/
-outputs/               # plots + artifacts, mirrors inputs by channel
+outputs/               # generated plots + artifacts, retained outside Git
   zjet/{rho/{original,fixed_jec},mass,validation}/
   {dijet,trijet}/<year>/rho/
   _archive/
@@ -205,9 +205,10 @@ its cached PNG previews; pass `--no-gallery` to skip that step.
 
 Standalone scripts that probe the robustness of the zjet rho unfolding. Each
 writes a self-contained folder under `outputs/zjet/rho/` with its own
-`README.md` summarizing method and results. The heavy producer `--*-mc` pickles
-are **not** committed, but the small `.npz` artifacts are, so the plot-only
-helpers can redraw figures without ROOT.
+`README.md` summarizing method and results. Generated products, including small
+`.npz` plot inputs, are retained outside Git; see
+[docs/analysis_workflow_status.md](docs/analysis_workflow_status.md) for the
+current archive and provenance policy.
 
 ```bash
 source scripts/setup_root.sh
@@ -261,4 +262,7 @@ The suite uses the stdlib `unittest` (no extra dependency).
 - [docs/ratio_curvature_regularization.md](docs/ratio_curvature_regularization.md)
   — how the regularization L-matrix is modified (curvature of `x/x_MC`), with a
   figure of its block-diagonal structure and the validation summary.
+- [docs/analysis_workflow_status.md](docs/analysis_workflow_status.md) — current
+  rho-unfolding validation status, generated-output retention, provenance gaps,
+  and exploratory Combine/theory boundaries.
 - [inputs/README.md](inputs/README.md) — input file layout and provenance.

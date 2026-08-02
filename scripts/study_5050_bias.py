@@ -18,8 +18,10 @@ half A. The production tau is scanned on the full data (as in production) and
 frozen, then half-B reco is unfolded through half-A at tau=0 and that tau.
 
 Outputs: per-pT-slice closure (unfolded_B / truth_B - 1) medians/max for tau=0
-vs the production tau, and a per-slice closure plot with the half-sample
-regularized stat band, to outputs/zjet/validation/bias_5050_<mode>.{pdf,png}.
+vs the production tau, and one closure plot per pT slice overlaying the tau=0
+and regularized curves, each with its own half-sample stat band (so their
+overlap shows statistical consistency), to
+outputs/zjet/validation/bias_5050_<mode>_<i>.{pdf,png}.
 
 NB matched-only (efficiency/fakes factor out of the regularization-bias test).
 
@@ -97,7 +99,9 @@ def run_mode(groomed):
     truth_n = normalize(u, truth_B)
     clo0 = normalize(u, y0) / np.where(truth_n != 0, truth_n, 1.0) - 1.0
     clor = normalize(u, yr) / np.where(truth_n != 0, truth_n, 1.0) - 1.0
-    # half-sample regularized stat error (fractional, on the unfolded result)
+    # half-sample stat error (fractional, on the unfolded result) for both the
+    # unregularized (tau=0) and the regularized unfold
+    err_0 = np.sqrt(np.clip(np.diag(cov0), 0, None)) / np.where(y0 != 0, np.abs(y0), 1.0)
     err_r = np.sqrt(np.clip(np.diag(covr), 0, None)) / np.where(yr != 0, np.abs(yr), 1.0)
 
     mode = "groomed" if groomed else "ungroomed"
@@ -120,34 +124,86 @@ def run_mode(groomed):
               f"{f'{100*np.median(er_pt[i][sl]):.1f}%':>16}")
     print("  (closure = unfolded_B / truth_B - 1, normalized per slice; matched-only)")
 
-    # ---- plot: per-slice closure, tau=0 vs reg, with half-sample reg stat band ----
+    # ---- one CMS-style 3:1 ratio figure per pT slice ----
+    #   top  : the normalized rho spectra (half-B truth vs tau=0 vs regularized)
+    #   bottom: the closure (unfolded/truth - 1) as a fraction -- regularized as a
+    #           stat band, tau=0 as points with stat error bars, so one can read
+    #           off that the two agree with each other and with zero.
+    hep.style.use("CMS")
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    t_n = unflatten_gen_by_pt(truth_n, u.gen_edges_by_pt)
+    u0_n = unflatten_gen_by_pt(normalize(u, y0), u.gen_edges_by_pt)
+    ur_n = unflatten_gen_by_pt(normalize(u, yr), u.gen_edges_by_pt)
+    c0s = unflatten_gen_by_pt(clo0, u.gen_edges_by_pt)
+    crs = unflatten_gen_by_pt(clor, u.gen_edges_by_pt)
+    e0_pt = unflatten_gen_by_pt(err_0, u.gen_edges_by_pt)
     reported = [i for i in u._reported_pt_indices() if u.pt_edges[i] >= 200]
-    fig, axes = plt.subplots(1, len(reported), figsize=(6 * len(reported), 6), sharey=True)
-    if len(reported) == 1:
-        axes = [axes]
-    for ax, i in zip(axes, reported):
+    for i in reported:
         edges = np.array(u.gen_edges_by_pt[i], dtype=float)
-        ax.axhline(0.0, color="gray", ls="--")
-        ax.stairs(100 * er_pt[i], edges, baseline=-100 * er_pt[i], fill=True,
-                  color="0.8", label="half-sample reg stat")
-        ax.stairs(100 * unflatten_gen_by_pt(clo0, u.gen_edges_by_pt)[i], edges,
-                  color="k", ls="--", label=r"$\tau=0$")
-        ax.stairs(100 * unflatten_gen_by_pt(clor, u.gen_edges_by_pt)[i], edges,
-                  color="#e42536", label=rf"reg $\tau$={tau_prod:.2g}")
-        ax.set_xlim(u._observable_xlim(i))
-        ax.set_ylim(-20, 20)
+        centers = 0.5 * (edges[:-1] + edges[1:])
         hi = int(u.pt_edges[i + 1]) if i + 1 < len(u.pt_edges) - 1 else None
-        ax.set_title(f"{int(u.pt_edges[i])}-{hi if hi else '∞'} GeV", fontsize=13)
-        ax.set_xlabel(u._observable_label())
-    axes[0].set_ylabel("unfolded / truth - 1 (%)")
-    axes[0].legend(title=f"50-50 PYTHIA closure ({mode})", fontsize=10)
-    hep.cms.label("Simulation Internal", data=False, lumi="138", com="13", ax=axes[0], fontsize=15)
-    fig.tight_layout()
-    out = OUT_DIR / f"bias_5050_{mode}"
-    fig.savefig(f"{out}.pdf")
-    fig.savefig(f"{out}.png", dpi=140)
-    plt.close(fig)
-    print(f"  wrote {out}.pdf / .png")
+        slice_lab = f"{int(u.pt_edges[i])}-{hi if hi else '∞'} GeV"
+
+        fig, (a, r) = plt.subplots(
+            2, 1, sharex=True, figsize=(8.5, 8.5),
+            gridspec_kw={"height_ratios": [3, 1]},
+        )
+        # --- top: normalized spectra (truth solid; unfolded dashed & dotted,
+        #     the dashed tau=0 listed/drawn on top) ---
+        a.stairs(u0_n[i], edges, color="k", ls="--", lw=2.0, zorder=3,
+                 label=r"unfolded, $\tau=0$")
+        a.stairs(ur_n[i], edges, color="#e42536", ls=":", lw=2.2, zorder=2,
+                 label="unfolded, regularized")
+        a.stairs(t_n[i], edges, color="#5790fc", ls="-", lw=2.0, zorder=1,
+                 label="truth (half B)")
+        # nominal (regularized) half-sample stat band on the spectrum itself
+        # (identified by the ratio-panel legend, so it is left out of this one)
+        nb = ur_n[i] * er_pt[i]
+        a.fill_between(edges, np.append(ur_n[i] - nb, (ur_n[i] - nb)[-1]),
+                       np.append(ur_n[i] + nb, (ur_n[i] + nb)[-1]), step="post",
+                       facecolor="0.85", edgecolor="0.55", hatch="///",
+                       linewidth=0.0, zorder=0)
+        a.set_ylabel(u._normalized_ylabel())
+        # headroom so the upper-left legend clears the spectrum (no overlap)
+        vis = edges[:-1] >= u._observable_xlim(i)[0]
+        ymax = max(np.max(t_n[i][vis]), np.max(u0_n[i][vis]),
+                   np.max((ur_n[i] + nb)[vis]))
+        a.set_ylim(0, 1.9 * ymax)
+        a.legend(title=slice_lab, fontsize=13, title_fontsize=13, loc="upper left")
+        a.text(0.5, 0.04, f"50-50 PYTHIA closure ({mode})", transform=a.transAxes,
+               va="bottom", ha="center", fontsize=13)
+
+        # --- bottom: closure. Grey hatched band = nominal (regularized)
+        # half-sample stat unc. across perfect closure (0); both unfolds are
+        # drawn as points with per-bin stick errors at the same bin centre
+        # (regularized = red squares with solid sticks, tau=0 = black circles
+        # with dashed sticks) so one can read them off against each other. ---
+        r.axhline(0.0, color="gray", ls="--", lw=1.2)
+        band = np.append(er_pt[i], er_pt[i][-1])
+        r.fill_between(edges, -band, band, step="post", facecolor="0.85",
+                       edgecolor="0.55", hatch="///", linewidth=0.0,
+                       label="nominal stat. unc.")
+        r.errorbar(centers, crs[i], yerr=er_pt[i], fmt="s", color="#e42536",
+                   ms=4, elinewidth=1.3, capsize=2)
+        eb0 = r.errorbar(centers, c0s[i], yerr=e0_pt[i], fmt="o", color="k",
+                         ms=4, elinewidth=1.3, capsize=2)
+        for barline in eb0[2]:            # dashed sticks for the tau=0 variation
+            barline.set_linestyle((0, (4, 2)))
+        r.set_ylabel(r"$\frac{\mathrm{unfolded}}{\mathrm{truth}} - 1$")
+        r.set_ylim(-0.2, 0.2)
+        r.set_xlim(u._observable_xlim(i))
+        r.set_xlabel(u._observable_label())
+        r.legend(fontsize=10, loc="lower left", frameon=False)
+
+        # PYTHIA-only closure test -> CMS Simulation label, no integrated lumi.
+        # data=False prepends "Simulation"; rlabel sets the right-hand text.
+        hep.cms.label("Preliminary", data=False, rlabel="(13 TeV)", ax=a, fontsize=20)
+        fig.tight_layout()
+        out = OUT_DIR / f"bias_5050_{mode}_{i}"
+        fig.savefig(f"{out}.pdf", bbox_inches="tight")
+        fig.savefig(f"{out}.png", dpi=140, bbox_inches="tight")
+        plt.close(fig)
+        print(f"  wrote {out}.pdf / .png")
 
 
 def main():

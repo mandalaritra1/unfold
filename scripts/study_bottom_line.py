@@ -178,19 +178,23 @@ def write_summary(results: list[dict], output_dir: Path) -> None:
         "",
         "The detector-space statistic compares fake-corrected data to matched reconstructed PYTHIA. The unfolded-space statistic compares TUnfold data to PYTHIA truth including misses. No detector/model systematic, response-MC statistical, or unfolding-bias covariance is included.",
         "",
-        "A passing unregularized test has $\\chi^2_\\mathrm{unfolded} \\leq \\chi^2_\\mathrm{smeared}$. The ndf is the numerical covariance rank; no model normalization is fitted.",
+        "A passing test has $\\chi^2_\\mathrm{unfolded} \\leq \\chi^2_\\mathrm{smeared}$. The smeared ndf is the reco bin count; the unfolded ndf is the effective rank of $K J J^T K^T$ (CMS Stat Committee / TUnfold TWiki), which is below the gen bin count under regularization. No model normalization is fitted.",
         "",
         "| tag | mode | $\\chi^2_\\mathrm{smeared}$/ndf (p) | $\\chi^2_\\mathrm{unfolded}$/ndf (p) | inequality |",
         "| --- | --- | --- | --- | --- |",
     ]
+
+    def _ndf(x):
+        return f"{x:.0f}" if abs(x - round(x)) < 1e-6 else f"{x:.1f}"
+
     for result in results:
         test = result["bottom_line"]
         smeared = test["smeared"]
         unfolded = test["unfolded"]
         lines.append(
             f"| {result['tag']} | {result['mode']} | "
-            f"{smeared['chi2']:.2f}/{smeared['ndof']} ({smeared['pvalue']:.3g}) | "
-            f"{unfolded['chi2']:.2f}/{unfolded['ndof']} ({unfolded['pvalue']:.3g}) | "
+            f"{smeared['chi2']:.2f}/{_ndf(smeared['ndof'])} ({smeared['pvalue']:.3g}) | "
+            f"{unfolded['chi2']:.2f}/{_ndf(unfolded['ndof'])} ({unfolded['pvalue']:.3g}) | "
             f"{'PASS' if test['inequality_holds'] else 'FAIL'} |"
         )
 

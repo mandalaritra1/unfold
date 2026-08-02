@@ -152,6 +152,47 @@ def compute_model_shifts(uf):
     return shifts
 
 
+def compute_model_reco_shifts(uf):
+    """Per-source fractional shifts of the normalized reco-level MC projection.
+
+    Same column-scaled varied responses as :func:`compute_model_shifts`, but no
+    re-unfold: the shift is on the reco projection ``mosaic.sum(axis=1)`` of
+    the varied response versus the offline w=1 baseline, each normalized per
+    pT slice. The offline baseline plays the same role as in the unfolded-level
+    shifts (the 2018-only era mismatch cancels in the var/nom ratio).
+
+    Returns ``{source: {i: signed frac shift array}}`` for ``i`` indexing
+    ``uf.reco_edges_by_pt``.
+    """
+    resp_nom, gen_nom, e24, e48 = _coarsened_nominal(uf.groomed)
+    eb = uf.reco_edges_by_pt
+    n_pt = len(eb)
+
+    def _norm_by_pt(reco_flat):
+        y = unflatten_gen_by_pt(np.asarray(reco_flat, float), eb)
+        return {i: _safe_ratio(y[i], y[i].sum()) for i in range(n_pt)}
+
+    mosaic_nom, _, _ = _mosaic_inputs(uf, resp_nom, gen_nom, e24, e48)
+    y_base = _norm_by_pt(mosaic_nom.sum(axis=1))
+
+    centers = 0.5 * (e24[:-1] + e24[1:])
+    shifts = {}
+    for source in MODEL_SOURCES:
+        w = _weighter_w(source, uf.groomed, centers)      # (ptgen, 24)
+        resp_var = resp_nom * w[None, None, :, :]
+        gen_var = gen_nom * w
+        mosaic_var, _, _ = _mosaic_inputs(uf, resp_var, gen_var, e24, e48)
+        y_var = _norm_by_pt(mosaic_var.sum(axis=1))
+        shifts[source] = {
+            # Zero (not -1) where the offline baseline projection is empty
+            # (e.g. the [-10,-8] catch-all bin): no shift information there.
+            i: np.where(y_base[i] > 0,
+                        _safe_ratio(y_var[i], y_base[i]) - 1.0, 0.0)
+            for i in range(n_pt)
+        }
+    return shifts
+
+
 def vincia_truth_by_pt(uf):
     """True standalone-Vincia gen prediction, normalized like the plotted MC.
 

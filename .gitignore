@@ -77,6 +77,14 @@ tmp/
 # Cached HERWIG-closure uncertainty arrays the unfolder writes into the input dir
 herwig_closure_unc_*.npy
 test_output/
-outputs/**/*.pdf
-outputs/zjet/rho/_previews/
-outputs/zjet/mass/_previews/
+
+# Generated analysis products are retained in CERNBox, not source control.
+# Keep the small gallery builders in this directory trackable.
+outputs/**
+!outputs/build_mass_gallery.py
+!outputs/build_rho_gallery.py
+
+# Machine-local handoff artifacts. The NLO skim location is a local CERNBox
+# symlink; superseded input snapshots are retained locally only.
+inputs/zjet/nlo_skims
+inputs/**/*.pkl.superseded-*

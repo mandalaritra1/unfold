@@ -25,8 +25,10 @@ principled statement to put in front of the ARC. Systematics do not affect the
 validity of the test, so only the statistical covariance is used.
 
 Singular V_xhat (the area constraint kEConstraintArea adds one global zero mode)
-is handled with an eigenvalue-truncated pseudo-inverse; the retained rank is the
-ndf. Run the ``*_noarea`` tag to get a full-rank, cleanly invertible V_xhat.
+is handled with an eigenvalue-truncated pseudo-inverse for the chi2 value. The
+unfolded-space ndf follows the CMS Stat Committee / TUnfold TWiki prescription:
+the effective (participation-ratio) rank of K J J^T K^T, which drops below the
+gen bin count under regularization. Run ``*_noarea`` for a full-rank V_xhat.
 
 Usage:
     source scripts/setup_root.sh
@@ -109,7 +111,27 @@ def build_unfolder(tag, groomed):
     return Unfolder(spec, groomed, do_syst=False)
 
 
-def analyze(unf, drop_underflow=True, drop_last=False, use_total_cov=False):
+def _bin_sel(edges, drop_underflow, drop_last, rho_min):
+    """Local indices of the bins to keep for one pt slice.
+
+    ``rho_min`` (when not None) keeps only bins whose *lower* edge is at or
+    above rho_min, i.e. it drops every bin lying entirely below rho_min. This
+    supersedes ``drop_underflow`` (the rho_min cut already removes the low-rho
+    sink). ``drop_last`` still trims the top (rho->0 spike) bin on top.
+    """
+    n = len(edges) - 1
+    idx = list(range(n))
+    if rho_min is not None:
+        idx = [k for k in idx if float(edges[k]) >= rho_min - 1e-6]
+    elif drop_underflow:
+        idx = idx[1:]
+    if drop_last and idx:
+        idx = idx[:-1]
+    return idx
+
+
+def analyze(unf, drop_underflow=True, drop_last=False, use_total_cov=False,
+            rho_min=None):
     """Return per-slice and global bottom-line chi2 for an unfolded result."""
     gen_by_pt = unf.gen_edges_by_pt
     reco_by_pt = unf.reco_edges_by_pt
@@ -132,36 +154,25 @@ def analyze(unf, drop_underflow=True, drop_last=False, use_total_cov=False):
     # zjet: pt bin 0 is the 0-200 GeV migration sink; report 200+ only.
     reported = [i for i in reported if unf.pt_edges[i] >= 200]
 
-    def gen_sel(n):
-        idx = list(range(n))
-        if drop_underflow:
-            idx = idx[1:]
-        if drop_last and idx:
-            idx = idx[:-1]
-        return idx
-
-    def reco_sel(n):
-        idx = list(range(n))
-        if drop_underflow:
-            idx = idx[1:]
-        if drop_last and idx:
-            idx = idx[:-1]
-        return idx
-
     rows = []
     glob_r_unf, glob_r_sm, glob_var = [], [], []
     glob_gen_idx = []  # absolute flat gen indices kept (for the global cov block)
+    glob_reco_idx = []  # absolute flat reco indices kept (for effective ndof)
     for i in reported:
         gs, gc = gen_starts[i], gen_counts[i]
         rs, rc = reco_starts[i], reco_counts[i]
-        gsel = gen_sel(gc)
-        rsel = reco_sel(rc)
+        gsel = _bin_sel(gen_by_pt[i], drop_underflow, drop_last, rho_min)
+        rsel = _bin_sel(reco_by_pt[i], drop_underflow, drop_last, rho_min)
         gidx = [gs + k for k in gsel]
         ridx = [rs + k for k in rsel]
 
         r_unf = y_unf[gidx] - y_true[gidx]
         Vx = cov_x[np.ix_(gidx, gidx)]
         c_unf, ndf_unf = chi2_dense(r_unf, Vx)
+        # TWiki N_dof for the unfolded space: effective rank of K J J^T K^T.
+        eff = unf._effective_ndof(ridx)
+        if eff is not None:
+            ndf_unf = eff
 
         r_sm = y_meas[ridx] - reco_mc[ridx]
         c_sm, ndf_sm = chi2_diag(r_sm, var_y[ridx])
@@ -177,11 +188,15 @@ def analyze(unf, drop_underflow=True, drop_last=False, use_total_cov=False):
         glob_r_sm.append(r_sm)
         glob_var.append(var_y[ridx])
         glob_gen_idx.extend(gidx)
+        glob_reco_idx.extend(ridx)
 
     # Global test: one chi2 over all reported bins (the rigorous statement).
     r_unf = np.concatenate(glob_r_unf)
     Vx = cov_x[np.ix_(glob_gen_idx, glob_gen_idx)]
     gc_unf, gndf_unf = chi2_dense(r_unf, Vx)
+    g_eff = unf._effective_ndof(glob_reco_idx)
+    if g_eff is not None:
+        gndf_unf = g_eff
     r_sm = np.concatenate(glob_r_sm)
     gc_sm, gndf_sm = chi2_diag(r_sm, np.concatenate(glob_var))
     glob = dict(c_sm=gc_sm, ndf_sm=gndf_sm, c_unf=gc_unf, ndf_unf=gndf_unf)
@@ -189,9 +204,10 @@ def analyze(unf, drop_underflow=True, drop_last=False, use_total_cov=False):
 
 
 def _fmt(c, ndf):
+    ndf_s = f"{ndf:<5.1f}" if abs(ndf - round(ndf)) > 1e-6 else f"{int(round(ndf)):<5d}"
     if ndf <= 0 or not np.isfinite(c):
-        return f"{c:8.2f} / {ndf:<3d}  (   nan)"
-    return f"{c:8.2f} / {ndf:<3d}  (p={_pvalue(c, ndf):5.3f})"
+        return f"{c:8.2f} / {ndf_s}  (   nan)"
+    return f"{c:8.2f} / {ndf_s}  (p={_pvalue(c, ndf):5.3f})"
 
 
 def print_report(tag, groomed, rows, glob, cov_label):
@@ -223,6 +239,10 @@ def main():
                     help="include the [-10,-4.5] low-rho underflow sink bin")
     ap.add_argument("--drop-last", action="store_true",
                     help="also drop the last (rho->0 spike) bin")
+    ap.add_argument("--rho-min", type=float, default=None,
+                    help="drop every bin lying entirely below this rho value "
+                         "(e.g. --rho-min -2.5 for groomed); supersedes the "
+                         "index-based --keep-underflow/underflow drop")
     ap.add_argument("--total-cov", action="store_true",
                     help="use GetEmatrixTotal (input+matrix stat) for V_xhat "
                          "instead of GetEmatrixInput (data stat only)")
@@ -237,6 +257,7 @@ def main():
             drop_underflow=not args.keep_underflow,
             drop_last=args.drop_last,
             use_total_cov=args.total_cov,
+            rho_min=args.rho_min,
         )
         print_report(args.tag, groomed, rows, glob, cov_label)
 

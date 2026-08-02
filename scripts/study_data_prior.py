@@ -135,6 +135,50 @@ def display_path(path: Path) -> str:
         return str(resolved)
 
 
+REBIN_AXES = ("mpt_reco", "mpt_gen")
+
+
+def align_producer_axes(weighted, nominal, path: Path):
+    """Pairwise-rebin a raw producer pickle onto the nominal analysis axes.
+
+    The casa reweight producers write rho axes exactly 2x finer than the staged
+    unfold inputs (same trick as scripts/stage_jmsjmr_unity_inputs.py, which
+    rebins the nominal reskim on the way into inputs/). A weighted pickle handed
+    over straight from outputs/ therefore has 48/24 rho bins where the nominal
+    has 24/12, and the Unfolder's prepared-input loader rejects it with an
+    unhelpful shape error. Rebin by 2 when that is exactly what is needed, and
+    verify the resulting edges against the nominal. The dataset (era) axis is
+    left alone -- the loader handles it.
+    """
+    rebinned = 0
+    for keys in RHO_KEYS.values():
+        for key in keys.values():
+            h_w, h_n = weighted[key], nominal[key]
+            sizes_n = {ax.name: ax.size for ax in h_n.axes}
+            sel = {ax.name: slice(None, None, 2j) for ax in h_w.axes
+                   if ax.name in REBIN_AXES and ax.size == 2 * sizes_n.get(ax.name, -1)}
+            if not sel:
+                continue
+            weighted[key] = h_w[sel]
+            rebinned += 1
+    if not rebinned:
+        return weighted
+    print(f"[inputs] rebinned {rebinned} histogram(s) in {path.name} by 2 onto the "
+          "nominal rho axes (raw producer output)")
+    for keys in RHO_KEYS.values():
+        for key in keys.values():
+            for ax in weighted[key].axes:
+                if ax.name in REBIN_AXES:
+                    ref = [a for a in nominal[key].axes if a.name == ax.name][0]
+                    if not np.allclose(ax.edges, ref.edges):
+                        raise ValueError(
+                            f"{path}: {key} axis {ax.name} does not match the nominal "
+                            "edges after rebinning; the producer binning is not a "
+                            "pairwise refinement of the analysis binning."
+                        )
+    return weighted
+
+
 def validate_payload(payload, path: Path) -> None:
     required = {
         key
@@ -745,8 +789,26 @@ def write_artifact(
     path.parent.mkdir(parents=True, exist_ok=True)
     nom_norm, nom_norm_err = normalized_arrays(nominal)
     weighted_norm, weighted_norm_err = normalized_arrays(weighted)
+    # Per-pT uncertainties on the normalized spectra, so the comparison figure
+    # can show the prior shift against the measurement's own precision.
+    # NOTE: normalized_results['syst_unc'] is misnamed -- _compute_total_systematic
+    # seeds its quadrature sum with stat_unc, so it is the TOTAL (stat (+) syst).
+    # It is stored here under an honest name; the figure uses the stat term.
+    def unc_arrays(unfolder, key, sub=None):
+        out = []
+        for item in unfolder.normalized_results:
+            value = item[key][sub] if sub is not None else item[key]
+            out.append(np.asarray(value, dtype=float))
+        return np.asarray(out, dtype=object)
+
     np.savez_compressed(
         path,
+        nominal_stat=unc_arrays(nominal, "stat_unc"),
+        weighted_stat=unc_arrays(weighted, "stat_unc"),
+        nominal_total_up=unc_arrays(nominal, "syst_unc", "up"),
+        nominal_total_down=unc_arrays(nominal, "syst_unc", "down"),
+        weighted_total_up=unc_arrays(weighted, "syst_unc", "up"),
+        weighted_total_down=unc_arrays(weighted, "syst_unc", "down"),
         pt_edges=np.asarray(nominal.pt_edges, dtype=float),
         rho_edges_gen=np.asarray(nominal.edges_gen, dtype=float),
         rho_edges_reco=np.asarray(nominal.edges, dtype=float),
@@ -932,6 +994,7 @@ def main() -> None:
     data_inputs = load_pickle(data_path)
     validate_payload(nominal_mc, nominal_mc_path)
     validate_payload(weighted_mc, weighted_path)
+    weighted_mc = align_producer_axes(weighted_mc, nominal_mc, weighted_path)
 
     ROOT.gErrorIgnoreLevel = ROOT.kWarning
     summaries = []
