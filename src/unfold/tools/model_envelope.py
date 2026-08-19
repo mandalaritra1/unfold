@@ -152,6 +152,36 @@ def compute_model_shifts(uf):
     return shifts
 
 
+def compute_prepared_model_shifts(uf):
+    """Read model shifts already re-unfolded through prepared responses.
+
+    Pair-split inputs build ``model_<source>`` response categories on their
+    stored fine generator coordinate before the analysis GEN-bin merge.  The
+    normal Unfolder systematic loop re-unfolds those responses, so this helper
+    only converts their normalized results into the signed fractional shifts
+    consumed by the shared Z+jet two-leg envelope.
+    """
+
+    shifts = {source: {} for source in MODEL_SOURCES}
+    for i, result in enumerate(uf.normalized_results):
+        nominal = np.asarray(result["unfolded"], dtype=float)
+        varied_results = uf.normalized_systematics[i]["unfolded"]
+        for source in MODEL_SOURCES:
+            key = f"model_{source}"
+            if key not in varied_results:
+                raise KeyError(
+                    f"prepared model envelope is missing unfolded variation {key!r}"
+                )
+            varied = np.asarray(varied_results[key], dtype=float)
+            shifts[source][i] = np.divide(
+                varied - nominal,
+                nominal,
+                out=np.zeros_like(nominal),
+                where=nominal != 0.0,
+            )
+    return shifts
+
+
 def compute_model_reco_shifts(uf):
     """Per-source fractional shifts of the normalized reco-level MC projection.
 
