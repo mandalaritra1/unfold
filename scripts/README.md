@@ -7,6 +7,7 @@ are kept at this level:
 source scripts/setup_root.sh
 python scripts/run_unfolding.py --channel zjet --observable rho --tag original
 python scripts/run_rho_unfolding.py --channel dijet --tag <tag>
+python scripts/run_pairsplit_unfolding.py --channel dijet   # pair-split Run-2 inputs
 ```
 
 The remaining scripts are grouped by purpose.  They are opt-in tools rather
@@ -19,6 +20,11 @@ than part of the default production workflow.
 | `plotting/` | Re-render figures and build image grids from existing outputs. |
 | `studies/` | Explicit alternate-unfolding, regularization, model-closure, and Combine studies. |
 | `release/` | Export validated results and assemble a HEPData submission. |
+| `_superseded/` | Quarantined scripts replaced by current tooling; see its README before using anything here. |
+
+The pair-split plot book and slide deck builders live in `plotting/`
+(`build_pairsplit_all_modes_plot_book.py`, `build_pairsplit_slide_deck.py`);
+they read finished runs from `outputs/pairsplit_run2/` via their manifests.
 
 Each script exposes its options with `--help` when it has a command-line
 interface.  Scripts that write results use `outputs/`, which is intentionally
