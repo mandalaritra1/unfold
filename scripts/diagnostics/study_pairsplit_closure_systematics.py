@@ -76,12 +76,15 @@ COLORS = {
     "JES_FlavorQCD": "#e42536",
     "JER": "#f89c20",
     "pu": "#5790fc",
-    "model_vincia": "#964a8b",
-    "model_cr1": "#e42536",
-    "model_cr2": "#f89c20",
+    "model_vincia": "#e42536",
+    "model_cr1": "#f89c20",
+    "model_cr2": "#964a8b",
     "model_fraghard": "#5790fc",
-    "model_fragsoft": "#7a21dd",
+    "model_fragsoft": "#00707f",
 }
+#### the two fragmentation curves are dashed so the five model sources stay
+#### tellable even where the hues compress (and in grayscale printing)
+LINESTYLES = {"model_fraghard": "--", "model_fragsoft": "--"}
 
 
 def _norm_jacobian(u, x_abs):
@@ -264,7 +267,8 @@ def _pick_representative(u, base):
     )
 
 
-def _plot_group(u, out_dir, mode_tag, group_name, keys_by_base, results, errors, stat_frac):
+def _plot_group(u, out_dir, mode_tag, group_name, keys_by_base, results, errors,
+                stat_frac, model_frac=None):
     import matplotlib.pyplot as plt
     import mplhep as hep
 
@@ -278,6 +282,19 @@ def _plot_group(u, out_dir, mode_tag, group_name, keys_by_base, results, errors,
         ymax = 0.0
         fig = plt.figure()
 
+        #### the model band is the yardstick for the model-source closure:
+        #### the residual of unfolding a varied input with the nominal
+        #### response IS the response-model dependence the band covers
+        if model_frac is not None:
+            mband = np.asarray(model_frac[i], dtype=float)
+            mband_step = np.append(mband, mband[-1])
+            plt.fill_between(
+                edges, -mband_step, mband_step, step="post",
+                color="#fdd49e", alpha=0.8, lw=0,
+                label=r"Model unc. (PS $\oplus$ HAD)",
+            )
+            if visible.any():
+                ymax = max(ymax, np.max(mband[visible]))
         band = np.asarray(stat_frac[i], dtype=float)
         band_step = np.append(band, band[-1])
         plt.fill_between(
@@ -293,7 +310,8 @@ def _plot_group(u, out_dir, mode_tag, group_name, keys_by_base, results, errors,
             color = COLORS.get(base)
             if visible.any():
                 ymax = max(ymax, np.max(np.abs(vals[visible]) + errs[visible]))
-            hep.histplot(vals, edges, label=LABELS.get(base, base), color=color, lw=2.0)
+            hep.histplot(vals, edges, label=LABELS.get(base, base), color=color,
+                         lw=2.0, linestyle=LINESTYLES.get(base, "-"))
             plt.errorbar(
                 centers, vals, yerr=errs, fmt="none", ecolor=color,
                 elinewidth=1.4, capsize=2, alpha=0.9,
@@ -335,6 +353,14 @@ def run_mode(channel: str, grooming_mode: str):
         for i in range(len(u.normalized_results))
     ]
     stat_frac_flat = np.concatenate(stat_frac)
+    #### captured before the closure loop touches the unfolder state
+    try:
+        model_frac_by_pt = [
+            np.asarray(u.normalized_results[i]["model_unc_frac"], dtype=float)
+            for i in range(len(u.normalized_results))
+        ]
+    except (KeyError, TypeError):
+        model_frac_by_pt = None
 
     # Assigned normalized systematic shifts (relative), captured BEFORE the
     # closure loop overwrites the unfolder's per-systematic state.  For each
@@ -443,6 +469,7 @@ def run_mode(channel: str, grooming_mode: str):
         {b: resid_by_key[k] for b, k in model_keys.items()},
         {b: err_by_key[k] for b, k in model_keys.items()},
         stat_frac,
+        model_frac=model_frac_by_pt,
     )
     print(f"  figures -> {out_dir}/closure_{{detector,model}}_pt*.pdf")
     return rows
