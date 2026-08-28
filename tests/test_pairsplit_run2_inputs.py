@@ -242,7 +242,7 @@ class PairSplitRun2InputTests(unittest.TestCase):
                 observable_metadata=inputs.observable_metadata,
             )
             prepared = prepare_pairsplit_groomed_inputs(
-                prepared_inputs, "two_to_one", ("nominal",)
+                prepared_inputs, "aligned", ("nominal",)
             )
             self.assertEqual(prepared.metadata["data_covariance_source"], "diagonal_reco_sumw2")
 
@@ -282,86 +282,63 @@ class PairSplitRun2InputTests(unittest.TestCase):
 
     def test_exact_candidate_edges_and_explicit_sink_behavior(self):
         fine = PAIR_SPLIT_FINE_AXES["groomed"]
-        coarse_tail = pair_split_binning("dijet", "coarse_tail")
-        two_to_one = pair_split_binning("trijet", "two_to_one")
-        dijet_window_aligned = pair_split_binning("dijet", "window_aligned")
-        trijet_window_aligned = pair_split_binning("trijet", "window_aligned")
-        dijet_window_aligned_coarse = pair_split_binning("dijet", "window_aligned_coarse")
-        trijet_window_aligned_coarse = pair_split_binning("trijet", "window_aligned_coarse")
+        dijet_aligned = pair_split_binning("dijet", "aligned")
+        trijet_aligned = pair_split_binning("trijet", "aligned")
+        dijet_common = pair_split_binning("dijet", "aligned_common")
+        trijet_common = pair_split_binning("trijet", "aligned_common")
 
         self.assertEqual(
             fine.pt_edges,
             (185.0, 200.0, 290.0, 400.0, 480.0, 570.0, 680.0, 760.0, 820.0, 13000.0),
         )
-        self.assertEqual(coarse_tail.pt_edges, (200.0, 290.0, 400.0, 480.0, 570.0, 13000.0))
+        self.assertEqual(dijet_aligned.pt_edges, (200.0, 290.0, 400.0, 480.0, 570.0, 13000.0))
         self.assertEqual(
-            coarse_tail.base_reco_two_log10_rho_edges,
-            (-10.0, -4.0, -3.4, -2.85, -2.25, -1.8, -1.5, -1.3, -1.1, -0.9, -0.75, -0.65, -0.55, 0.0),
+            dijet_aligned.base_reco_two_log10_rho_edges,
+            (-10.0, -3.5, -3.0, -2.5, -2.25, -2.0, -1.75, -1.5,
+             -1.375, -1.25, -1.125, -1.0, -0.875, -0.75, 0.0),
         )
-        self.assertEqual(coarse_tail.sink_pt_source_bin_indices, (0,))
-        self.assertEqual(coarse_tail.first_reported_pt_index, 0)
-        self.assertEqual(coarse_tail.reported_two_log10_rho_minimum, -4.0)
+        self.assertEqual(dijet_aligned.sink_pt_source_bin_indices, (0,))
+        self.assertEqual(dijet_aligned.first_reported_pt_index, 0)
+        self.assertEqual(dijet_aligned.reported_two_log10_rho_minimum, -3.5)
         self.assertEqual(
-            coarse_tail.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -1.8, -1.5, -1.3, -1.1, -0.9, -0.75, -0.65, -0.55, 0.0),
-        )
-        self.assertEqual(
-            sum(edge >= -4.0 for edge in coarse_tail.gen_two_log10_rho_edges[:-1]),
-            10,
+            dijet_aligned.gen_two_log10_rho_edges,
+            (-10.0, -3.5, -2.5, -2.0, -1.5, -1.25, -1.0, -0.75, 0.0),
         )
         self.assertEqual(
-            two_to_one.base_to_gen_two_log10_rho_groups,
-            ((0,), (1, 2), (3, 4), (5, 6), (7,)),
+            sum(edge >= -3.5 for edge in dijet_aligned.gen_two_log10_rho_edges[:-1]),
+            7,
         )
         self.assertEqual(
-            two_to_one.base_reco_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -2.25, -1.8, -1.5, -1.1, -0.75, 0.0),
+            trijet_aligned.base_to_gen_two_log10_rho_groups,
+            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9,)),
         )
         self.assertEqual(
-            two_to_one.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.25, -1.5, -0.75, 0.0),
+            trijet_aligned.base_reco_two_log10_rho_edges,
+            (-10.0, -3.5, -3.0, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, 0.0),
         )
         self.assertEqual(
-            sum(edge >= -4.0 for edge in two_to_one.gen_two_log10_rho_edges[:-1]),
-            4,
+            trijet_aligned.gen_two_log10_rho_edges,
+            (-10.0, -3.5, -2.5, -2.0, -1.5, -1.0, 0.0),
         )
         self.assertEqual(
-            dijet_window_aligned.base_to_gen_two_log10_rho_groups,
-            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11,), (12,)),
+            sum(edge >= -3.5 for edge in trijet_aligned.gen_two_log10_rho_edges[:-1]),
+            5,
+        )
+        # The three-channel COMMON grid: dijet merges its quarter pairs onto
+        # exactly the trijet/Z+jet shown edges.
+        self.assertEqual(
+            dijet_common.gen_two_log10_rho_edges,
+            trijet_aligned.gen_two_log10_rho_edges,
         )
         self.assertEqual(
-            dijet_window_aligned.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -1.8, -1.3, -0.9, -0.65, -0.55, 0.0),
-        )
-        self.assertEqual(
-            trijet_window_aligned.base_to_gen_two_log10_rho_groups,
-            ((0,), (1,), (2,), (3, 4), (5, 6), (7,)),
-        )
-        self.assertEqual(
-            trijet_window_aligned.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -2.25, -1.5, -0.75, 0.0),
-        )
-        self.assertEqual(
-            dijet_window_aligned_coarse.base_to_gen_two_log10_rho_groups,
-            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10, 11), (12,)),
-        )
-        self.assertEqual(
-            dijet_window_aligned_coarse.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -1.8, -1.3, -0.9, -0.55, 0.0),
-        )
-        self.assertEqual(
-            trijet_window_aligned_coarse.base_to_gen_two_log10_rho_groups,
-            ((0,), (1,), (2, 3, 4), (5, 6), (7,)),
-        )
-        self.assertEqual(
-            trijet_window_aligned_coarse.gen_two_log10_rho_edges,
-            (-10.0, -4.0, -2.85, -1.5, -0.75, 0.0),
+            trijet_common.gen_two_log10_rho_edges,
+            trijet_aligned.gen_two_log10_rho_edges,
         )
         for candidate, window, expected_reported_bins in (
-            (dijet_window_aligned, (-2.85, -0.55), 5),
-            (trijet_window_aligned, (-3.0, -0.7), 3),
-            (dijet_window_aligned_coarse, (-2.85, -0.55), 4),
-            (trijet_window_aligned_coarse, (-3.0, -0.7), 2),
+            (dijet_aligned, (-2.5, -0.75), 5),
+            (trijet_aligned, (-2.5, -1.0), 3),
+            (dijet_common, (-2.5, -1.0), 3),
+            (trijet_common, (-2.5, -1.0), 3),
         ):
             groups = candidate.base_to_gen_two_log10_rho_groups
             self.assertEqual(

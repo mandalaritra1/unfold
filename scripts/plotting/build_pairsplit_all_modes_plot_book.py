@@ -21,14 +21,14 @@ from reportlab.pdfgen import canvas
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_ROOT = ROOT / "outputs" / "pairsplit_run2"
-OUTPUT_PDF = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-17.pdf"
-INVENTORY_JSON = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-17.inventory.json"
+OUTPUT_PDF = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.pdf"
+INVENTORY_JSON = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.inventory.json"
 
 RUN_MANIFESTS = (
-    OUTPUT_ROOT / "dijet/coarse_tail/regularization-none__tau-disabled__normalization-peak__systematics-2f29494e8a26777d/run_manifest.json",
-    OUTPUT_ROOT / "dijet/coarse_tail/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-17101a98a9b25eac/run_manifest.json",
-    OUTPUT_ROOT / "trijet/two_to_one/regularization-none__tau-disabled__normalization-full__systematics-d426fad4a742b042/run_manifest.json",
-    OUTPUT_ROOT / "trijet/two_to_one/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-67c9f0bbba419cef/run_manifest.json",
+    OUTPUT_ROOT / "dijet/aligned/regularization-none__tau-disabled__normalization-peak__systematics-f64617bc992988f4/run_manifest.json",
+    OUTPUT_ROOT / "dijet/aligned/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-ac5dca45279f978c/run_manifest.json",
+    OUTPUT_ROOT / "trijet/aligned/regularization-none__tau-disabled__normalization-full__systematics-9e20a3857f23f611/run_manifest.json",
+    OUTPUT_ROOT / "trijet/aligned/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-57d6a4e8cadbc415/run_manifest.json",
 )
 
 PAGE_WIDTH, PAGE_HEIGHT = letter
@@ -409,7 +409,7 @@ def draw_running_furniture(pdf: canvas.Canvas, page_number: int) -> None:
     pdf.setFont("Helvetica-Bold", 7.8)
     pdf.drawString(36, 762, "RUN-2 PAIR-SPLIT UNFOLDING | GROOMED + UNGROOMED PLOT BOOK")
     pdf.setFont("Helvetica", 7.8)
-    pdf.drawString(36, 20, "Internal evidence review | 17 Aug 2026")
+    pdf.drawString(36, 20, "Internal evidence review | 18 Aug 2026")
     pdf.drawRightString(576, 20, f"Page {page_number}")
 
 
@@ -519,7 +519,7 @@ def draw_cover(pdf: canvas.Canvas, runs: Sequence[RunRecord], n_plots: int) -> N
     draw_wrapped(
         pdf,
         "The first published ungroomed bin remains statistically and migration limited, especially in trijet; it is shown rather than hidden. "
-        "The trijet 290-400 GeV first bin has a slightly negative central value with a ~185% band: it is compatible with zero, and its off-scale ratio band is marked in-panel rather than clipped silently. "
+        "The trijet 290-400 GeV first bin has a slightly negative central value with a ~120% band: it is compatible with zero, and its off-scale ratio band is marked in-panel rather than clipped silently. "
         "The low-coordinate migration catch-all below -2.5 is retained in the response but excluded from the published ungroomed normalization. "
         "MESS+Vincia and internal Pythia variations test model dependence; numerical self-closure is not independent response-model validation.",
         x=36,

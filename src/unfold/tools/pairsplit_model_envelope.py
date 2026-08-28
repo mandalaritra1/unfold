@@ -372,47 +372,28 @@ def derive_pairsplit_model_envelope_inputs(
             **metrics,
         }
 
-    internal_transfer_directory = Path(internal_transfer_directory).resolve()
-    internal_path = internal_transfer_directory / f"internal_fullsimref_{inputs.channel}.npz"
-    raw_internal = None
-    if grooming_mode == "groomed":
-        if not internal_path.is_file():
-            raise FileNotFoundError(
-                f"pair-split internal model-transfer input is missing: {internal_path}"
-            )
-        internal_context = np.load(internal_path, allow_pickle=False)
-        internal = internal_context.__enter__()
-        if str(internal["channel"]) != inputs.channel:
-            raise PairSplitModelEnvelopeError(
-                f"internal transfer channel {str(internal['channel'])!r} does not match "
-                f"{inputs.channel!r}"
-            )
-        if not np.array_equal(np.asarray(internal["rho_edges"], dtype=float), fine_coordinate_edges):
-            raise PairSplitModelEnvelopeError(
-                "internal transfer coordinate edges do not match the pair-split fine GEN axis"
-            )
-        internal_source_identity = {
-            "path": str(internal_path),
-            "sha256": _sha256(internal_path),
-            "campaign": str(internal["campaign"]),
-            "prescription": str(internal["prescription"]),
-            "fiducial_status": "legacy_pre_pair_split",
-            "status": "provisional_until_pair_split_internal_variations_exist",
-        }
-    else:
-        internal_context = None
-        internal = None
-        raw_internal = load_pairsplit_internal_transfers(
-            inputs.channel,
-            grooming_mode=grooming_mode,
-            coordinate_edges=fine_coordinate_edges,
-        )
-        internal_source_identity = {
-            **raw_internal.provenance,
-            "prescription": "normalized variation / normalized standalone CP5",
-            "fiducial_status": "same internal standalone campaign selection",
-            "status": "raw_manifest_harvest",
-        }
+    # Both grooming modes harvest the RAW standalone internal-variation rows
+    # and histogram them directly onto the current fine GEN axis.  Until the
+    # 2026-08-27 aligned-axes re-production, groomed instead read the
+    # pre-binned ``internal_fullsimref_<channel>.npz`` (FullSim-anchored
+    # presentation of the SAME campaign's variation/CP5 ratios) — but that
+    # file pins ``rho_edges`` to the retired free-edge gen axis and cannot
+    # follow a binning change, while the raw harvest feeds the identical
+    # conditioned transfer-ratio application below.  The npz path is gone
+    # with the old axes; the ratios remain "normalized variation /
+    # normalized standalone CP5" applied to the FullSim nominal.
+    internal_context = None
+    raw_internal = load_pairsplit_internal_transfers(
+        inputs.channel,
+        grooming_mode=grooming_mode,
+        coordinate_edges=fine_coordinate_edges,
+    )
+    internal_source_identity = {
+        **raw_internal.provenance,
+        "prescription": "normalized variation / normalized standalone CP5",
+        "fiducial_status": "same internal standalone campaign selection",
+        "status": "raw_manifest_harvest",
+    }
 
     try:
         for fine_pt_index in range(1, len(fine_pt_edges) - 1):
@@ -420,16 +401,10 @@ def derive_pairsplit_model_envelope_inputs(
             transfer_pt_low = 200 if pt_low < 290 else 290 if pt_low < 400 else 400
             nominal = nominal_gen[fine_pt_index]
             for model_source in ("cr1", "cr2", "fraghard", "fragsoft"):
-                if raw_internal is not None:
-                    ratio = np.asarray(
-                        raw_internal.ratio_by_source_and_pt_low[model_source][transfer_pt_low],
-                        dtype=float,
-                    )
-                else:
-                    ratio = np.asarray(
-                        internal[f"{model_source}_pt{transfer_pt_low}_transfer_ratio"],
-                        dtype=float,
-                    )
+                ratio = np.asarray(
+                    raw_internal.ratio_by_source_and_pt_low[model_source][transfer_pt_low],
+                    dtype=float,
+                )
                 weight, metrics = _condition_transfer_weight(
                     nominal,
                     ratio,

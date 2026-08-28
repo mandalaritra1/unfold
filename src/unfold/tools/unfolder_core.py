@@ -212,6 +212,13 @@ class ObservableSpec:
     # response categories from ``from_prepared_inputs`` (pair-split).
     model_envelope_source: str = "zjet_offline"
 
+    # Uncertainty-band fill colors for the unfolded-result figures.  The
+    # light/dark green pair is the established Z+jet look and stays the
+    # default; other channels set their own pair so decks and notes mixing
+    # channels stay visually distinguishable.
+    band_color_total: str = "yellowgreen"
+    band_color_stat: str = "darkgreen"
+
     # Pair-split bottom-line adaptation: prescale-weighted data and MC carry
     # unrelated absolute normalizations, so the Z+jet raw-count residuals are
     # scale-dominated and meaningless there.  True -> scale the MC side of
@@ -3661,11 +3668,14 @@ class Unfolder:
         measured = unflatten_gen_by_pt(self.y_meas, self.reco_edges_by_pt)[i_pt]
         errors = unflatten_gen_by_pt(measured_errors, self.reco_edges_by_pt)[i_pt]
         display_slice, edges = self._reco_display_slice(i_pt)
+        # Densities, not raw counts: variable-width bins otherwise distort
+        # the displayed shape.  The ratio is width-invariant.
+        widths = np.diff(np.asarray(edges, dtype=float))
         return {
             "edges": edges,
-            "folded": np.asarray(folded, dtype=float)[display_slice],
-            "measured": np.asarray(measured, dtype=float)[display_slice],
-            "measured_error": np.asarray(errors, dtype=float)[display_slice],
+            "folded": np.asarray(folded, dtype=float)[display_slice] / widths,
+            "measured": np.asarray(measured, dtype=float)[display_slice] / widths,
+            "measured_error": np.asarray(errors, dtype=float)[display_slice] / widths,
         }
 
     def plot_folded(self, show=True, *, counts=False):
@@ -3708,7 +3718,7 @@ class Unfolder:
                     meas_err, np.abs(folded), out=np.full_like(meas_err, np.nan),
                     where=folded != 0,
                 )
-                ax_top.set_ylabel("Events")
+                ax_top.set_ylabel(r"Events / unit $\log_{10}(\rho^2)$")
             else:
                 bin_widths_reco = np.diff(self.reco_edges_by_pt[i])
                 edges = np.array(self.reco_edges_by_pt[i], dtype=float)
@@ -4224,6 +4234,12 @@ class Unfolder:
         b2 = ax.bar(x + w / 2, c_unf, w, color="#5790fc", alpha=0.9,
                     label=unf_label)
         ax.set_yscale("log")
+        # Push the log floor well below the smallest bar so the bottom-left
+        # uncertainty-scope note never collides with a short bar's value
+        # label (seen on the aligned-binning trijet summaries).
+        positive_values = [v for v in (*c_sm, *c_unf) if v > 0]
+        if positive_values:
+            ax.set_ylim(bottom=min(positive_values) / 30.0)
         ax.set_ylabel(r"$\chi^2/n_\mathrm{dof}$ vs PYTHIA8" if normalized
                       else r"$\chi^2$ vs PYTHIA8")
         if with_model:
@@ -4596,11 +4612,11 @@ class Unfolder:
                 plt.stairs( unfolded + syst_up,
                     rho_edges,
                     baseline = unfolded - syst_down,
-                    fill = True, color = "yellowgreen" , label = total_label)
+                    fill = True, color = self.spec.band_color_total , label = total_label)
                 plt.stairs( unfolded + stat_unc,
                     rho_edges,
                     baseline = unfolded - stat_unc,
-                    fill = True, color = "darkgreen" , label = stat_label)
+                    fill = True, color = self.spec.band_color_stat , label = stat_label)
             # Track the tallest drawn curve so the legend headroom clears the
             # predictions too, not just the data band.
             curve_max = float(np.max(unfolded + syst_up))
@@ -4728,8 +4744,8 @@ class Unfolder:
                 plt.errorbar(centers, ratio_pythia, yerr=stat_frac, fmt='o',
                              color='k', markersize=5)
             else:
-                plt.stairs(1.0 + total_frac_up, rho_edges, baseline=1.0 - total_frac_down, fill=True, color="yellowgreen", label=total_label)
-                plt.stairs(1.0 + stat_frac, rho_edges, baseline=1.0 - stat_frac, fill=True, color="darkgreen", label=stat_label)
+                plt.stairs(1.0 + total_frac_up, rho_edges, baseline=1.0 - total_frac_down, fill=True, color=self.spec.band_color_total, label=total_label)
+                plt.stairs(1.0 + stat_frac, rho_edges, baseline=1.0 - stat_frac, fill=True, color=self.spec.band_color_stat, label=stat_label)
                 plt.stairs(ratio_pythia, rho_edges, color='#5790fc', ls='dotted', lw=2,
                            label='Unfolded / Pythia8' if is_closure else 'Data / Pythia8', baseline=None)
             # PYTHIA8 uncertainty propagated onto Data/PYTHIA8 (ratio ~ 1/PYTHIA,
@@ -4859,8 +4875,8 @@ class Unfolder:
                 ax_main.errorbar(centers, scale * vincia_norm, yerr=scale * vincia_err,
                                  fmt='none', ecolor='#964a8b', elinewidth=1.2, capsize=2)
             if not stat_only:
-                ax_main.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha = 0.8)
-                ax_main.stairs(y_stat_up, rho_edges, baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
+                ax_main.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color=self.spec.band_color_total, label=total_label, alpha = 0.8)
+                ax_main.stairs(y_stat_up, rho_edges, baseline=y_stat_down, fill=True, color=self.spec.band_color_stat, label=stat_label)
             # Approval comments (A. Meyer, SMP-24-010 style): the main legend
             # keeps only the series identity -- one "Data" row with a
             # representative marker -- while a separate compact key maps the
@@ -4963,10 +4979,10 @@ class Unfolder:
             if not stat_only:
                 ax.stairs(1.0 + _r(d["syst_up"]), edges,
                           baseline=1.0 - _r(d["syst_down"]), fill=True,
-                          color="yellowgreen", alpha=0.8, label=total_label)
+                          color=self.spec.band_color_total, alpha=0.8, label=total_label)
                 ax.stairs(1.0 + _r(d["stat_unc"]), edges,
                           baseline=1.0 - _r(d["stat_unc"]), fill=True,
-                          color="darkgreen", label=stat_label)
+                          color=self.spec.band_color_stat, label=stat_label)
             ax.axhline(1.0, color='gray', ls='--', lw=1)
 
             def _data_over(arr):
@@ -5096,8 +5112,8 @@ class Unfolder:
             plt.stairs(scale * np.array(
                 self.normalized_results[i]['true'], dtype=float
             )[display_slice], rho_edges, label='PYTHIA8', color='b', ls='dotted', lw=3, baseline=None)
-            plt.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color="yellowgreen", label=total_label, alpha=0.8)
-            plt.stairs(y_stat_up, rho_edges, baseline=y_stat_down, fill=True, color="darkgreen", label=stat_label)
+            plt.stairs(y_syst_up, rho_edges, baseline=y_syst_down, fill=True, color=self.spec.band_color_total, label=total_label, alpha=0.8)
+            plt.stairs(y_stat_up, rho_edges, baseline=y_stat_down, fill=True, color=self.spec.band_color_stat, label=stat_label)
             centers = 0.5 * (rho_edges[:-1] + rho_edges[1:])
             plt.plot(centers, scale * unfolded, label=rf'$10^{{{exponent}}}$ x {title_list[i]}', color='k', lw=0, marker=markers[i])
 

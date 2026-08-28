@@ -26,7 +26,7 @@ plot_book = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = plot_book
 _spec.loader.exec_module(plot_book)
 
-DECK_DATE = "2026-08-18"
+DECK_DATE = "2026-08-27"
 OUTPUT_ROOT = ROOT / "outputs" / "pairsplit_run2"
 BUILD_DIR = OUTPUT_ROOT / "slides_build"
 FIG_DIR = BUILD_DIR / "figs"
@@ -189,8 +189,15 @@ def slide(body: str) -> str:
 
 def grid_slide(title: str, caption: str, images: list[str], height_cm: float,
                columns: int) -> str:
+    # Cap BOTH dimensions with fit:"contain": height-only scaling let wide
+    # panels (uncertainty heatmaps, whose reco axes grew with the aligned
+    # binning) overflow the page width and clip their own margins.
+    usable_width_cm = 29.70 - 2.0  # presentation-16-9 minus x margins
+    width_cm = (usable_width_cm - 0.3 * (columns - 1)) / columns
     cells = "".join(
-        f"  align(center + horizon)[#image(\"{png}\", height: {height_cm}cm)],\n"
+        "  align(center + horizon)[#box("
+        f"width: {width_cm:.2f}cm, height: {height_cm}cm)"
+        f"[#image(\"{png}\", width: 100%, height: 100%, fit: \"contain\")]],\n"
         for png in images
     )
     column_spec = ", ".join(["1fr"] * columns)
@@ -311,6 +318,38 @@ def build() -> None:
                 height_cm=10.6 if len(images) == 2 else 11.4,
                 columns=len(images),
             ))
+
+    # Combined three-channel comparison on the aligned common grid — the
+    # payoff of the 2026-08-27 binning alignment.
+    combined_dir = plot_book.OUTPUT_ROOT / "combined"
+    combined_caption = (
+        "All three channels rebinned EXACTLY onto the common gen grid and "
+        "re-normalized to unit area over the shown window per pT slice, so "
+        "per-run normalization-window choices drop out. Bands: total "
+        "(stat + detector quadrature + PS/HAD model legs; zjet uses its "
+        "published total covariance). Lower panels: channel/dijet with the "
+        "dijet total band hatched around 1; channels treated as uncorrelated. "
+        "Common pT slices 200-290, 290-400, >400 GeV (dijet's three high-pT "
+        "slices merged at the count level with full stat covariance)."
+    )
+    for mode in ("groomed", "ungroomed"):
+        images = []
+        for index in range(3):
+            source = combined_dir / f"combined_{mode}_pt{index}.pdf"
+            if not source.is_file():
+                raise FileNotFoundError(
+                    f"Missing combined figure: {source} — run "
+                    "scripts/plotting/build_combined_channels_rho.py first"
+                )
+            images.append(render_png(source, f"combined_{mode}_pt{index}"))
+        n_figures += len(images)
+        slides.append(grid_slide(
+            f"Combined channels | Z+jet vs dijet vs trijet, {mode}",
+            combined_caption,
+            images,
+            height_cm=9.0,
+            columns=3,
+        ))
 
     header = (
         "#set page(paper: \"presentation-16-9\", margin: (x: 1.0cm, y: 0.7cm),\n"

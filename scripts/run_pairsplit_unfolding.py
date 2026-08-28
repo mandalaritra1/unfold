@@ -59,21 +59,22 @@ DEFAULT_SYSTEMATIC_REQUEST = FULL_SAFE_SYSTEMATIC_REQUEST
 # diagnostic.  They are deliberately distinct from the named peak-window
 # normalization variant below.
 CORE_STABILITY_WINDOWS = {
-    "dijet": (-2.85, -0.55),
-    "trijet": (-3.0, -0.7),
+    "dijet": (-2.5, -0.75),
+    "trijet": (-2.5, -1.0),
 }
-PLOTTED_DISPLAY_WINDOW = (-4.0, 0.0)
+PLOTTED_DISPLAY_WINDOW = (-3.5, 0.0)
 UNGROOMED_WINDOW = (-2.5, 0.0)
 NORMALIZATION_WINDOWS = {
     "full": PLOTTED_DISPLAY_WINDOW,
-    # The earlier hadronic-rho bin study's ``_win18`` dijet variant.  The
-    # upper edge deliberately excludes the [-0.55, 0] catch-all bin.
-    "peak": (-1.8, -0.55),
+    # Aligned-lattice successor of the old [-1.8, -0.55] peak window: the
+    # four quarter/half peak bins, upper edge deliberately excluding the
+    # [-0.75, 0] kinematic-edge catch-all bin.
+    "peak": (-2.0, -0.75),
 }
 STUDY_RECOMMENDED_BINNING = "study_recommended"
 STUDY_RECOMMENDED_VARIANT_BY_CHANNEL = {
-    "dijet": "coarse_tail",
-    "trijet": "two_to_one",
+    "dijet": "aligned",
+    "trijet": "aligned",
 }
 
 
@@ -127,7 +128,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=STUDY_RECOMMENDED_BINNING,
         help=(
             "Named candidate base-to-GEN aggregation. The default resolves "
-            "to coarse_tail for dijet and two_to_one for trijet; an explicit "
+            "to the approved 'aligned' grids for both channels; an explicit "
             "candidate applies unchanged to every requested channel."
         ),
     )
@@ -143,8 +144,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="full",
         help=(
             "Per-pT unit-area denominator in two_log10_rho. 'full' uses "
-            "[-4, 0]; 'peak' uses the prior dijet study window [-1.8, -0.55] "
-            "while retaining [-4, 0] on the plots."
+            "[-3.5, 0]; 'peak' uses the aligned peak window [-2.0, -0.75] "
+            "while retaining [-3.5, 0] on the plots."
         ),
     )
     parser.add_argument(
@@ -236,6 +237,7 @@ def run_configuration_identity(
     model_envelope_source: Mapping[str, object] | None = None,
     *,
     grooming_mode: str = "groomed",
+    analysis_binning=None,
 ) -> dict[str, object]:
     """Identify the physics configuration used by one immutable output directory.
 
@@ -248,7 +250,23 @@ def run_configuration_identity(
     )
     configuration = {
         "grooming_mode": grooming_mode,
-        "binning": args.binning,
+        # The concrete edges are part of the identity (2026-08-18): a changed
+        # reco or gen binning under an unchanged candidate name must never
+        # silently overwrite an earlier run's immutable directory.
+        "binning": (
+            {
+                "candidate": args.binning,
+                "pt_edges_GeV": list(analysis_binning.pt_edges),
+                "base_reco_two_log10_rho_edges": list(
+                    analysis_binning.two_log10_rho_reco_edges
+                ),
+                "gen_two_log10_rho_edges": list(
+                    analysis_binning.two_log10_rho_gen_edges
+                ),
+            }
+            if analysis_binning is not None
+            else args.binning
+        ),
         "normalization_window": {
             "name": normalization_name,
             "two_log10_rho_range": list(normalization_window),
@@ -324,7 +342,7 @@ def build_pairsplit_spec(
         x_label_ungroomed=label,
         short_label_groomed=label,
         short_label_ungroomed=label,
-        xlim_lower_groomed=-4.0,
+        xlim_lower_groomed=-3.5,
         xlim_lower_ungroomed=-2.5,
         stat_propagation="jacobian",
         regularization=args.regularization,
@@ -342,6 +360,11 @@ def build_pairsplit_spec(
         # Prescaled data vs MC have unrelated absolute normalizations: the
         # bottom-line residuals must be per-pT-slice shape comparisons.
         bottom_line_scale_mc_per_pt=True,
+        # Channel band colors: light/dark green stays reserved for Z+jet.
+        # Dijet: amber/orange; trijet: cyan/teal (CVD-safe, distinct from the
+        # Pythia8 blue and MESS+Vincia purple overlay curves).
+        band_color_total="#fdd49e" if channel == "dijet" else "#92dadd",
+        band_color_stat="#e76300" if channel == "dijet" else "#00707f",
         **normalization_updates,
     )
 
@@ -1093,8 +1116,8 @@ def build_manifest(
             "fine_to_base_reco_two_log10_rho_groups": prepared.metadata[
                 "reco_two_log10_rho_groups"
             ],
-            "fine_to_base_gen_two_log10_rho_groups": prepared.metadata[
-                "gen_base_two_log10_rho_groups"
+            "fine_to_gen_two_log10_rho_groups": prepared.metadata[
+                "fine_to_gen_two_log10_rho_groups"
             ],
         },
         "systematics": {
@@ -1251,6 +1274,7 @@ def run_channel(
         vincia_source.identity_payload(),
         model_envelope.identity_payload() if model_envelope is not None else None,
         grooming_mode=grooming_mode,
+        analysis_binning=prepared.analysis_binning,
     )
     output_parent = args.output_root / channel / args.binning
     if grooming_mode == "ungroomed":

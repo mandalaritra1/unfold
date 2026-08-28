@@ -72,8 +72,8 @@ from unfold.utils.cms_plot import (
 
 # Mirrors scripts/run_pairsplit_unfolding.py: the delivered candidate per
 # channel and the published display windows.
-STUDY_RECOMMENDED_VARIANT_BY_CHANNEL = {"dijet": "coarse_tail", "trijet": "two_to_one"}
-DISPLAY_WINDOWS = {"groomed": (-4.0, 0.0), "ungroomed": (-2.5, 0.0)}
+STUDY_RECOMMENDED_VARIANT_BY_CHANNEL = {"dijet": "aligned", "trijet": "aligned"}
+DISPLAY_WINDOWS = {"groomed": (-3.5, 0.0), "ungroomed": (-2.5, 0.0)}
 
 MC_COLOR = "#f89c20"  # Petroff 6-colour scheme; data is always black
 MC_LABEL = "QCD multijet (MG+Pythia8)"
@@ -256,7 +256,7 @@ def make_panel(
     span = np.log10(max(data_top / floor, 10.0))
     axis.set_ylim(floor, floor * 10 ** (span / 0.65))
     axis.yaxis.set_major_locator(LogLocator(base=10.0, numticks=20))
-    axis.set_ylabel("Events", fontsize=PUB_LABEL_FONTSIZE)
+    axis.set_ylabel(r"Events / unit $\log_{10}(\rho^2)$", fontsize=PUB_LABEL_FONTSIZE)
     axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
     handles, labels = axis.get_legend_handles_labels()
     order = sorted(range(len(labels)),
@@ -328,15 +328,20 @@ def run_channel_mode(args, channel: str, mode: str, inputs, vincia_source) -> di
         f"inputs: pairsplit_run2 {variant} {mode}"
     )
     outputs = []
+    bin_widths = np.diff(shown_edges)
     for pt_index in range(len(prepared.analysis_binning.pt_edges) - 1):
         data_shown = data_values[pt_index][shown]
         data_sum = float(data_shown.sum())
         components = band_components(mc_by_systematic, pt_index, shown, data_sum)
+        # Display as densities: variable-width bins otherwise distort the
+        # shape.  The normalization (MC to data yield) is done on counts
+        # above; the ratio panel is width-invariant either way.
+        components = {name: values / bin_widths for name, values in components.items()}
         output_path = output_dir / f"data_mc_{mode}_pt{pt_index}.pdf"
         make_panel(
             edges=shown_edges,
-            data_values=data_shown,
-            data_errors=np.sqrt(np.clip(covariance_diag[pt_index][shown], 0.0, None)),
+            data_values=data_shown / bin_widths,
+            data_errors=np.sqrt(np.clip(covariance_diag[pt_index][shown], 0.0, None)) / bin_widths,
             components=components,
             mode=mode,
             channel=channel,

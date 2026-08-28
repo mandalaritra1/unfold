@@ -20,7 +20,7 @@ import numpy as np
 PAIR_SPLIT_ERAS = ("2016APV", "2016", "2017", "2018")
 PAIR_SPLIT_CHANNELS = ("dijet", "trijet")
 PAIR_SPLIT_INPUT_ROOT = Path(
-    "/Users/aritra/cernbox (2)/hadronic_minimal_rho_pairsplit"
+    "/Users/aritra/cernbox (2)/hadronic_minimal_rho_pairsplit_aligned"
 )
 
 JET_RADIUS = 0.8
@@ -158,17 +158,22 @@ class PairSplitFineAxes:
 
 
 PAIR_SPLIT_FINE_AXES = {
+    # The Z+jet-ALIGNED producer lattice (2026-08-27 re-production): every
+    # gen edge above the -3.5 shown floor on the quarter-integer grid, reco
+    # the exact 2:1 halving (0.125 steps).  smp hist_utils.py `_had_rho_gen_g`.
     "groomed": PairSplitFineAxes(
         pt_edges=(185.0, 200.0, 290.0, 400.0, 480.0, 570.0, 680.0, 760.0, 820.0, 13000.0),
         two_log10_rho_reco_edges=(
-            -10.0, -7.5, -5.0, -4.5, -4.0, -3.7, -3.4, -3.125,
-            -2.85, -2.55, -2.25, -2.025, -1.8, -1.65, -1.5, -1.4,
-            -1.3, -1.2, -1.1, -1.0, -0.9, -0.825, -0.75, -0.7, -0.65,
-            -0.6, -0.55, -0.275, 0.0,
+            -10.0, -7.5, -5.0, -4.5, -4.0, -3.75, -3.5, -3.375,
+            -3.25, -3.125, -3.0, -2.875, -2.75, -2.625, -2.5, -2.375,
+            -2.25, -2.125, -2.0, -1.875, -1.75, -1.625, -1.5, -1.375,
+            -1.25, -1.125, -1.0, -0.875, -0.75, -0.625, -0.5, -0.375,
+            -0.25, -0.125, 0.0,
         ),
         two_log10_rho_gen_edges=(
-            -10.0, -5.0, -4.0, -3.4, -2.85, -2.25, -1.8, -1.5,
-            -1.3, -1.1, -0.9, -0.75, -0.65, -0.55, 0.0,
+            -10.0, -5.0, -4.0, -3.5, -3.25, -3.0, -2.75, -2.5,
+            -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5,
+            -0.25, 0.0,
         ),
     ),
     "ungroomed": PairSplitFineAxes(
@@ -220,21 +225,39 @@ class PairSplitBinning:
         )
 
 
+# Base RECO selections from the aligned producer lattice: 2:1 halves of the
+# approved gen grids (study: outputs/studies/aligned_binning/, candidates
+# "aligned_seven" dijet / "wide_tail_deep" trijet), with the LAST gen bin
+# kept 1:1 at the m ~ pT*R kinematic edge (near-empty upper reco half, the
+# recurring lesson from the ungroomed 2:1 rebuild) and the [-10, -3.5]
+# migration buffer a single 1:1 bin.
 _GROOMED_CANDIDATE_COORDINATE_EDGES_BY_CHANNEL = {
     "dijet": (
-        -10.0, -4.0, -3.4, -2.85, -2.25, -1.8, -1.5, -1.3,
-        -1.1, -0.9, -0.75, -0.65, -0.55, 0.0,
+        -10.0, -3.5, -3.0, -2.5, -2.25, -2.0, -1.75, -1.5,
+        -1.375, -1.25, -1.125, -1.0, -0.875, -0.75, 0.0,
     ),
-    "trijet": (-10.0, -4.0, -2.85, -2.25, -1.8, -1.5, -1.1, -0.75, 0.0),
+    "trijet": (
+        -10.0, -3.5, -3.0, -2.5, -2.25, -2.0, -1.75, -1.5,
+        -1.25, -1.0, 0.0,
+    ),
 }
 
 # The ungroomed producer truth axis is intrinsically coarser than the groomed
-# one.  Keep every available truth edge from -2.5 upward and merge only the
-# lower tail into a hidden migration catch-all.  The reco axis is rebinned to
-# the same common edges so the prepared response remains rectangular only in
-# pT, not through an artificial sub-truth binning.
-_UNGROOMED_COORDINATE_EDGES = (
-    -10.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0,
+# one: 0.5-wide GEN bins above the hidden [-10, -2.5] migration catch-all.
+# The producer RECO axis does carry 0.25-wide bins there, so the candidate
+# keeps them — the standard 2:1 reco:gen refinement (as in Z+jet) that gives
+# the least-squares unfold real residual degrees of freedom and makes the
+# refold comparison a genuine check (a square response refolds exactly by
+# construction).  The catch-all stays 1:1, and so does the LAST gen bin
+# [-0.5, 0]: at the m ~ pT*R kinematic edge the data leave its upper 0.25
+# half nearly empty (single weighted events), and those near-zero-variance
+# cells dominated every reco-space chi2 diagnostic when split.
+_UNGROOMED_RECO_COORDINATE_EDGES = (
+    -10.0, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0,
+    -0.75, -0.5, 0.0,
+)
+_UNGROOMED_BASE_TO_GEN_GROUPS = (
+    (0,), (1, 2), (3, 4), (5, 6), (7, 8), (9,),
 )
 
 
@@ -258,7 +281,7 @@ def _candidate_binning(
         base_to_gen_two_log10_rho_groups=two_log10_rho_groups,
         sink_pt_source_bin_indices=(0,),
         first_reported_pt_index=0,
-        reported_two_log10_rho_minimum=-4.0,
+        reported_two_log10_rho_minimum=-3.5,
     )
 
 
@@ -273,10 +296,8 @@ def _ungroomed_candidate_binning(
         grooming_mode="ungroomed",
         pt_edges=groomed_candidate.pt_edges,
         pt_groups=groomed_candidate.pt_groups,
-        base_reco_two_log10_rho_edges=_UNGROOMED_COORDINATE_EDGES,
-        base_to_gen_two_log10_rho_groups=tuple(
-            (index,) for index in range(len(_UNGROOMED_COORDINATE_EDGES) - 1)
-        ),
+        base_reco_two_log10_rho_edges=_UNGROOMED_RECO_COORDINATE_EDGES,
+        base_to_gen_two_log10_rho_groups=_UNGROOMED_BASE_TO_GEN_GROUPS,
         sink_pt_source_bin_indices=groomed_candidate.sink_pt_source_bin_indices,
         first_reported_pt_index=groomed_candidate.first_reported_pt_index,
         reported_two_log10_rho_minimum=-2.5,
@@ -284,62 +305,42 @@ def _ungroomed_candidate_binning(
 
 
 # These variants document candidate aggregation choices; no physics-status
-# claim is encoded in their names or metadata.
+# claim is encoded in their names or metadata.  Pre-2026-08-27 variants
+# (coarse_tail / two_to_one / window_aligned*) lived on the old free-edge
+# producer lattice and are gone with it — git history has them.
 PAIR_SPLIT_BINNING_VARIANTS = {
-    "coarse_tail": {
+    # The APPROVED aligned grids (2026-08-27): dijet = study "aligned_seven"
+    # [-3.5,-2.5,-2,-1.5,-1.25,-1,-0.75,0], trijet = "wide_tail_deep"
+    # [-3.5,-2.5,-2,-1.5,-1,0].  Every dijet edge merges onto the common
+    # grid, so combined plots rebin exactly.
+    "aligned": {
         "dijet": _candidate_binning(
             "dijet",
-            "coarse_tail",
+            "aligned",
             ((1,), (2,), (3,), (4,), (5, 6, 7, 8)),
-            ((0,), (1, 2), (3, 4), (5,), (6,), (7,), (8,), (9,), (10,), (11,), (12,)),
+            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12), (13,)),
         ),
         "trijet": _candidate_binning(
             "trijet",
-            "coarse_tail",
+            "aligned",
             ((1,), (2,), (3, 4, 5, 6, 7, 8)),
-            ((0,), (1, 2), (3,), (4,), (5,), (6,), (7,)),
+            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9,)),
         ),
     },
-    "two_to_one": {
+    # Cross-check: dijet regrouped onto the common three-channel grid
+    # [-3.5,-2.5,-2,-1.5,-1,0] (trijet identical to "aligned").
+    "aligned_common": {
         "dijet": _candidate_binning(
             "dijet",
-            "two_to_one",
+            "aligned_common",
             ((1,), (2,), (3,), (4,), (5, 6, 7, 8)),
-            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11, 12)),
+            ((0,), (1, 2), (3, 4), (5, 6), (7, 8, 9, 10), (11, 12, 13)),
         ),
         "trijet": _candidate_binning(
             "trijet",
-            "two_to_one",
+            "aligned_common",
             ((1,), (2,), (3, 4, 5, 6, 7, 8)),
-            ((0,), (1, 2), (3, 4), (5, 6), (7,)),
-        ),
-    },
-    "window_aligned": {
-        "dijet": _candidate_binning(
-            "dijet",
-            "window_aligned",
-            ((1,), (2,), (3,), (4,), (5, 6, 7, 8)),
-            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10), (11,), (12,)),
-        ),
-        "trijet": _candidate_binning(
-            "trijet",
-            "window_aligned",
-            ((1,), (2,), (3, 4, 5, 6, 7, 8)),
-            ((0,), (1,), (2,), (3, 4), (5, 6), (7,)),
-        ),
-    },
-    "window_aligned_coarse": {
-        "dijet": _candidate_binning(
-            "dijet",
-            "window_aligned_coarse",
-            ((1,), (2,), (3,), (4,), (5, 6, 7, 8)),
-            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9, 10, 11), (12,)),
-        ),
-        "trijet": _candidate_binning(
-            "trijet",
-            "window_aligned_coarse",
-            ((1,), (2,), (3, 4, 5, 6, 7, 8)),
-            ((0,), (1,), (2, 3, 4), (5, 6), (7,)),
+            ((0,), (1, 2), (3, 4), (5, 6), (7, 8), (9,)),
         ),
     },
 }
@@ -683,30 +684,29 @@ def prepare_pairsplit_inputs(
         candidate.base_reco_two_log10_rho_edges,
         context="reco two_log10_rho base bins",
     )
-    gen_base_coordinate_groups = _groups_for_target_edges(
-        fine_axes.two_log10_rho_gen_edges,
-        candidate.base_reco_two_log10_rho_edges,
-        context="gen two_log10_rho base bins",
-    )
     reco_coordinate_map = _linear_group_map(
         len(fine_axes.two_log10_rho_reco_edges) - 1,
         reco_coordinate_groups,
         context="reco two_log10_rho base bins",
         require_full_coverage=True,
     )
-    gen_base_coordinate_map = _linear_group_map(
-        len(fine_axes.two_log10_rho_gen_edges) - 1,
-        gen_base_coordinate_groups,
-        context="gen two_log10_rho base bins",
-        require_full_coverage=True,
-    )
-    gen_candidate_map = _linear_group_map(
-        len(candidate.base_reco_two_log10_rho_edges) - 1,
-        candidate.base_to_gen_two_log10_rho_groups,
-        context="candidate gen two_log10_rho groups",
-        require_full_coverage=True,
-    )
     final_gen_edges = candidate.gen_two_log10_rho_edges
+    # Map the fine GEN axis directly onto the candidate's final GEN edges.
+    # The former composition through the base RECO edges required every base
+    # reco edge to exist on the fine GEN axis — a requirement a
+    # finer-than-gen reco binning (the 2:1 ungroomed candidate) deliberately
+    # violates.
+    gen_coordinate_groups = _groups_for_target_edges(
+        fine_axes.two_log10_rho_gen_edges,
+        final_gen_edges,
+        context="gen two_log10_rho bins",
+    )
+    gen_coordinate_map = _linear_group_map(
+        len(fine_axes.two_log10_rho_gen_edges) - 1,
+        gen_coordinate_groups,
+        context="gen two_log10_rho bins",
+        require_full_coverage=True,
+    )
     analysis_binning = PairSplitPreparedBinning(
         pt_edges=candidate.pt_edges,
         two_log10_rho_reco_edges=candidate.base_reco_two_log10_rho_edges,
@@ -801,14 +801,14 @@ def prepare_pairsplit_inputs(
             pt_map,
             reco_coordinate_map,
             pt_map,
-            gen_candidate_map @ gen_base_coordinate_map,
+            gen_coordinate_map,
         )
         response_variances[systematic] = _rebin_response_values(
             fine_response_variance,
             pt_map,
             reco_coordinate_map,
             pt_map,
-            gen_candidate_map @ gen_base_coordinate_map,
+            gen_coordinate_map,
         )
         reco_values[systematic] = _rebin_2d_values(
             fine_reco, pt_map, reco_coordinate_map
@@ -819,12 +819,12 @@ def prepare_pairsplit_inputs(
         gen_values[systematic] = _rebin_2d_values(
             fine_gen,
             pt_map,
-            gen_candidate_map @ gen_base_coordinate_map,
+            gen_coordinate_map,
         )
         gen_variances[systematic] = _rebin_2d_values(
             fine_gen_variance,
             pt_map,
-            gen_candidate_map @ gen_base_coordinate_map,
+            gen_coordinate_map,
         )
         if systematic in PAIR_SPLIT_NOMINAL_VARIANCE_SYSTEMATICS:
             # The non-nominal arrays still define this nuisance's central
@@ -895,7 +895,7 @@ def prepare_pairsplit_inputs(
             "reported_two_log10_rho_minimum": candidate.reported_two_log10_rho_minimum,
             "pt_groups": candidate.pt_groups,
             "reco_two_log10_rho_groups": reco_coordinate_groups,
-            "gen_base_two_log10_rho_groups": gen_base_coordinate_groups,
+            "fine_to_gen_two_log10_rho_groups": gen_coordinate_groups,
             "base_to_gen_two_log10_rho_groups": candidate.base_to_gen_two_log10_rho_groups,
             "data_covariance_source": inputs.observable_metadata[
                 "data_covariance_source_by_mode"

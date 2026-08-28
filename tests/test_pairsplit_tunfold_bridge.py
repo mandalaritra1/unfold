@@ -163,21 +163,29 @@ def synthetic_ungroomed_inputs() -> PairSplitRun2Inputs:
     )
 
 
-def test_ungroomed_bridge_keeps_hidden_tail_and_five_reported_bins():
+def test_ungroomed_bridge_keeps_hidden_tail_and_two_to_one_reco_binning():
     prepared = prepare_pairsplit_inputs(
         synthetic_ungroomed_inputs(),
-        "coarse_tail",
+        "aligned",
         ("nominal",),
         grooming_mode="ungroomed",
     )
-    expected_edges = (-10.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0)
+    # 2:1 reco:gen above the hidden [-10, -2.5] catch-all (2026-08-18): the
+    # producer's 0.25-wide reco bins are kept; gen stays at the 0.5-wide
+    # producer truth bins, so the published binning is unchanged.  The last
+    # gen bin [-0.5, 0] stays 1:1 (kinematic-edge data sparsity).
+    expected_reco_edges = (
+        -10.0, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0,
+        -0.75, -0.5, 0.0,
+    )
+    expected_gen_edges = (-10.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0)
     assert prepared.candidate.grooming_mode == "ungroomed"
     assert prepared.candidate.reported_two_log10_rho_minimum == -2.5
-    assert prepared.analysis_binning.two_log10_rho_reco_edges == expected_edges
-    assert prepared.analysis_binning.two_log10_rho_gen_edges == expected_edges
+    assert prepared.analysis_binning.two_log10_rho_reco_edges == expected_reco_edges
+    assert prepared.analysis_binning.two_log10_rho_gen_edges == expected_gen_edges
     assert prepared.metadata["grooming_mode"] == "ungroomed"
     response = prepared.mc_inputs[LEGACY_HISTOGRAM_KEYS["ungroomed"]["response"]]
-    assert response.values(flow=False).shape == (1, 5, 6, 5, 6)
+    assert response.values(flow=False).shape == (1, 5, 10, 5, 6)
     assert response.values(flow=False).sum() == pytest.approx(15.0)
 
 
@@ -238,28 +246,29 @@ def detector_variance_pairsplit_inputs() -> PairSplitRun2Inputs:
 def test_bridge_rebins_values_sumw2_and_full_covariance_in_source_axis_order():
     prepared = prepare_pairsplit_groomed_inputs(
         synthetic_pairsplit_inputs(),
-        "two_to_one",
+        "aligned",
         ("nominal", "JERUp"),
     )
     response = prepared.mc_inputs[LEGACY_HISTOGRAM_KEYS["groomed"]["response"]]
     response_values = response.values(flow=False)
     response_variances = response.variances(flow=False)
 
-    assert response_values.shape == (2, 5, 13, 5, 7)
+    assert response_values.shape == (2, 5, 14, 5, 8)
     assert response_values[0].sum() == pytest.approx(8.0)
     assert response_variances[0].sum() == pytest.approx(18.0)
     assert response_values[1].sum() == pytest.approx(16.0)
     assert response_variances[1].sum() == pytest.approx(54.0)
     assert prepared.analysis_binning.pt_edges == (200.0, 290.0, 400.0, 480.0, 570.0, 13000.0)
-    assert prepared.analysis_binning.two_log10_rho_reco_edges[0:3] == (-10.0, -4.0, -3.4)
+    assert prepared.analysis_binning.two_log10_rho_reco_edges[0:3] == (-10.0, -3.5, -3.0)
     assert prepared.analysis_binning.two_log10_rho_gen_edges == (
-        -10.0, -4.0, -2.85, -1.8, -1.3, -0.9, -0.65, 0.0
+        -10.0, -3.5, -2.5, -2.0, -1.5, -1.25, -1.0, -0.75, 0.0
     )
     assert prepared.first_reported_pt_bin == 0
 
-    # source (pt=1, coord=4) -> output (0, 1); source (2, 6) -> (1, 2).
-    output_left = 0 * 13 + 1
-    output_right = 1 * 13 + 2
+    # source (pt=1, coord=4=[-4,-3.75]) -> output (0, base bin 0 = [-10,-3.5]);
+    # source (pt=2, coord=6=[-3.5,-3.375]) -> output (1, base bin 1 = [-3.5,-3.0]).
+    output_left = 0 * 14 + 0
+    output_right = 1 * 14 + 1
     assert prepared.measured_covariance[output_left, output_right] == pytest.approx(2.5)
     assert prepared.measured_covariance[output_right, output_left] == pytest.approx(2.5)
 
@@ -273,7 +282,7 @@ def test_bridge_builds_model_response_before_gen_merge_and_keeps_absolute_fakes(
     weight[2, 2] = 2.0
     prepared = prepare_pairsplit_groomed_inputs(
         inputs,
-        "two_to_one",
+        "aligned",
         ("nominal",),
         model_variations={"model_vincia": weight},
         model_metadata={"synthetic": True},
@@ -293,7 +302,7 @@ def test_bridge_builds_model_response_before_gen_merge_and_keeps_absolute_fakes(
     with pytest.raises(ValueError, match="expected"):
         prepare_pairsplit_groomed_inputs(
             inputs,
-            "two_to_one",
+            "aligned",
             ("nominal",),
             model_variations={"model_vincia": np.ones((2, 2))},
         )
@@ -302,7 +311,7 @@ def test_bridge_builds_model_response_before_gen_merge_and_keeps_absolute_fakes(
 def test_detector_central_variations_keep_nominal_sumw2_and_luminosity_is_excluded():
     inputs = detector_variance_pairsplit_inputs()
     prepared = prepare_pairsplit_groomed_inputs(
-        inputs, "window_aligned_coarse", ("nominal", "puUp")
+        inputs, "aligned_common", ("nominal", "puUp")
     )
     response = prepared.mc_inputs[LEGACY_HISTOGRAM_KEYS["groomed"]["response"]]
     reco = prepared.mc_inputs[LEGACY_HISTOGRAM_KEYS["groomed"]["reco"]]
@@ -325,7 +334,7 @@ def test_detector_central_variations_keep_nominal_sumw2_and_luminosity_is_exclud
 
     with pytest.raises(ValueError, match="normalization-only luminosity"):
         prepare_pairsplit_groomed_inputs(
-            inputs, "window_aligned_coarse", ("nominal", "LuminosityUp")
+            inputs, "aligned_common", ("nominal", "LuminosityUp")
         )
 
 
@@ -447,11 +456,11 @@ def test_runner_cli_defaults_and_manifest_use_two_log10_rho_terminology(tmp_path
     trijet_args = runner.channel_resolved_args(args, "trijet")
     assert dijet_args.requested_binning == runner.STUDY_RECOMMENDED_BINNING
     assert trijet_args.requested_binning == runner.STUDY_RECOMMENDED_BINNING
-    assert dijet_args.binning == "coarse_tail"
-    assert trijet_args.binning == "two_to_one"
+    assert dijet_args.binning == "aligned"
+    assert trijet_args.binning == "aligned"
 
     prepared = prepare_pairsplit_groomed_inputs(
-        synthetic_pairsplit_inputs(), "coarse_tail", ("nominal",)
+        synthetic_pairsplit_inputs(), "aligned", ("nominal",)
     )
     prepared = replace(
         prepared,
@@ -471,9 +480,24 @@ def test_runner_cli_defaults_and_manifest_use_two_log10_rho_terminology(tmp_path
     run_identity = runner.run_configuration_identity(
         dijet_args, prepared.systematics, SYNTHETIC_MESS_VINCIA_SOURCE
     )
-    assert run_identity["configuration"]["binning"] == "coarse_tail"
-    assert run_identity != runner.run_configuration_identity(
-        trijet_args, prepared.systematics, SYNTHETIC_MESS_VINCIA_SOURCE
+    assert run_identity["configuration"]["binning"] == "aligned"
+    # Both channels resolve to the "aligned" candidate NAME; the identities
+    # separate through the embedded concrete edges, exactly as in main().
+    trijet_prepared = prepare_pairsplit_groomed_inputs(
+        replace(synthetic_pairsplit_inputs(), channel="trijet"),
+        "aligned",
+        ("nominal",),
+    )
+    assert runner.run_configuration_identity(
+        dijet_args,
+        prepared.systematics,
+        SYNTHETIC_MESS_VINCIA_SOURCE,
+        analysis_binning=prepared.analysis_binning,
+    ) != runner.run_configuration_identity(
+        trijet_args,
+        prepared.systematics,
+        SYNTHETIC_MESS_VINCIA_SOURCE,
+        analysis_binning=trijet_prepared.analysis_binning,
     )
     manifest = runner.build_manifest(
         args=dijet_args,
@@ -494,20 +518,20 @@ def test_runner_cli_defaults_and_manifest_use_two_log10_rho_terminology(tmp_path
     assert observable["transformed_coordinate_name"] == "two_log10_rho"
     assert observable["transformed_coordinate_definition"] == "two_log10_rho = 2 * log10(rho)"
     assert manifest["binning"]["base_reco_two_log10_rho_edges"] == (
-        -10.0, -4.0, -3.4, -2.85, -2.25, -1.8, -1.5, -1.3,
-        -1.1, -0.9, -0.75, -0.65, -0.55, 0.0,
+        -10.0, -3.5, -3.0, -2.5, -2.25, -2.0, -1.75, -1.5,
+        -1.375, -1.25, -1.125, -1.0, -0.875, -0.75, 0.0,
     )
     assert manifest["binning"]["requested_candidate"] == "study_recommended"
-    assert manifest["binning"]["resolved_candidate"] == "coarse_tail"
+    assert manifest["binning"]["resolved_candidate"] == "aligned"
     assert manifest["unfolding"]["plot_normalization"] == {
         "mode": "unit_area_over_coordinate_window",
         "name": "full",
-        "two_log10_rho_range": [-4.0, 0.0],
+        "two_log10_rho_range": [-3.5, 0.0],
     }
     assert manifest["unfolding"]["plot_display"] == {
-        "two_log10_rho_range": [-4.0, 0.0]
+        "two_log10_rho_range": [-3.5, 0.0]
     }
-    assert manifest["unfolding"]["study_core_window_two_log10_rho"] == (-2.85, -0.55)
+    assert manifest["unfolding"]["study_core_window_two_log10_rho"] == (-2.5, -0.75)
     assert "not the plotted" in manifest["unfolding"]["study_core_window_purpose"]
     assert "log10(rho^2)" not in str(manifest)
     era_correlation = manifest["systematics"]["run2_era_correlation"]
@@ -536,14 +560,14 @@ def test_runner_spec_normalizes_every_shown_bin_and_keeps_core_window_diagnostic
     args = runner.channel_resolved_args(requested_args, "dijet")
     spec = runner.build_pairsplit_spec("dijet", tmp_path, args)
 
-    assert spec.normalization_window_groomed == (-4.0, 0.0)
-    assert spec.display_window_groomed == (-4.0, 0.0)
+    assert spec.normalization_window_groomed == (-3.5, 0.0)
+    assert spec.display_window_groomed == (-3.5, 0.0)
     assert spec.normalize_over_shown is False
     assert spec.model_envelope is True
     assert spec.model_envelope_source == "prepared_systematics"
-    assert spec.xlim_lower_groomed == pytest.approx(-4.0)
-    assert runner.CORE_STABILITY_WINDOWS["dijet"] == (-2.85, -0.55)
-    assert runner.resolve_channel_binning("coarse_tail", "trijet") == "coarse_tail"
+    assert spec.xlim_lower_groomed == pytest.approx(-3.5)
+    assert runner.CORE_STABILITY_WINDOWS["dijet"] == (-2.5, -0.75)
+    assert runner.resolve_channel_binning("aligned_common", "trijet") == "aligned_common"
 
 
 def test_runner_peak_normalization_is_separate_from_display_and_identity(tmp_path):
@@ -555,8 +579,8 @@ def test_runner_peak_normalization_is_separate_from_display_and_identity(tmp_pat
     peak_resolved = runner.channel_resolved_args(peak, "dijet")
     spec = runner.build_pairsplit_spec("dijet", tmp_path, peak_resolved)
 
-    assert spec.normalization_window_groomed == (-1.8, -0.55)
-    assert spec.display_window_groomed == (-4.0, 0.0)
+    assert spec.normalization_window_groomed == (-2.0, -0.75)
+    assert spec.display_window_groomed == (-3.5, 0.0)
     assert runner.run_configuration_identity(
         full, ("nominal",), SYNTHETIC_MESS_VINCIA_SOURCE
     )["directory_name"] != runner.run_configuration_identity(
@@ -591,15 +615,15 @@ def test_runner_ungroomed_window_label_and_identity_are_mode_specific(tmp_path):
     (
         (
             "dijet",
-            "coarse_tail",
-            (-10.0, -4.0, -2.85, -1.8, -1.5, -1.3, -1.1, -0.9, -0.75, -0.65, -0.55, 0.0),
-            10,
+            "aligned",
+            (-10.0, -3.5, -2.5, -2.0, -1.5, -1.25, -1.0, -0.75, 0.0),
+            7,
         ),
         (
             "trijet",
-            "two_to_one",
-            (-10.0, -4.0, -2.25, -1.5, -0.75, 0.0),
-            4,
+            "aligned",
+            (-10.0, -3.5, -2.5, -2.0, -1.5, -1.0, 0.0),
+            5,
         ),
     ),
 )
@@ -617,7 +641,7 @@ def test_study_recommended_resolves_exact_edges_and_shown_counts(
     assert resolved_args.requested_binning == runner.STUDY_RECOMMENDED_BINNING
     assert resolved_args.binning == expected_variant
     assert candidate.gen_two_log10_rho_edges == expected_edges
-    assert sum(edge >= -4.0 for edge in candidate.gen_two_log10_rho_edges[:-1]) == expected_shown_bins
+    assert sum(edge >= -3.5 for edge in candidate.gen_two_log10_rho_edges[:-1]) == expected_shown_bins
 
 
 def test_runner_focused_plots_use_canonical_core_prepared_paths(monkeypatch, tmp_path):
@@ -713,14 +737,11 @@ def test_runner_configuration_identity_separates_regularization_tau_and_systemat
     changed_systematics = runner.run_configuration_identity(
         baseline, ("nominal", "JMSUp", "JMSDown"), SYNTHETIC_MESS_VINCIA_SOURCE
     )
-    window_aligned = runner.parse_args(
-        ["--channel", "dijet", "--binning", "window_aligned"]
+    aligned_common = runner.parse_args(
+        ["--channel", "dijet", "--binning", "aligned_common"]
     )
-    window_aligned_coarse = runner.parse_args(
-        ["--channel", "dijet", "--binning", "window_aligned_coarse"]
-    )
-    coarse_tail = runner.parse_args(
-        ["--channel", "dijet", "--binning", "coarse_tail"]
+    aligned_explicit = runner.parse_args(
+        ["--channel", "dijet", "--binning", "aligned"]
     )
     peak_normalization = runner.parse_args(
         ["--channel", "dijet", "--normalization-window", "peak"]
@@ -743,19 +764,16 @@ def test_runner_configuration_identity_separates_regularization_tau_and_systemat
         ("nominal", "JERUp", "JERDown"),
         SYNTHETIC_MESS_VINCIA_SOURCE,
     )["directory_name"]
-    assert window_aligned.binning == "window_aligned"
-    assert window_aligned_coarse.binning == "window_aligned_coarse"
-    assert coarse_tail.binning == "coarse_tail"
+    assert aligned_common.binning == "aligned_common"
+    assert aligned_explicit.binning == "aligned"
     assert baseline_identity["directory_name"] != runner.run_configuration_identity(
-        window_aligned, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
+        aligned_common, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
     )["directory_name"]
-    assert runner.run_configuration_identity(
-        window_aligned, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
-    )["directory_name"] != runner.run_configuration_identity(
-        window_aligned_coarse, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
-    )["directory_name"]
+    # Without a resolved analysis_binning the identity hashes the REQUESTED
+    # candidate name, so an explicit "aligned" differs from the
+    # study-recommended alias even though they resolve to the same grids.
     assert baseline_identity["directory_name"] != runner.run_configuration_identity(
-        coarse_tail, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
+        aligned_explicit, ("nominal", "JERUp", "JERDown"), SYNTHETIC_MESS_VINCIA_SOURCE
     )["directory_name"]
 
 
@@ -846,7 +864,7 @@ class CapturingPreparedUnfolder:
 def test_nominal_mc_self_closure_uses_prepared_path_and_data_selected_tau():
     runner = load_runner_module()
     prepared = prepare_pairsplit_groomed_inputs(
-        synthetic_pairsplit_inputs(), "coarse_tail", ("nominal",)
+        synthetic_pairsplit_inputs(), "aligned", ("nominal",)
     )
     n_reco = prepared.measured_covariance.shape[0]
     data_unfolder = SimpleNamespace(
@@ -880,7 +898,7 @@ def test_nominal_mc_self_closure_uses_prepared_path_and_data_selected_tau():
 def test_artifact_persists_machine_readable_diagnostic_arrays(tmp_path):
     runner = load_runner_module()
     prepared = prepare_pairsplit_groomed_inputs(
-        synthetic_pairsplit_inputs(), "coarse_tail", ("nominal",)
+        synthetic_pairsplit_inputs(), "aligned", ("nominal",)
     )
     n_reco = prepared.measured_covariance.shape[0]
     n_gen = sum(len(edges) - 1 for edges in prepared.analysis_binning.gen_two_log10_rho_edges_by_pt)
