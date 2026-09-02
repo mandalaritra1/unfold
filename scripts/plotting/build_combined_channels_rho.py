@@ -355,7 +355,18 @@ def draw_combined(mode: str, slice_index: int, channels: dict, cms_label: str) -
         r"$(1/N)\; dN/d\log_{10}(\rho^2)$", fontsize=PUB_LABEL_FONTSIZE
     )
     axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
-    axis.legend(fontsize=PUB_LEGEND_FONTSIZE, loc="upper left", frameon=False)
+    # Legend handles carry the ratio-panel marker of each channel so the
+    # shape-to-channel mapping is explicit, not colour-only.
+    from matplotlib.lines import Line2D
+
+    handles = [
+        Line2D([], [], color=CHANNEL_STYLE[name]["color"], linewidth=2.2,
+               marker=CHANNEL_STYLE[name]["marker"], markersize=7,
+               label=CHANNEL_STYLE[name]["label"])
+        for name in ("zjet", "trijet", "dijet")
+    ]
+    axis.legend(handles=handles, fontsize=PUB_LEGEND_FONTSIZE, loc="upper left",
+                frameon=False)
     hep.cms.label(cms_label, data=True, rlabel="Run 2 (13 TeV)", ax=axis)
     axis.text(
         0.97,
