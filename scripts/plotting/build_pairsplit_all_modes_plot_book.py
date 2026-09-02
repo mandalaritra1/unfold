@@ -521,7 +521,7 @@ def draw_cover(pdf: canvas.Canvas, runs: Sequence[RunRecord], n_plots: int) -> N
         "The first published ungroomed bin remains statistically and migration limited, especially in trijet; it is shown rather than hidden. "
         "The trijet 290-400 GeV first bin has a slightly negative central value with a ~120% band: it is compatible with zero, and its off-scale ratio band is marked in-panel rather than clipped silently. "
         "The low-coordinate migration catch-all below -2.5 is retained in the response but excluded from the published ungroomed normalization. "
-        "MESS+Vincia and internal Pythia variations test model dependence; numerical self-closure is not independent response-model validation.",
+        "Vincia and internal Pythia variations test model dependence; numerical self-closure is not independent response-model validation.",
         x=36,
         y=y,
         width=540,
@@ -584,7 +584,7 @@ def page_comments(page: PlotPage) -> tuple[str, str]:
         )
     if page.product == "unfolded_summary_ratio":
         return (
-            "The summary collects data/Pythia and data/MESS+Vincia behavior across every configured pT slice.",
+            "The summary collects data/Pythia and data/Vincia behavior across every configured pT slice.",
             "Generator curves are model comparisons; their separation is not added directly as a particle-level truth-spread uncertainty.",
         )
     raise ValueError(page.product)

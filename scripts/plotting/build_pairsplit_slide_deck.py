@@ -115,7 +115,7 @@ def slide_caption(run, product) -> str:
             "band = MC stat + detector systematics + PS/HAD model envelope."
         ),
         "unfolded": (
-            "Normalized unfolded data vs Pythia8 and MESS+Vincia; the first "
+            "Normalized unfolded data vs Pythia8 and Vincia; the first "
             f"displayed-bin total reaches {run.first_bin_total_max_percent:.1f}% "
             "across this run — a real low-coordinate limitation, shown not hidden."
         ),
@@ -150,7 +150,7 @@ def slide_caption(run, product) -> str:
             "(GetEmatrixInput / GetEmatrixSysUncorr through the normalization Jacobian)."
         ),
         "model_envelope": (
-            "Two-leg composition: PS = max(MESS+Vincia, FSR); HAD = max(CR1, CR2, "
+            "Two-leg composition: PS = max(Vincia, FSR); HAD = max(CR1, CR2, "
             "frag-hard, frag-soft); the black total enters the uncertainty band. "
             f"Selected covariance sources: PS={run.model_ps_source}, HAD={run.model_had_source}."
         ),

@@ -82,9 +82,9 @@ COMMON_EDGES = {
 COMMON_PT_SLICES = ((200.0, 290.0), (290.0, 400.0), (400.0, None))
 
 CHANNEL_STYLE = {
-    "dijet": {"color": "#e76300", "band": "#fdd49e", "label": "Dijet"},
-    "trijet": {"color": "#00707f", "band": "#92dadd", "label": "Trijet"},
-    "zjet": {"color": "#1b7837", "band": "#9acd32", "label": "Z+jet"},
+    "dijet": {"color": "#e76300", "band": "#fdd49e", "label": "Dijet", "marker": "o"},
+    "trijet": {"color": "#00707f", "band": "#92dadd", "label": "Trijet", "marker": "s"},
+    "zjet": {"color": "#1b7837", "band": "#9acd32", "label": "Z+jet", "marker": "^"},
 }
 
 MODEL_LEG_SOURCES = ("model_cr1", "model_cr2", "model_fraghard", "model_fragsoft")
@@ -408,9 +408,9 @@ def draw_combined(mode: str, slice_index: int, channels: dict, cms_label: str) -
             centers + offsets[name] * widths,
             ratio,
             yerr=errors,
-            fmt="o",
+            fmt=style["marker"],
             color=style["color"],
-            markersize=6,
+            markersize=7 if style["marker"] == "^" else 6,
             capsize=3,
             linewidth=1.6,
         )

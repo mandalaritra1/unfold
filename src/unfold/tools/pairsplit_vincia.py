@@ -26,7 +26,11 @@ import numpy as np
 PAIR_SPLIT_CHANNELS = ("dijet", "trijet")
 JET_RADIUS = 0.8
 NUMERICAL_MASS_TOLERANCE_GEV = 1.0e-4
-PREDICTION_LABEL = "MESS+Vincia"
+PREDICTION_LABEL = "Vincia"
+# Frozen campaign identifier used in the run identity hash.  The display
+# label above was shortened to "Vincia" (2026-09-02); keeping the identity
+# string unchanged keeps the immutable run directory names stable.
+CAMPAIGN_IDENTITY_LABEL = "MESS+Vincia"
 SELECTION = "CMS_HADRONIC_PAIR_SPLIT"
 ALLOWED_PHASES = frozenset(("pilot2", "full"))
 
@@ -161,7 +165,7 @@ class PairSplitVinciaSource:
         """JSON-safe source identity used in immutable output directory names."""
 
         return {
-            "label": self.label,
+            "label": CAMPAIGN_IDENTITY_LABEL,
             "channel": self.channel,
             "campaign": self.campaign,
             "campaign_directory": str(self.campaign_directory),

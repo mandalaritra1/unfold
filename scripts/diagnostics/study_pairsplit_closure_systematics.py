@@ -65,7 +65,7 @@ LABELS = {
     "JES_FlavorQCD": "JES (FlavorQCD)",
     "JER": "JER",
     "pu": "Pileup",
-    "model_vincia": "MESS+Vincia",
+    "model_vincia": "Vincia",
     "model_cr1": "CR mode 1",
     "model_cr2": "CR mode 2",
     "model_fraghard": "Frag. hard",

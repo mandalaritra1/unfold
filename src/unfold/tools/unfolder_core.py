@@ -7848,7 +7848,7 @@ class Unfolder:
         colors = {"Vincia": "#e42536", "CR": "#5790fc",
                   "frag": "#f89c20", "FSR": "#7a21dd"}
         vincia_label = (
-            "MESS+Vincia"
+            "Vincia"
             if getattr(self.spec, "model_envelope_source", "zjet_offline")
             == "prepared_systematics"
             else "Vincia"
