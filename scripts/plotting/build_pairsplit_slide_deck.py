@@ -150,9 +150,15 @@ def slide_caption(run, product) -> str:
             "(GetEmatrixInput / GetEmatrixSysUncorr through the normalization Jacobian)."
         ),
         "model_envelope": (
-            "Two-leg composition: PS = max(Vincia, FSR); HAD = max(CR1, CR2, "
-            "frag-hard, frag-soft); the black total enters the uncertainty band. "
-            f"Selected covariance sources: PS={run.model_ps_source}, HAD={run.model_had_source}."
+            (
+                "Diagnostic binwise envelopes: PS = max(Vincia, FSR); HAD = "
+                "max(CR1, CR2, frag-hard, frag-soft). The uncertainty band uses "
+                "the diagonals of the two enclosing-template covariances."
+                if run.model_ps_source == "enclosing templates"
+                else "Two-leg composition: PS = max(Vincia, FSR); HAD = max(CR1, CR2, "
+                "frag-hard, frag-soft); the black total enters the uncertainty band. "
+                f"Selected covariance sources: PS={run.model_ps_source}, HAD={run.model_had_source}."
+            )
         ),
         "bottom_line": (
             "Bottom-line diagnostic on the native reco binning; the MC side is "

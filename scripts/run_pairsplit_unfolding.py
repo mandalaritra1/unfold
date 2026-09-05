@@ -185,6 +185,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
             "--no-model-envelope only as a legacy comparison."
         ),
     )
+    parser.add_argument(
+        "--model-covariance", choices=("enclosing_ellipsoid", "selected_variation"),
+        default="enclosing_ellipsoid",
+        help="Two independent enclosing-template groups; selected_variation reproduces the previous covariance.",
+    )
     parser.add_argument("--cms-label", default="Internal")
     parser.add_argument("--lumi", type=float, default=138.0)
     parser.add_argument("--com", type=float, default=13.0)
@@ -280,6 +285,7 @@ def run_configuration_identity(
         "model_envelope": {
             "enabled": bool(args.model_envelope),
             "source": model_envelope_source,
+            "covariance_method": getattr(args, "model_covariance", "enclosing_ellipsoid"),
         },
     }
     canonical = json.dumps(configuration, sort_keys=True, separators=(",", ":"), allow_nan=False)
@@ -349,6 +355,11 @@ def build_pairsplit_spec(
         tau=args.tau,
         area_constraint=True,
         model_envelope=bool(args.model_envelope),
+        model_covariance_method=getattr(args, "model_covariance", "enclosing_ellipsoid"),
+        model_covariance_scope=(
+            "global_templates" if getattr(args, "model_covariance", "enclosing_ellipsoid") == "enclosing_ellipsoid"
+            else "global_shown"
+        ),
         model_envelope_source=(
             "prepared_systematics" if args.model_envelope else "zjet_offline"
         ),
@@ -1015,14 +1026,23 @@ def write_artifact(
                         for i in range(len(unfolder.gen_edges_by_pt))
                     ]
                 ),
-                "model_ps_selected_signed_fraction": np.asarray(
-                    unfolder.model_ps_shift_flat, dtype=float
-                ),
-                "model_had_selected_signed_fraction": np.asarray(
-                    unfolder.model_had_shift_flat, dtype=float
-                ),
             }
         )
+        if unfolder._uses_enclosing_model_covariance():
+            artifact_arrays.update({
+                "model_ps_covariance": unfolder.model_group_covariances["parton_shower"],
+                "model_had_covariance": unfolder.model_group_covariances["hadronization"],
+                "model_covariance_method": np.asarray("enclosing_ellipsoid"),
+                "model_ps_envelope_fraction": np.concatenate([
+                    result["model_envelope_ps_frac"] for result in unfolder.normalized_results]),
+                "model_had_envelope_fraction": np.concatenate([
+                    result["model_envelope_had_frac"] for result in unfolder.normalized_results]),
+            })
+        else:
+            artifact_arrays.update({
+                "model_ps_selected_signed_fraction": np.asarray(unfolder.model_ps_shift_flat, dtype=float),
+                "model_had_selected_signed_fraction": np.asarray(unfolder.model_had_shift_flat, dtype=float),
+            })
     np.savez_compressed(path, **artifact_arrays)
     return path
 
@@ -1141,9 +1161,11 @@ def build_manifest(
         "model_uncertainty": {
             "enabled": bool(args.model_envelope),
             "prescription": (
-                "PS=max(MESS+Vincia,FSR); "
-                "HAD=max(CR1,CR2,frag-hard,frag-soft); "
-                "model=sqrt(PS^2+HAD^2)"
+                ("PS=enclose(MESS+Vincia,FSR-up,FSR-down); "
+                 "HAD=enclose(CR1,CR2,frag-hard,frag-soft); C_model=C_PS+C_HAD; "
+                 "model band=sqrt(diag(C_model)); template bound, not a calibrated confidence region"
+                 if getattr(args, "model_covariance", "enclosing_ellipsoid") == "enclosing_ellipsoid"
+                 else "PS=max(MESS+Vincia,FSR); HAD=max(CR1,CR2,frag-hard,frag-soft); model=sqrt(PS^2+HAD^2)")
                 if args.model_envelope
                 else None
             ),
@@ -1347,6 +1369,8 @@ def run_channel(
         model_envelope=model_envelope,
         model_selection=(
             {
+                "method": getattr(spec, "model_covariance_method", "selected_variation"),
+                "template_containment": getattr(unfolder, "model_covariance_diagnostics", None),
                 "scope": getattr(spec, "model_covariance_scope", "global_shown"),
                 "global": {
                     "parton_shower": unfolder.model_ps_source,

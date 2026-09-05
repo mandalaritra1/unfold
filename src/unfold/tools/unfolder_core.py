@@ -212,6 +212,10 @@ class ObservableSpec:
     # response categories from ``from_prepared_inputs`` (pair-split).
     model_envelope_source: str = "zjet_offline"
 
+    # Pair-split can retain all model-template directions in two enclosing
+    # ellipsoids. The default preserves the established Z+jet prescription.
+    model_covariance_method: str = "selected_variation"
+
     # Uncertainty-band fill colors for the unfolded-result figures.  The
     # light/dark green pair is the established Z+jet look and stays the
     # default; other channels set their own pair so decks and notes mixing
@@ -2824,6 +2828,18 @@ class Unfolder:
         of this test). Their outer products retain the bin-to-bin correlations.
         Returns ``None`` when no modelling envelope is available.
         """
+        if self._uses_enclosing_model_covariance():
+            # Convert the normalized density covariance back to count units
+            # without dividing by nominal contents, which may be zero.
+            scale = np.empty_like(self.y_unf, dtype=float)
+            offset = 0
+            for i, edges in enumerate(self.gen_edges_by_pt):
+                block = slice(offset, offset + len(edges) - 1)
+                total = np.sum(np.asarray(self.y_unf)[block][self._shown_gen_mask(i)])
+                scale[block] = np.diff(edges) * total
+                offset = block.stop
+            covariance = sum(self.model_group_covariances.values()) * np.outer(scale, scale)
+            return covariance[np.ix_(list(gidx), list(gidx))]
         scope = getattr(
             getattr(self, "spec", None),
             "model_covariance_scope",
@@ -6251,13 +6267,14 @@ class Unfolder:
         self.norm_cov_stat = self.norm_cov_input + self.norm_cov_matrix
 
     def get_systematic_covariance(self):
-        """Rank-1 systematic covariance of the normalized result.
+        """Systematic covariance of the normalized result.
 
         Each source contributes the outer product of its normalized shift,
         symmetrized as (up - down)/2 when both variations exist.  With the
         two-leg model prescription enabled, raw HERWIG/ISR/FSR and
-        ``model_*`` inputs are superseded; only the selected coherent PS and
-        hadronization nuisance vectors are added.
+        ``model_*`` inputs are superseded by the two group covariances.
+        These use selected coherent vectors in legacy mode, or enclosing
+        template ellipsoids when explicitly enabled by the observable spec.
         """
         nominal_flat = np.concatenate(
             [np.asarray(result["unfolded"], dtype=float) for result in self.normalized_results]
@@ -6303,6 +6320,8 @@ class Unfolder:
         """Coherent two-leg model covariance in normalized-result space."""
 
         nominal_flat = np.asarray(nominal_flat, dtype=float)
+        if self._uses_enclosing_model_covariance():
+            return sum(self.model_group_covariances.values())
         ps_frac = getattr(self, "model_ps_shift_flat", None)
         had_frac = getattr(self, "model_had_shift_flat", None)
         if ps_frac is None or had_frac is None:
@@ -6345,6 +6364,34 @@ class Unfolder:
                 )
             covariance += np.outer(vector, vector)
         return covariance
+
+    def _uses_enclosing_model_covariance(self):
+        spec = getattr(self, "spec", None)
+        return (getattr(spec, "model_envelope", False)
+                and getattr(spec, "model_covariance_method", "selected_variation") == "enclosing_ellipsoid")
+
+    def _compute_enclosing_model_covariances(self):
+        """Fit both model groups using the complete normalized templates."""
+        from unfold.tools.model_covariance import MODEL_GROUPS, two_group_model_covariance
+
+        if self.spec.model_envelope_source != "prepared_systematics":
+            raise ValueError("Enclosing model covariance currently requires prepared pair-split variations")
+        if self.spec.model_covariance_scope != "global_templates":
+            raise ValueError("Enclosing model covariance requires scope='global_templates'")
+        nominal = np.concatenate([result["unfolded"] for result in self.normalized_results])
+        varied = {
+            source: np.concatenate([result["unfolded"][source] for result in self.normalized_systematics])
+            for sources in MODEL_GROUPS.values() for source in sources
+        }
+        weights = np.zeros((len(self.gen_edges_by_pt), nominal.size))
+        offset = 0
+        for i, edges in enumerate(self.gen_edges_by_pt):
+            block = slice(offset, offset + len(edges) - 1)
+            weights[i, block] = np.diff(edges) * self._shown_gen_mask(i)
+            offset = block.stop
+        self.model_group_covariances, self.model_covariance_diagnostics = two_group_model_covariance(
+            nominal, varied, weights)
+        self._results_chi2_cov = None
 
     def get_total_covariance(self):
         """Total covariance of the normalized result (stat + systematics)."""
@@ -6448,6 +6495,9 @@ class Unfolder:
                 [len(edges) - 1 for edges in self.gen_edges_by_pt], dtype=int
             ),
             tau=float(self.tau or 0.0),
+            **({"cov_model_ps": self.model_group_covariances["parton_shower"],
+                "cov_model_had": self.model_group_covariances["hadronization"]}
+               if self._uses_enclosing_model_covariance() else {}),
         )
         print(f"Saved normalized covariances to {save_path}")
 
@@ -6503,6 +6553,8 @@ class Unfolder:
             self.model_signed_shifts = raw_shifts
             self.model_signed_shifts["fsrUp"] = {}
             self.model_signed_shifts["fsrDown"] = {}
+            if self._uses_enclosing_model_covariance():
+                self._compute_enclosing_model_covariances()
         # Systematic-axis entries folded into the model envelope instead of the
         # quadrature sum when model_envelope is on.
         _model_superseded = ("herwig", "fsr", "isr", "model_")
@@ -6565,6 +6617,10 @@ class Unfolder:
                 # is defined there.
                 sensitive = (np.asarray(nominal) > 0) & (
                     content > 5e-3 * max(content.sum(), 1e-300))
+                if self._uses_enclosing_model_covariance():
+                    # Keep complete normalized shifts; binwise censoring would
+                    # break the normalization constraint and remove directions.
+                    sensitive = np.ones_like(sensitive, dtype=bool)
                 fsr_frac = np.zeros_like(nominal)
                 for var in ("fsrUp", "fsrDown"):
                     varied = self.normalized_systematics[i]['unfolded'].get(
@@ -6601,6 +6657,16 @@ class Unfolder:
                     self.model_shift_components["CR"][i],
                     self.model_shift_components["frag"][i])
                 model_frac = np.sqrt(ps_frac**2 + had_frac**2)
+                self.normalized_results[i]['model_envelope_ps_frac'] = ps_frac.copy()
+                self.normalized_results[i]['model_envelope_had_frac'] = had_frac.copy()
+                if self._uses_enclosing_model_covariance():
+                    offset = sum(len(edges) - 1 for edges in self.gen_edges_by_pt[:i])
+                    block = slice(offset, offset + len(nominal))
+                    ps_unc = np.sqrt(np.clip(np.diag(self.model_group_covariances["parton_shower"])[block], 0, None))
+                    had_unc = np.sqrt(np.clip(np.diag(self.model_group_covariances["hadronization"])[block], 0, None))
+                    ps_frac = np.divide(ps_unc, np.abs(nominal), out=np.full_like(ps_unc, np.nan), where=nominal != 0)
+                    had_frac = np.divide(had_unc, np.abs(nominal), out=np.full_like(had_unc, np.nan), where=nominal != 0)
+                    model_frac = np.hypot(ps_frac, had_frac)
                 if not hasattr(self, "model_fsr_frac"):
                     self.model_fsr_frac = {}
                 if not hasattr(self, "model_ps_frac"):
@@ -6610,6 +6676,8 @@ class Unfolder:
                 self.model_ps_frac[i] = ps_frac
                 self.model_had_frac[i] = had_frac
                 model_unc = model_frac * np.abs(nominal)
+                if self._uses_enclosing_model_covariance():
+                    model_unc = np.hypot(ps_unc, had_unc)
                 syst_up_total += model_unc**2
                 syst_down_total += model_unc**2
                 self.normalized_results[i]['model_unc_frac'] = model_frac
@@ -6658,7 +6726,16 @@ class Unfolder:
         # slices in the same order as gen_edges_by_pt -> used by the bottom-line
         # test to fold the modelling uncertainty into the unfolded-data
         # covariance (ARC round-2 request). Zeros when no model envelope.
-        if use_model_envelope:
+        if use_model_envelope and self._uses_enclosing_model_covariance():
+            # A group covariance has several possible directions; do not
+            # advertise one selected source or serialize a fictitious vector.
+            self.model_unc_frac_flat = np.concatenate([
+                result['model_unc_frac'] for result in self.normalized_results])
+            self.model_ps_source = "enclosing templates"
+            self.model_had_source = "enclosing templates"
+            self.model_ps_sources_by_pt = {}
+            self.model_had_sources_by_pt = {}
+        elif use_model_envelope:
             self.model_unc_frac_flat = np.concatenate([
                 np.asarray(
                     self.normalized_results[i].get(
