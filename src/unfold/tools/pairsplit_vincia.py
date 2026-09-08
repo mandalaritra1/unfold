@@ -22,6 +22,8 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
+from unfold.tools.prediction_statistics import normalized_prediction_covariance
+
 
 PAIR_SPLIT_CHANNELS = ("dijet", "trijet")
 JET_RADIUS = 0.8
@@ -202,6 +204,7 @@ class PairSplitVinciaPrediction:
     gen_edges_by_pt: tuple[tuple[float, ...], ...]
     density_by_pt: tuple[np.ndarray, ...]
     stat_unc_by_pt: tuple[np.ndarray, ...]
+    stat_covariance_by_pt: tuple[np.ndarray, ...]
     sumw_by_pt: tuple[np.ndarray, ...]
     sumw2_by_pt: tuple[np.ndarray, ...]
     normalization_totals_by_pt: tuple[float, ...]
@@ -230,6 +233,10 @@ class PairSplitVinciaPrediction:
         edge_offsets = np.concatenate(
             ([0], np.cumsum([len(edges) for edges in self.gen_edges_by_pt], dtype=int))
         )
+        covariance = np.zeros((bin_offsets[-1], bin_offsets[-1]), dtype=float)
+        for index, matrix in enumerate(self.stat_covariance_by_pt):
+            block = slice(bin_offsets[index], bin_offsets[index + 1])
+            covariance[block, block] = matrix
         return {
             "mess_vincia_grooming_mode": np.asarray(self.grooming_mode),
             "mess_vincia_pt_edges": np.asarray(self.pt_edges, dtype=float),
@@ -240,6 +247,7 @@ class PairSplitVinciaPrediction:
             "mess_vincia_bin_offsets": bin_offsets,
             "mess_vincia_density_flat": np.concatenate(self.density_by_pt),
             "mess_vincia_stat_unc_flat": np.concatenate(self.stat_unc_by_pt),
+            "mess_vincia_stat_covariance": covariance,
             "mess_vincia_sumw_flat": np.concatenate(self.sumw_by_pt),
             "mess_vincia_sumw2_flat": np.concatenate(self.sumw2_by_pt),
             "mess_vincia_normalization_totals": np.asarray(
@@ -266,7 +274,10 @@ class PairSplitVinciaPrediction:
                 f"[{self.normalization_window[0]:g}, {self.normalization_window[1]:g}]"
             ),
             "normalization_window": list(self.normalization_window),
-            "statistical_uncertainty": "sqrt(sumw2) / bin_width / shown_sumw",
+            "statistical_uncertainty": "sqrt(diag(J diag(sumw2) J.T)); J includes normalization denominator",
+            "statistical_covariance_limitation": (
+                "per-jet sumw2 input; event-level and cross-pT correlations unavailable"
+            ),
         }
 
 
@@ -744,6 +755,7 @@ def derive_pairsplit_vincia_prediction(
         raise ValueError("pT edges must be strictly increasing")
     density_by_pt: list[np.ndarray] = []
     stat_unc_by_pt: list[np.ndarray] = []
+    stat_covariance_by_pt: list[np.ndarray] = []
     sumw_by_pt: list[np.ndarray] = []
     sumw2_by_pt: list[np.ndarray] = []
     totals_by_pt: list[float] = []
@@ -788,7 +800,12 @@ def derive_pairsplit_vincia_prediction(
             )
         widths = np.diff(edges)
         density_by_pt.append(sumw / widths / total)
-        stat_unc_by_pt.append(np.sqrt(sumw2) / widths / total)
+        # Propagate the same finite-sample fluctuations through numerator and
+        # normalization denominator. Available sumw2 is per jet; event-level
+        # and cross-pT correlations cannot be recovered from these rows.
+        covariance = normalized_prediction_covariance(sumw, np.diag(sumw2), widths, mask)
+        stat_covariance_by_pt.append(covariance)
+        stat_unc_by_pt.append(np.sqrt(np.clip(np.diag(covariance), 0.0, None)))
         sumw_by_pt.append(sumw)
         sumw2_by_pt.append(sumw2)
         totals_by_pt.append(total)
@@ -800,6 +817,7 @@ def derive_pairsplit_vincia_prediction(
         gen_edges_by_pt=edges_by_pt,
         density_by_pt=tuple(density_by_pt),
         stat_unc_by_pt=tuple(stat_unc_by_pt),
+        stat_covariance_by_pt=tuple(stat_covariance_by_pt),
         sumw_by_pt=tuple(sumw_by_pt),
         sumw2_by_pt=tuple(sumw2_by_pt),
         normalization_totals_by_pt=tuple(totals_by_pt),
@@ -824,3 +842,4 @@ def attach_pairsplit_vincia_prediction(unfolder, prediction: PairSplitVinciaPred
     # cache, so a missing pair-split prediction cannot silently fall back.
     unfolder.pairsplit_vincia_required = True
     unfolder.pairsplit_vincia_prediction = prediction
+    unfolder.vincia_stat_covariance_by_pt = prediction.stat_covariance_by_pt

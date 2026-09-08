@@ -278,6 +278,7 @@ def run_configuration_identity(
         },
         "regularization": args.regularization,
         "requested_tau": args.tau,
+        "prediction_statistics": "normalization_jacobian_from_sumw2",
         "systematics": list(resolved_systematics),
         # This is deliberately part of the directory identity: a new audited
         # MESS campaign or source hash must never reuse a stale Vincia overlay.
@@ -355,6 +356,7 @@ def build_pairsplit_spec(
         tau=args.tau,
         area_constraint=True,
         model_envelope=bool(args.model_envelope),
+        prediction_stat_method="jacobian",
         model_covariance_method=getattr(args, "model_covariance", "enclosing_ellipsoid"),
         model_covariance_scope=(
             "global_templates" if getattr(args, "model_covariance", "enclosing_ellipsoid") == "enclosing_ellipsoid"
@@ -1043,6 +1045,23 @@ def write_artifact(
                 "model_ps_selected_signed_fraction": np.asarray(unfolder.model_ps_shift_flat, dtype=float),
                 "model_had_selected_signed_fraction": np.asarray(unfolder.model_had_shift_flat, dtype=float),
             })
+    if getattr(getattr(unfolder, "spec", None), "prediction_stat_method", None) == "jacobian":
+        n_bins = len(unfolder.gen_mc_flat_dict["nominal"])
+        pythia_covariance = np.zeros((n_bins, n_bins))
+        offset = 0
+        for i, edges in enumerate(unfolder.gen_edges_by_pt):
+            count = len(edges) - 1
+            block = unfolder._prediction_stat_covariance(i, "pythia")
+            if block is None:
+                raise ValueError(f"PYTHIA prediction covariance missing in pT slice {i}")
+            pythia_covariance[offset:offset+count, offset:offset+count] = block
+            offset += count
+        artifact_arrays.update({
+            "prediction_stat_method": np.asarray("normalization_jacobian_from_sumw2"),
+            "pythia_gen_sumw": unfolder.gen_mc_flat_dict["nominal"],
+            "pythia_gen_sumw2": unfolder.gen_mc_var_dict["nominal"],
+            "pythia_prediction_stat_covariance": pythia_covariance,
+        })
     np.savez_compressed(path, **artifact_arrays)
     return path
 

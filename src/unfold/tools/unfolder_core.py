@@ -216,6 +216,9 @@ class ObservableSpec:
     # ellipsoids. The default preserves the established Z+jet prescription.
     model_covariance_method: str = "selected_variation"
 
+    # Pair-split opts in; keep the established Z+jet prediction statistics.
+    prediction_stat_method: str = "fixed_normalization"
+
     # Uncertainty-band fill colors for the unfolded-result figures.  The
     # light/dark green pair is the established Z+jet look and stays the
     # default; other channels set their own pair so decks and notes mixing
@@ -4367,31 +4370,14 @@ class Unfolder:
         stat only (no theory-weight variations available yet). Returns
         (None, None) when nothing is available.
         """
-        bin_widths = np.diff(self.gen_edges_by_pt[i])
-
         if kind == "pythia":
             theory_up, theory_down = self._pythia_gen_theory_band(i)
-            val_flat = getattr(self, "pythia_gen_val_flat", None)
-            var_flat = getattr(self, "pythia_gen_var_flat", None)
         else:
             theory_up = theory_down = None
-            val_flat = getattr(self, "herwig_gen_val_flat", None)
-            var_flat = getattr(self, "herwig_gen_var_flat", None)
 
-        # MC-stat band in normalized units: per-bin relative stat = sqrt(var)/N,
-        # applied to the normalized shape value.
-        stat = None
-        if val_flat is not None and var_flat is not None:
-            counts = unflatten_gen_by_pt(np.asarray(val_flat, float), self.gen_edges_by_pt)[i]
-            variance = unflatten_gen_by_pt(np.asarray(var_flat, float), self.gen_edges_by_pt)[i]
-            total = self._shown_norm_total(counts, i)
-            if total > 0:
-                norm_shape = counts / bin_widths / total
-                rel = np.divide(
-                    np.sqrt(np.clip(variance, 0.0, None)), counts,
-                    out=np.zeros_like(norm_shape), where=counts > 0,
-                )
-                stat = norm_shape * rel
+        stat_covariance = self._prediction_stat_covariance(i, kind)
+        stat = (None if stat_covariance is None else
+                np.sqrt(np.clip(np.diag(stat_covariance), 0.0, None)))
 
         if theory_up is None and stat is None:
             return None, None
@@ -4401,13 +4387,47 @@ class Unfolder:
             return theory_up, theory_down
         return np.sqrt(theory_up**2 + stat**2), np.sqrt(theory_down**2 + stat**2)
 
+    def _prediction_stat_covariance(self, i, kind="pythia"):
+        """Prediction statistics, with a pair-split normalization Jacobian."""
+        method = getattr(getattr(self, "spec", None), "prediction_stat_method", "fixed_normalization")
+        if method not in {"fixed_normalization", "jacobian"}:
+            raise ValueError(f"Unknown prediction_stat_method: {method}")
+        values = getattr(self, f"{kind}_gen_val_flat", None)
+        variances = getattr(self, f"{kind}_gen_var_flat", None)
+        is_closure = getattr(self, "closure", False) or getattr(self, "herwig_closure", False)
+        if method == "jacobian" and kind == "pythia" and values is None and not is_closure:
+            # Prepared pair-split data comparisons carry inclusive GEN sumw2.
+            # Do not add an independent truth-stat term to same-MC closure.
+            values = getattr(self, "gen_mc_flat_dict", {}).get("nominal")
+            variances = getattr(self, "gen_mc_var_dict", {}).get("nominal")
+        if values is None or variances is None:
+            return None
+        counts = unflatten_gen_by_pt(np.asarray(values, float), self.gen_edges_by_pt)[i]
+        variance = unflatten_gen_by_pt(np.asarray(variances, float), self.gen_edges_by_pt)[i]
+        widths = np.diff(self.gen_edges_by_pt[i])
+        total = self._shown_norm_total(counts, i)
+        if total <= 0:
+            return None
+        if method == "jacobian":
+            from .prediction_statistics import normalized_prediction_covariance
+            return normalized_prediction_covariance(
+                counts, np.diag(np.clip(variance, 0.0, None)), widths,
+                self._shown_gen_mask(i),
+            )
+        # Preserve the legacy nonpositive-bin convention for frozen Z+jet.
+        shape = counts / widths / total
+        relative = np.divide(np.sqrt(np.clip(variance, 0.0, None)), counts,
+                             out=np.zeros_like(shape), where=counts > 0)
+        return np.diag((shape * relative) ** 2)
+
     def _prediction_chi2_covariance(self, i, kind="pythia"):
         """Slice-local covariance of a gen prediction for the quoted chi2.
 
         PYTHIA: coherent symmetrized ISR/FSR/q2/PDF shift vectors of the
         normalized gen shape (rank-1 each; every variation is separately
         normalized, so the sum-constraint null space is preserved) plus the
-        MC-stat diagonal. HERWIG: MC-stat diagonal only -- no theory weights
+        MC-stat covariance. Pair-split propagates normalization; the legacy
+        default uses a fixed denominator. HERWIG: MC-stat only -- no theory weights
         are available, an asymmetry the figure caption must state. Returns
         None when nothing is available (the chi2 then uses the measurement
         covariance alone, as for closure runs).
@@ -4446,24 +4466,9 @@ class Unfolder:
                         covariance = np.zeros((n_bins, n_bins))
                     covariance += np.outer(shift, shift)
 
-        val_flat = getattr(self, f"{kind}_gen_val_flat", None)
-        var_flat = getattr(self, f"{kind}_gen_var_flat", None)
-        if val_flat is not None and var_flat is not None:
-            counts = unflatten_gen_by_pt(
-                np.asarray(val_flat, float), self.gen_edges_by_pt)[i]
-            variance = unflatten_gen_by_pt(
-                np.asarray(var_flat, float), self.gen_edges_by_pt)[i]
-            total = self._shown_norm_total(counts, i)
-            if total > 0:
-                widths = np.diff(self.gen_edges_by_pt[i])
-                shape = counts / widths / total
-                rel = np.divide(
-                    np.sqrt(np.clip(variance, 0.0, None)), counts,
-                    out=np.zeros_like(shape), where=counts > 0,
-                )
-                if covariance is None:
-                    covariance = np.zeros((n_bins, n_bins))
-                covariance += np.diag((shape * rel) ** 2)
+        stat_covariance = self._prediction_stat_covariance(i, kind)
+        if stat_covariance is not None:
+            covariance = stat_covariance if covariance is None else covariance + stat_covariance
 
         return covariance
 
@@ -4697,7 +4702,9 @@ class Unfolder:
                 plt.stairs(vincia_norm, rho_edges,
                            label=_mc_chi2_label(
                                vincia_label, vincia_norm,
-                               np.diag(np.asarray(vincia_truth[i][1], float) ** 2)),
+                               (self.vincia_stat_covariance_by_pt[i]
+                                if hasattr(self, "vincia_stat_covariance_by_pt") else
+                                np.diag(np.asarray(vincia_truth[i][1], float) ** 2))),
                            color='#964a8b', ls='dashed', lw=2, baseline=None)
                 plt.errorbar(centers, vincia_norm, yerr=vincia_err, fmt='none',
                              ecolor='#964a8b', elinewidth=1.5, capsize=3)

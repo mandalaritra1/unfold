@@ -127,7 +127,10 @@ def test_final_all_source_is_hash_checked_and_uses_per_ht_lhe_normalization(tmp_
     assert np.allclose(prediction.sumw_by_pt[0], [0.1, 0.6, 0.0])
     assert np.allclose(prediction.sumw_by_pt[1], [0.05, 0.6, 0.0])
     assert np.allclose(prediction.density_by_pt[0], [1.0 / 14.0, 6.0 / 7.0, 0.0])
-    assert np.allclose(prediction.stat_unc_by_pt[1], [1.0 / 26.0, np.sqrt(0.18) / 0.65, 0.0])
+    # For p=n1/(n1+n2), Var(p)=(n2² V1+n1² V2)/(n1+n2)^4.
+    # Density bin 1 has width 2; the two fractions fluctuate oppositely.
+    fraction_sigma = np.sqrt(0.6 ** 2 * 0.05 ** 2 + 0.05 ** 2 * 0.18) / 0.65 ** 2
+    assert np.allclose(prediction.stat_unc_by_pt[1], [fraction_sigma / 2, fraction_sigma, 0.0])
     arrays = prediction.artifact_arrays()
     assert np.allclose(
         arrays["mess_vincia_density_flat"],
@@ -231,6 +234,7 @@ def test_trijet_compiled_reference_rebins_each_pt_slice_to_active_truth_edges(tm
         gen_edges_by_pt=(target_edges,) * 3,
         density_by_pt=(target_sumw,) * 3,
         stat_unc_by_pt=(target_sumw,) * 3,
+        stat_covariance_by_pt=(np.diag(target_sumw2),) * 3,
         sumw_by_pt=(target_sumw,) * 3,
         sumw2_by_pt=(target_sumw2,) * 3,
         normalization_totals_by_pt=(10.0,) * 3,
