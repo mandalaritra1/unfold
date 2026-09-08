@@ -8,16 +8,16 @@ a code defect does not certify old inputs or authorize a production rerun.
 
 | ID | Issue | Status | Next action |
 |---|---|---|---|
-| R1 | Chunk-dependent gen/reco marginals and skipped systematic variations | Fixed and merged into local dev at d7c53c8; production impact unquantified | Quantify historical lost contributions before a rerun decision |
+| R1 | Chunk-dependent gen/reco marginals and skipped systematic variations | Closed by user on 2026-09-08; fix merged into local dev at d7c53c8 | User decided no production rerun is needed; no further impact study requested |
 | R2 | PDF members collapsed before histogramming | Deferred by user on 2026-09-05; diagnostic saved | Revisit coherent Hessian propagation later; no implementation or production now |
 | R3 | 2017 trigger threshold: code 310 vs AN 359 GeV | User regards AN as outdated; moved on | Keep code at 310; efficiency provenance remains unverified |
 | R4 | AN systematic-closure success claim contradicted by tables | User accepts model-case exception; leave unchanged | No edit; model reco limitations cited by user, not independently verified |
 | R5 | Large dijet refolding residuals and statistical interpretation | Closed by user review on 2026-09-05 | No further investigation or analysis change requested |
 | R6 | Displayed model envelope differs from covariance | Closed; prescription accepted by user on 2026-09-05 | Two enclosing-template group covariances; see pairsplit_model_covariance.md |
-| R7 | Dijet model/producer fiducials differ | Open | Quantify reported-bin effect and agree treatment |
-| R8 | Missing JES legs and independent fake-model coverage | Open | Verify raw campaign categories and uncertainty prescription |
-| R9 | Prediction statistics omit normalization correlations | Open | Evaluate impact and covariance propagation |
-| R10 | Additional AN physics definitions and claims | Open | Correct mass formula, recoil interpretation and bottom-line wording |
+| R7 | Dijet model/producer fiducials differ | Closed by user review on 2026-09-05; accepted limitation | No further investigation or selection change; numerical effect not quantified |
+| R8 | JES exclusions and model fake treatment | Fake assumption accepted; JES restoration conditional on valid inputs | Retain defective categories exclusion; restore only verified genuine JES variations |
+| R9 | Prediction statistics omit normalization correlations | Fixed and validated on 2026-09-08 | Jacobian propagation; see pairsplit_prediction_statistics.md |
+| R10 | Additional AN physics definitions and claims | Closed on 2026-09-08 | Mass formula, recoil interpretation and bottom-line wording corrected; PDF rebuilt and inspected |
 
 ## R1: Chunk-dependent histogram filling
 
@@ -87,7 +87,9 @@ a code defect does not certify old inputs or authorize a production rerun.
   remain unquantified. Aggregate 77/77 populated systematic categories cannot
   determine per-chunk loss. No evidence yet of material bias. Typical user
   chunks are 25k–400k; rare/remainder chunks still need assessment.
-- Rerun decision: pending evidence; no campaign resubmission authorized.
+- Rerun decision, 2026-09-08: user decided a production rerun is not needed
+  and requested moving on. R1 is closed for this review; no further historical
+  impact study is requested. The numerical impact remains unquantified.
 
 The fix task owns this R1 section and its table status. Update them with actual
 checkout/branch, changed files, validation commands/results, and any blocker.
@@ -270,3 +272,62 @@ the GluonJetMass venv with uproot/XRootD and `--output <review-json-path>`.
   non-concerning. No further investigation, code change, or AN edit requested.
   Closure records the review decision; the previously quoted measured-covariance
   statistics remain uncalibrated diagnostics, not validated goodness-of-fit tests.
+
+## R7: Model/producer fiducial difference — accepted limitation
+
+- User decision on 2026-09-05: the expected effect is too small to warrant
+  further investigation. Close this review item without a diagnostic, selection
+  change, or new production.
+- The 185 versus 200 GeV dijet pair-floor mismatch remains. Its numerical
+  impact was not quantified; closure records the user's assessment and scope
+  decision, not a measured demonstration of negligible impact.
+
+## R8: JES exclusion cross-check and model fake treatment
+
+- Read-only cross-check on 2026-09-05 of canonical 2018 dijet groomed reco
+  input: all six RelativeJER Up/Down histograms are populated and differ from
+  nominal. EC1/EC2/HF are exactly identical to one another per direction and
+  nearly identical to ordinary JER (six bins differ; aggregate absolute
+  difference relative to absolute JER yield about 2.19e-6). This supports the
+  documented stale dispatch-bug diagnosis, not a zero-histogram explanation.
+  Other eras/channels were not freshly checked. Exclusions remain unchanged.
+- Constructed Vincia/CR/fragmentation legs hold absolute unmatched reco yields
+  fixed while reweighting GEN and matched response. Their fake fractions and
+  hence data correction can change. The limitation is absence of a direct
+  alternative-model prediction for the unmatched yield/shape, not absence
+  of all fake-related uncertainty. Directly produced detector/weight
+  variations use their own reco and response arrays. No additional nuisance
+  or production requested; numerical impact is not established.
+
+- User decision: accept unchanged absolute fakes under the constructed model
+  variations, based on their small contribution; no additional fake nuisance
+  or diagnostic requested. The smallness was not newly quantified here.
+- User authorizes restoring the JES categories if they are genuine variations.
+  The checked stored categories fail that condition: nonzero content alone
+  does not establish a genuine JES source, and these reproduce the documented
+  defective JER-like behavior. Keep exclusions until valid replacement inputs
+  are verified. No production rerun was authorized by this conditional request.
+
+## R10: Note wording
+
+- On 2026-09-08 the user authorized replacing the exact recoil-bound claim
+  with an approximate 200 GeV recoil scale for approximately balanced jets.
+  Updated EventReconstruction.tex in AN-25-039. Selection unchanged.
+- Built a separate full PDF and visually checked the edited paragraph on
+  PDF page 19. Saved review copy: scratchpad/review_2026-09-05/AN-25-039_recoil_wording.pdf.
+- User authorized the jet-mass notation correction on 2026-09-08.
+  Equation 5 now squares the sum of constituent four-momenta, rather than
+  summing their squares. Rebuilt the 115-page AN and inspected PDF pages
+  14 and 15; the equation and following page are clean. Saved the verified
+  PDF beside the AN sources. Documentation only; no analysis results changed.
+  R10 is closed; the numerical R5 investigation remains closed.
+
+- User authorized moving the bottom-line probability criterion and numerical
+  table into the AN and removing diagnostic status labels from plots.
+  Updated AN-25-039.tex and its bibliography; added 20 canonical comparisons,
+  existing covariance/dof methodology, and the CMS source. Removed the
+  overclaim that the test establishes a unique physical origin for residuals.
+  All eight diagnostic plots now omit probability/status annotations.
+  Rebuilt and inspected PDF pages 73 and 78, with no new overflows in the
+  edited passage. The updated PDF is beside the AN sources; prior PDF backed
+  up in scratchpad/review_2026-09-08_bottomline/. No unfolding rerun.

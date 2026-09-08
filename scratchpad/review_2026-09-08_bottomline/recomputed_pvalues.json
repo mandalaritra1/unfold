@@ -1,0 +1,1623 @@
+{
+  "source_sha256": {
+    "/Users/aritra/Projects/unfold/scratchpad/review_2026-09-08_bottomline/recompute.py": "05ee59dbcb619722e7ce1cdd9a8e5f79cf403fac07b9535071041db6d94f077d",
+    "/Users/aritra/Projects/unfold/src/unfold/tools/unfolder_core.py": "d17088c8f401ee4c078d806498d1807a9d081994b2b0508eddcf20b4ad5f5158"
+  },
+  "inventory_sha256": "c771f69e41b39182421797e453afecf6772432669329a4c1553d4a4a56c54cda",
+  "scope": "Native reco, reported normalization window; saved central/statistical inputs; existing dof prescription.",
+  "dof_note": "Existing reco positive-variance bin count and unfolded block trace(KJ); no per-pT normalization subtraction. Minus-fitted-normalizations values are sensitivity only.",
+  "runs": [
+    {
+      "channel": "dijet",
+      "grooming": "groomed",
+      "artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/dijet/aligned/regularization-none__tau-disabled__normalization-peak__systematics-f64617bc992988f4/artifacts/groomed_results.npz",
+      "artifact_sha256": "e9e7c3fd4bee81812023968dbab5900a5ae494d31c58a83ae6611f54868828e0",
+      "reconstruction_checks": {
+        "relative_central_error": 1.564129806291752e-13,
+        "relative_covariance_error": 6.1707900478971716e-15,
+        "trace_hat": 40.00000000000001,
+        "normalization_window": [
+          -2.0,
+          -0.75
+        ]
+      },
+      "prescriptions": {
+        "canonical": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 560.2096079209689,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 8.327207075581173e-116,
+              "condition": 1.8866003973760848,
+              "chi2_per_dof": 70.02620099012111,
+              "log10_pvalue": -115.07950063545408,
+              "log10_pvalue_minus_fitted_norms": -116.04736593700054
+            },
+            "unfolded": {
+              "chi2": 171.43970372748726,
+              "ndof": 3.974634184568182,
+              "cov_rank": 4.0,
+              "pvalue": 4.877358677664062e-36,
+              "condition": 4.021088648712877,
+              "chi2_per_dof": 43.133454744870576,
+              "log10_pvalue": -35.31181530551106,
+              "log10_pvalue_minus_fitted_norms": -36.230564226414195
+            },
+            "unfolded_stat_only": {
+              "chi2": 400.29072938706054,
+              "ndof": 3.974634184568182,
+              "cov_rank": 4.0,
+              "pvalue": 2.2624211405816172e-85,
+              "condition": 4.092492447178196,
+              "chi2_per_dof": 100.71133865381111,
+              "log10_pvalue": -84.64542654971706,
+              "log10_pvalue_minus_fitted_norms": -85.74686571469076
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 1417.6035465773177,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 8.842268036244523e-301,
+              "condition": 1.9427691441414343,
+              "chi2_per_dof": 177.20044332216472,
+              "log10_pvalue": -300.0534363244338,
+              "log10_pvalue_minus_fitted_norms": -301.22243079388574
+            },
+            "unfolded": {
+              "chi2": 161.4251629163776,
+              "ndof": 3.9798581879089703,
+              "cov_rank": 4.0,
+              "pvalue": 6.947623798539422e-34,
+              "condition": 3.3900213596942357,
+              "chi2_per_dof": 40.56053137943361,
+              "log10_pvalue": -33.15816370586134,
+              "log10_pvalue_minus_fitted_norms": -34.06355678706899
+            },
+            "unfolded_stat_only": {
+              "chi2": 247.10243719179465,
+              "ndof": 3.9798581879089703,
+              "cov_rank": 4.0,
+              "pvalue": 2.6210073291300933e-52,
+              "condition": 3.404529103618415,
+              "chi2_per_dof": 62.08825177301682,
+              "log10_pvalue": -51.58153176463283,
+              "log10_pvalue_minus_fitted_norms": -52.578449993619714
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": 480,
+            "smeared": {
+              "chi2": 390.97795664140205,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 1.5926217230923426e-79,
+              "condition": 2.183302148248709,
+              "chi2_per_dof": 48.872244580175256,
+              "log10_pvalue": -78.79788736486569,
+              "log10_pvalue_minus_fitted_norms": -79.68799415308814
+            },
+            "unfolded": {
+              "chi2": 29.859848153953134,
+              "ndof": 3.986058709288355,
+              "cov_rank": 4.0,
+              "pvalue": 5.14182439680134e-06,
+              "condition": 3.239249564506108,
+              "chi2_per_dof": 7.4910708375602715,
+              "log10_pvalue": -5.288882759432256,
+              "log10_pvalue_minus_fitted_norms": -5.838903780050972
+            },
+            "unfolded_stat_only": {
+              "chi2": 41.57383899750684,
+              "ndof": 3.986058709288355,
+              "cov_rank": 4.0,
+              "pvalue": 2.0067501946898427e-08,
+              "condition": 2.9180627477322294,
+              "chi2_per_dof": 10.429811006202957,
+              "log10_pvalue": -7.697506686217031,
+              "log10_pvalue_minus_fitted_norms": -8.31542864546362
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 480,
+            "pt_high_GeV": 570,
+            "smeared": {
+              "chi2": 244.98110385904138,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 1.994642390613129e-48,
+              "condition": 1.8806552484243808,
+              "chi2_per_dof": 30.622637982380173,
+              "log10_pvalue": -47.70013495546833,
+              "log10_pvalue_minus_fitted_norms": -48.48940913017145
+            },
+            "unfolded": {
+              "chi2": 25.091561723191056,
+              "ndof": 3.9827259970775915,
+              "cov_rank": 4.0,
+              "pvalue": 4.73184981439395e-05,
+              "condition": 4.261875810516252,
+              "chi2_per_dof": 6.30009740604865,
+              "log10_pvalue": -4.324969048028691,
+              "log10_pvalue_minus_fitted_norms": -4.840137613493032
+            },
+            "unfolded_stat_only": {
+              "chi2": 53.69061470823999,
+              "ndof": 3.9827259970775915,
+              "cov_rank": 4.0,
+              "pvalue": 5.957689928776952e-11,
+              "condition": 2.7290729534097125,
+              "chi2_per_dof": 13.480870827578046,
+              "log10_pvalue": -10.224922103626076,
+              "log10_pvalue_minus_fitted_norms": -10.896362114360356
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 570,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 243.57156063559478,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 3.967230978888956e-48,
+              "condition": 1.8875167422942707,
+              "chi2_per_dof": 30.446445079449347,
+              "log10_pvalue": -47.4015125134314,
+              "log10_pvalue_minus_fitted_norms": -48.189544233813294
+            },
+            "unfolded": {
+              "chi2": 48.07271831037253,
+              "ndof": 3.989921134718707,
+              "cov_rank": 4.0,
+              "pvalue": 8.986386054497151e-10,
+              "condition": 6.380738873419788,
+              "chi2_per_dof": 12.048538476628735,
+              "log10_pvalue": -9.046414928082585,
+              "log10_pvalue_minus_fitted_norms": -9.694174287102289
+            },
+            "unfolded_stat_only": {
+              "chi2": 57.292093873438944,
+              "ndof": 3.989921134718707,
+              "cov_rank": 4.0,
+              "pvalue": 1.0583987863243954e-11,
+              "condition": 2.487625606951491,
+              "chi2_per_dof": 14.359204590513313,
+              "log10_pvalue": -10.975350666829739,
+              "log10_pvalue_minus_fitted_norms": -11.659784689990571
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 2857.3437756343246,
+              "ndof": 40.0,
+              "cov_rank": 40.0,
+              "pvalue": 0.0,
+              "condition": 193821.66491780165,
+              "chi2_per_dof": 71.43359439085812,
+              "log10_pvalue": -577.5998841531446,
+              "log10_pvalue_minus_fitted_norms": -582.3355409168387
+            },
+            "unfolded": {
+              "chi2": 972.8440968032982,
+              "ndof": 19.913198213561806,
+              "cov_rank": 20.0,
+              "pvalue": 2.0266556296730311e-193,
+              "condition": 770225.1831471381,
+              "chi2_per_dof": 48.85423659072235,
+              "log10_pvalue": -192.69322004057116,
+              "log10_pvalue_minus_fitted_norms": -197.13115026226166
+            },
+            "unfolded_stat_only": {
+              "chi2": 1984.3931429664367,
+              "ndof": 19.913198213561806,
+              "cov_rank": 20.0,
+              "pvalue": 0.0,
+              "condition": 830523.4016139234,
+              "chi2_per_dof": 99.65215640825457,
+              "log10_pvalue": -409.57960064852335,
+              "log10_pvalue_minus_fitted_norms": -414.7903305948047
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ],
+        "accepted_enclosing_model": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 560.2096079209689,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 8.327207075581173e-116,
+              "condition": 1.8866003973760848,
+              "chi2_per_dof": 70.02620099012111,
+              "log10_pvalue": -115.07950063545408,
+              "log10_pvalue_minus_fitted_norms": -116.04736593700054
+            },
+            "unfolded": {
+              "chi2": 20.22128786813407,
+              "ndof": 3.974634184568182,
+              "cov_rank": 4.0,
+              "pvalue": 0.0004403161322134091,
+              "condition": 29.692737918363147,
+              "chi2_per_dof": 5.087584650342099,
+              "log10_pvalue": -3.356235402655581,
+              "log10_pvalue_minus_fitted_norms": -3.8291746550634866
+            },
+            "unfolded_stat_only": {
+              "chi2": 400.29072938706054,
+              "ndof": 3.974634184568182,
+              "cov_rank": 4.0,
+              "pvalue": 2.2624211405816172e-85,
+              "condition": 4.092492447178196,
+              "chi2_per_dof": 100.71133865381111,
+              "log10_pvalue": -84.64542654971706,
+              "log10_pvalue_minus_fitted_norms": -85.74686571469076
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 1417.6035465773177,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 8.842268036244523e-301,
+              "condition": 1.9427691441414343,
+              "chi2_per_dof": 177.20044332216472,
+              "log10_pvalue": -300.0534363244338,
+              "log10_pvalue_minus_fitted_norms": -301.22243079388574
+            },
+            "unfolded": {
+              "chi2": 112.22955687747506,
+              "ndof": 3.9798581879089703,
+              "cov_rank": 4.0,
+              "pvalue": 2.3472107014129777e-23,
+              "condition": 4.187455903840472,
+              "chi2_per_dof": 28.19938590235066,
+              "log10_pvalue": -22.629447923459033,
+              "log10_pvalue_minus_fitted_norms": -23.457078778197598
+            },
+            "unfolded_stat_only": {
+              "chi2": 247.10243719179465,
+              "ndof": 3.9798581879089703,
+              "cov_rank": 4.0,
+              "pvalue": 2.6210073291300933e-52,
+              "condition": 3.404529103618415,
+              "chi2_per_dof": 62.08825177301682,
+              "log10_pvalue": -51.58153176463283,
+              "log10_pvalue_minus_fitted_norms": -52.578449993619714
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": 480,
+            "smeared": {
+              "chi2": 390.97795664140205,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 1.5926217230923426e-79,
+              "condition": 2.183302148248709,
+              "chi2_per_dof": 48.872244580175256,
+              "log10_pvalue": -78.79788736486569,
+              "log10_pvalue_minus_fitted_norms": -79.68799415308814
+            },
+            "unfolded": {
+              "chi2": 20.20072403182873,
+              "ndof": 3.986058709288355,
+              "cov_rank": 4.0,
+              "pvalue": 0.0004495525687214505,
+              "condition": 6.329590827712078,
+              "chi2_per_dof": 5.067844079856826,
+              "log10_pvalue": -3.347219516454097,
+              "log10_pvalue_minus_fitted_norms": -3.819002633455536
+            },
+            "unfolded_stat_only": {
+              "chi2": 41.57383899750684,
+              "ndof": 3.986058709288355,
+              "cov_rank": 4.0,
+              "pvalue": 2.0067501946898427e-08,
+              "condition": 2.9180627477322294,
+              "chi2_per_dof": 10.429811006202957,
+              "log10_pvalue": -7.697506686217031,
+              "log10_pvalue_minus_fitted_norms": -8.31542864546362
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 480,
+            "pt_high_GeV": 570,
+            "smeared": {
+              "chi2": 244.98110385904138,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 1.994642390613129e-48,
+              "condition": 1.8806552484243808,
+              "chi2_per_dof": 30.622637982380173,
+              "log10_pvalue": -47.70013495546833,
+              "log10_pvalue_minus_fitted_norms": -48.48940913017145
+            },
+            "unfolded": {
+              "chi2": 19.399996519531282,
+              "ndof": 3.9827259970775915,
+              "cov_rank": 4.0,
+              "pvalue": 0.0006447586946818791,
+              "condition": 5.135537391178371,
+              "chi2_per_dof": 4.871034696779652,
+              "log10_pvalue": -3.1906027926147607,
+              "log10_pvalue_minus_fitted_norms": -3.6547166452430977
+            },
+            "unfolded_stat_only": {
+              "chi2": 53.69061470823999,
+              "ndof": 3.9827259970775915,
+              "cov_rank": 4.0,
+              "pvalue": 5.957689928776952e-11,
+              "condition": 2.7290729534097125,
+              "chi2_per_dof": 13.480870827578046,
+              "log10_pvalue": -10.224922103626076,
+              "log10_pvalue_minus_fitted_norms": -10.896362114360356
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 570,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 243.57156063559478,
+              "ndof": 8.0,
+              "cov_rank": 8.0,
+              "pvalue": 3.967230978888956e-48,
+              "condition": 1.8875167422942707,
+              "chi2_per_dof": 30.446445079449347,
+              "log10_pvalue": -47.4015125134314,
+              "log10_pvalue_minus_fitted_norms": -48.189544233813294
+            },
+            "unfolded": {
+              "chi2": 45.33012995609541,
+              "ndof": 3.989921134718707,
+              "cov_rank": 4.0,
+              "pvalue": 3.3480364450858433e-09,
+              "condition": 8.870754465943639,
+              "chi2_per_dof": 11.361159387750963,
+              "log10_pvalue": -8.475209823135907,
+              "log10_pvalue_minus_fitted_norms": -9.110747021015845
+            },
+            "unfolded_stat_only": {
+              "chi2": 57.292093873438944,
+              "ndof": 3.989921134718707,
+              "cov_rank": 4.0,
+              "pvalue": 1.0583987863243954e-11,
+              "condition": 2.487625606951491,
+              "chi2_per_dof": 14.359204590513313,
+              "log10_pvalue": -10.975350666829739,
+              "log10_pvalue_minus_fitted_norms": -11.659784689990571
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 2857.3437756343246,
+              "ndof": 40.0,
+              "cov_rank": 40.0,
+              "pvalue": 0.0,
+              "condition": 193821.66491780165,
+              "chi2_per_dof": 71.43359439085812,
+              "log10_pvalue": -577.5998841531446,
+              "log10_pvalue_minus_fitted_norms": -582.3355409168387
+            },
+            "unfolded": {
+              "chi2": 472.1983833139742,
+              "ndof": 19.913198213561806,
+              "cov_rank": 20.0,
+              "pvalue": 1.6505847441338836e-87,
+              "condition": 6236585.281932814,
+              "chi2_per_dof": 23.71283498762069,
+              "log10_pvalue": -86.78236217326342,
+              "log10_pvalue_minus_fitted_norms": -90.43796421438714
+            },
+            "unfolded_stat_only": {
+              "chi2": 1984.3931429664367,
+              "ndof": 19.913198213561806,
+              "cov_rank": 20.0,
+              "pvalue": 0.0,
+              "condition": 830523.4016139234,
+              "chi2_per_dof": 99.65215640825457,
+              "log10_pvalue": -409.57960064852335,
+              "log10_pvalue_minus_fitted_norms": -414.7903305948047
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ]
+      },
+      "accepted_model_artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/model_covariance_comparison_2026-09-05_v2/dijet_groomed.npz",
+      "accepted_model_sha256": "eb857dafa31e39abd1baa93d220b1506f5cc0915848a8e1fc1ed126680ff8277"
+    },
+    {
+      "channel": "dijet",
+      "grooming": "ungroomed",
+      "artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/dijet/aligned/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-ac5dca45279f978c/artifacts/ungroomed_results.npz",
+      "artifact_sha256": "7d631749473f1324379b9239721b8ea967b18d65754d987361f4be328fbf7b1c",
+      "reconstruction_checks": {
+        "relative_central_error": 8.067175022145308e-14,
+        "relative_covariance_error": 2.6517259240102386e-14,
+        "trace_hat": 29.99999999999999,
+        "normalization_window": [
+          -2.5,
+          0.0
+        ]
+      },
+      "prescriptions": {
+        "canonical": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 871.5567362616164,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 8.301164923943423e-182,
+              "condition": 101.3730838582488,
+              "chi2_per_dof": 96.83963736240182,
+              "log10_pvalue": -181.0808609576793,
+              "log10_pvalue_minus_fitted_norms": -182.11350165848444
+            },
+            "unfolded": {
+              "chi2": 23.311158218981017,
+              "ndof": 5.347096842732809,
+              "cov_rank": 5.0,
+              "pvalue": 0.0004022680743120886,
+              "condition": 3736.5270203065747,
+              "chi2_per_dof": 4.359591551191559,
+              "log10_pvalue": -3.395484433499518,
+              "log10_pvalue_minus_fitted_norms": -3.8040452265022866
+            },
+            "unfolded_stat_only": {
+              "chi2": 680.5179061166658,
+              "ndof": 5.347096842732809,
+              "cov_rank": 5.0,
+              "pvalue": 1.935976471090348e-144,
+              "condition": 107.39032170946257,
+              "chi2_per_dof": 127.26867048266602,
+              "log10_pvalue": -143.71309992519792,
+              "log10_pvalue_minus_fitted_norms": -144.83582707007446
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 5461.66281893915,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 66.84444450775794,
+              "chi2_per_dof": 606.8514243265722,
+              "log10_pvalue": -1175.023067509579,
+              "log10_pvalue_minus_fitted_norms": -1176.4538015342982
+            },
+            "unfolded": {
+              "chi2": 65.13784066162398,
+              "ndof": 5.346403183240723,
+              "cov_rank": 5.0,
+              "pvalue": 1.69541964822595e-12,
+              "condition": 4295.418849209488,
+              "chi2_per_dof": 12.183488305897027,
+              "log10_pvalue": -11.770722788108834,
+              "log10_pvalue_minus_fitted_norms": -12.390090518544644
+            },
+            "unfolded_stat_only": {
+              "chi2": 944.2334522174986,
+              "ndof": 5.346403183240723,
+              "cov_rank": 5.0,
+              "pvalue": 1.8131613274683677e-201,
+              "condition": 277.79749675148184,
+              "chi2_per_dof": 176.6109700026685,
+              "log10_pvalue": -200.741563552489,
+              "log10_pvalue_minus_fitted_norms": -201.93527053776415
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": 480,
+            "smeared": {
+              "chi2": 4268.001603182435,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 23.17132799884999,
+              "chi2_per_dof": 474.2224003536039,
+              "log10_pvalue": -916.1975231954477,
+              "log10_pvalue_minus_fitted_norms": -917.5747293453915
+            },
+            "unfolded": {
+              "chi2": 71.12355991525192,
+              "ndof": 5.312159734046782,
+              "cov_rank": 5.0,
+              "pvalue": 9.344542345184593e-14,
+              "condition": 323.9461690906528,
+              "chi2_per_dof": 13.388821774203366,
+              "log10_pvalue": -13.029441963608637,
+              "log10_pvalue_minus_fitted_norms": -13.669235215665644
+            },
+            "unfolded_stat_only": {
+              "chi2": 416.1145781577151,
+              "ndof": 5.312159734046782,
+              "cov_rank": 5.0,
+              "pvalue": 2.0444987341519507e-87,
+              "condition": 248.51278960146348,
+              "chi2_per_dof": 78.3324672055222,
+              "log10_pvalue": -86.68941315400227,
+              "log10_pvalue_minus_fitted_norms": -87.7076833813662
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 480,
+            "pt_high_GeV": 570,
+            "smeared": {
+              "chi2": 6686.829190468658,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 92.3902345767906,
+              "chi2_per_dof": 742.9810211631843,
+              "log10_pvalue": -1440.7570331227148,
+              "log10_pvalue_minus_fitted_norms": -1442.23170022878
+            },
+            "unfolded": {
+              "chi2": 174.4618700995636,
+              "ndof": 5.342990794931529,
+              "cov_rank": 5.0,
+              "pvalue": 1.545817160811326e-35,
+              "condition": 10422.031245787919,
+              "chi2_per_dof": 32.652474390384825,
+              "log10_pvalue": -34.81084187571303,
+              "log10_pvalue_minus_fitted_norms": -35.640089620667084
+            },
+            "unfolded_stat_only": {
+              "chi2": 522.7885421763989,
+              "ndof": 5.342990794931529,
+              "cov_rank": 5.0,
+              "pvalue": 2.1985145823643446e-110,
+              "condition": 1027.2654394204274,
+              "chi2_per_dof": 97.84567524846325,
+              "log10_pvalue": -109.65787064943505,
+              "log10_pvalue_minus_fitted_norms": -110.72376237146156
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 570,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 15364.59303167995,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 116.53866190056043,
+              "chi2_per_dof": 1707.1770035199943,
+              "log10_pvalue": -3323.8452128157264,
+              "log10_pvalue_minus_fitted_norms": -3325.5004936204273
+            },
+            "unfolded": {
+              "chi2": 1092.3607825353074,
+              "ndof": 5.269373126237957,
+              "cov_rank": 5.0,
+              "pvalue": 1.2770220252090578e-233,
+              "condition": 29674.89457192451,
+              "chi2_per_dof": 207.30374493620135,
+              "log10_pvalue": -232.89380161225552,
+              "log10_pvalue_minus_fitted_norms": -234.1234120486469
+            },
+            "unfolded_stat_only": {
+              "chi2": 2879.2192527152197,
+              "ndof": 5.269373126237957,
+              "cov_rank": 5.0,
+              "pvalue": 0.0,
+              "condition": 1319.2764000092202,
+              "chi2_per_dof": 546.4064099728736,
+              "log10_pvalue": -620.2179409887987,
+              "log10_pvalue_minus_fitted_norms": -621.6577587697524
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 32652.643380531805,
+              "ndof": 45.0,
+              "cov_rank": 45.0,
+              "pvalue": 0.0,
+              "condition": 11263331.52244283,
+              "chi2_per_dof": 725.6142973451513,
+              "log10_pvalue": -7020.230835967178,
+              "log10_pvalue_minus_fitted_norms": -7027.4711301607695
+            },
+            "unfolded": {
+              "chi2": 17178.42719967437,
+              "ndof": 26.6180236811898,
+              "cov_rank": 25.0,
+              "pvalue": 0.0,
+              "condition": 2371067033.3570876,
+              "chi2_per_dof": 645.3682439171423,
+              "log10_pvalue": -3690.8453438587167,
+              "log10_pvalue_minus_fitted_norms": -3698.024833656139
+            },
+            "unfolded_stat_only": {
+              "chi2": 20496.085729579456,
+              "ndof": 26.6180236811898,
+              "cov_rank": 25.0,
+              "pvalue": 0.0,
+              "condition": 61558351.5728307,
+              "chi2_per_dof": 770.0077952843454,
+              "log10_pvalue": -4410.321893184188,
+              "log10_pvalue_minus_fitted_norms": -4417.6930813017825
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ],
+        "accepted_enclosing_model": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 871.5567362616164,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 8.301164923943423e-182,
+              "condition": 101.3730838582488,
+              "chi2_per_dof": 96.83963736240182,
+              "log10_pvalue": -181.0808609576793,
+              "log10_pvalue_minus_fitted_norms": -182.11350165848444
+            },
+            "unfolded": {
+              "chi2": 5.849865123699156,
+              "ndof": 5.347096842732809,
+              "cov_rank": 5.0,
+              "pvalue": 0.36202692027778904,
+              "condition": 1463.0069217200214,
+              "chi2_per_dof": 1.0940264026917064,
+              "log10_pvalue": -0.44125913418119495,
+              "log10_pvalue_minus_fitted_norms": -0.6067380330074215
+            },
+            "unfolded_stat_only": {
+              "chi2": 680.5179061166658,
+              "ndof": 5.347096842732809,
+              "cov_rank": 5.0,
+              "pvalue": 1.935976471090348e-144,
+              "condition": 107.39032170946257,
+              "chi2_per_dof": 127.26867048266602,
+              "log10_pvalue": -143.71309992519792,
+              "log10_pvalue_minus_fitted_norms": -144.83582707007446
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 5461.66281893915,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 66.84444450775794,
+              "chi2_per_dof": 606.8514243265722,
+              "log10_pvalue": -1175.023067509579,
+              "log10_pvalue_minus_fitted_norms": -1176.4538015342982
+            },
+            "unfolded": {
+              "chi2": 22.998789958801318,
+              "ndof": 5.346403183240723,
+              "cov_rank": 5.0,
+              "pvalue": 0.00046035625666936803,
+              "condition": 5552.949187507098,
+              "chi2_per_dof": 4.301731308049349,
+              "log10_pvalue": -3.3369059500067575,
+              "log10_pvalue_minus_fitted_norms": -3.742839133287953
+            },
+            "unfolded_stat_only": {
+              "chi2": 944.2334522174986,
+              "ndof": 5.346403183240723,
+              "cov_rank": 5.0,
+              "pvalue": 1.8131613274683677e-201,
+              "condition": 277.79749675148184,
+              "chi2_per_dof": 176.6109700026685,
+              "log10_pvalue": -200.741563552489,
+              "log10_pvalue_minus_fitted_norms": -201.93527053776415
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": 480,
+            "smeared": {
+              "chi2": 4268.001603182435,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 23.17132799884999,
+              "chi2_per_dof": 474.2224003536039,
+              "log10_pvalue": -916.1975231954477,
+              "log10_pvalue_minus_fitted_norms": -917.5747293453915
+            },
+            "unfolded": {
+              "chi2": 21.272692518686853,
+              "ndof": 5.312159734046782,
+              "cov_rank": 5.0,
+              "pvalue": 0.0009411283331685045,
+              "condition": 1271.3129214012513,
+              "chi2_per_dof": 4.004528023196585,
+              "log10_pvalue": -3.026351151719654,
+              "log10_pvalue_minus_fitted_norms": -3.418823726288579
+            },
+            "unfolded_stat_only": {
+              "chi2": 416.1145781577151,
+              "ndof": 5.312159734046782,
+              "cov_rank": 5.0,
+              "pvalue": 2.0444987341519507e-87,
+              "condition": 248.51278960146348,
+              "chi2_per_dof": 78.3324672055222,
+              "log10_pvalue": -86.68941315400227,
+              "log10_pvalue_minus_fitted_norms": -87.7076833813662
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 480,
+            "pt_high_GeV": 570,
+            "smeared": {
+              "chi2": 6686.829190468658,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 92.3902345767906,
+              "chi2_per_dof": 742.9810211631843,
+              "log10_pvalue": -1440.7570331227148,
+              "log10_pvalue_minus_fitted_norms": -1442.23170022878
+            },
+            "unfolded": {
+              "chi2": 59.63343398613169,
+              "ndof": 5.342990794931529,
+              "cov_rank": 5.0,
+              "pvalue": 2.2933113557539e-11,
+              "condition": 17396.640003056047,
+              "chi2_per_dof": 11.161058716908364,
+              "log10_pvalue": -10.639536978455318,
+              "log10_pvalue_minus_fitted_norms": -11.240551470452063
+            },
+            "unfolded_stat_only": {
+              "chi2": 522.7885421763989,
+              "ndof": 5.342990794931529,
+              "cov_rank": 5.0,
+              "pvalue": 2.1985145823643446e-110,
+              "condition": 1027.2654394204274,
+              "chi2_per_dof": 97.84567524846325,
+              "log10_pvalue": -109.65787064943505,
+              "log10_pvalue_minus_fitted_norms": -110.72376237146156
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 570,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 15364.59303167995,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.0,
+              "condition": 116.53866190056043,
+              "chi2_per_dof": 1707.1770035199943,
+              "log10_pvalue": -3323.8452128157264,
+              "log10_pvalue_minus_fitted_norms": -3325.5004936204273
+            },
+            "unfolded": {
+              "chi2": 303.6549071317222,
+              "ndof": 5.269373126237957,
+              "cov_rank": 5.0,
+              "pvalue": 2.9242297833834565e-63,
+              "condition": 35062.353513570844,
+              "chi2_per_dof": 57.62638170747934,
+              "log10_pvalue": -62.533988503897994,
+              "log10_pvalue_minus_fitted_norms": -63.48664193957319
+            },
+            "unfolded_stat_only": {
+              "chi2": 2879.2192527152197,
+              "ndof": 5.269373126237957,
+              "cov_rank": 5.0,
+              "pvalue": 0.0,
+              "condition": 1319.2764000092202,
+              "chi2_per_dof": 546.4064099728736,
+              "log10_pvalue": -620.2179409887987,
+              "log10_pvalue_minus_fitted_norms": -621.6577587697524
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 32652.643380531805,
+              "ndof": 45.0,
+              "cov_rank": 45.0,
+              "pvalue": 0.0,
+              "condition": 11263331.52244283,
+              "chi2_per_dof": 725.6142973451513,
+              "log10_pvalue": -7020.230835967178,
+              "log10_pvalue_minus_fitted_norms": -7027.4711301607695
+            },
+            "unfolded": {
+              "chi2": 6117.31406148897,
+              "ndof": 26.6180236811898,
+              "cov_rank": 25.0,
+              "pvalue": 0.0,
+              "condition": 4784092484.62169,
+              "chi2_per_dof": 229.81849196459697,
+              "log10_pvalue": -1294.473655462018,
+              "log10_pvalue_minus_fitted_norms": -1300.532318293596
+            },
+            "unfolded_stat_only": {
+              "chi2": 20496.085729579456,
+              "ndof": 26.6180236811898,
+              "cov_rank": 25.0,
+              "pvalue": 0.0,
+              "condition": 61558351.5728307,
+              "chi2_per_dof": 770.0077952843454,
+              "log10_pvalue": -4410.321893184188,
+              "log10_pvalue_minus_fitted_norms": -4417.6930813017825
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ]
+      },
+      "accepted_model_artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/model_covariance_comparison_2026-09-05_v2/dijet_ungroomed.npz",
+      "accepted_model_sha256": "8748714eda67d0c27ec451be4f47fa10098d44e29c15505fb00254bce718ed45"
+    },
+    {
+      "channel": "trijet",
+      "grooming": "groomed",
+      "artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/trijet/aligned/regularization-none__tau-disabled__normalization-full__systematics-9e20a3857f23f611/artifacts/groomed_results.npz",
+      "artifact_sha256": "3651a9fbbb47b779a373c3ddba5a979dd7712f35d344ae8e4af019be2b1c2c4d",
+      "reconstruction_checks": {
+        "relative_central_error": 1.1304890771988936e-14,
+        "relative_covariance_error": 2.4184702630620953e-15,
+        "trace_hat": 17.999999999999996,
+        "normalization_window": [
+          -3.5,
+          0.0
+        ]
+      },
+      "prescriptions": {
+        "canonical": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 55.00902837333586,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.213137844886986e-08,
+              "condition": 4.012709813028816,
+              "chi2_per_dof": 6.112114263703984,
+              "log10_pvalue": -7.916089848867557,
+              "log10_pvalue_minus_fitted_norms": -8.356831113035529
+            },
+            "unfolded": {
+              "chi2": 33.67181080998809,
+              "ndof": 5.005137689452833,
+              "cov_rank": 5.0,
+              "pvalue": 2.782923835076807e-06,
+              "condition": 15.507809277540334,
+              "chi2_per_dof": 6.727449452778017,
+              "log10_pvalue": -5.555498679565527,
+              "log10_pvalue_minus_fitted_norms": -6.057702169027566
+            },
+            "unfolded_stat_only": {
+              "chi2": 37.73682685726211,
+              "ndof": 5.005137689452833,
+              "cov_rank": 5.0,
+              "pvalue": 4.286661117965378e-07,
+              "condition": 7.79052901399831,
+              "chi2_per_dof": 7.539618128145349,
+              "log10_pvalue": -6.367880848286648,
+              "log10_pvalue_minus_fitted_norms": -6.89342108900991
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": false,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 70.4470711999997,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.2442928818483816e-11,
+              "condition": 4.344564620695808,
+              "chi2_per_dof": 7.827452355555522,
+              "log10_pvalue": -10.905077383311111,
+              "log10_pvalue_minus_fitted_norms": -11.397555841514563
+            },
+            "unfolded": {
+              "chi2": 5.956282881496618,
+              "ndof": 5.0025925462826475,
+              "cov_rank": 5.0,
+              "pvalue": 0.31079322723142855,
+              "condition": 8.050007077505583,
+              "chi2_per_dof": 1.1906392188431663,
+              "log10_pvalue": -0.5075284538610416,
+              "log10_pvalue_minus_fitted_norms": -0.6931552119680879
+            },
+            "unfolded_stat_only": {
+              "chi2": 8.272036890430577,
+              "ndof": 5.0025925462826475,
+              "cov_rank": 5.0,
+              "pvalue": 0.14204515497684825,
+              "condition": 7.440806054395191,
+              "chi2_per_dof": 1.6535499971064813,
+              "log10_pvalue": -0.8475735750540664,
+              "log10_pvalue_minus_fitted_norms": -1.0849307914653032
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 23.575621504952732,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.005025151307634871,
+              "condition": 2.941390043044091,
+              "chi2_per_dof": 2.6195135005503034,
+              "log10_pvalue": -2.298850857075317,
+              "log10_pvalue_minus_fitted_norms": -2.568840989528233
+            },
+            "unfolded": {
+              "chi2": 9.706553472019733,
+              "ndof": 5.007345001923241,
+              "cov_rank": 5.0,
+              "pvalue": 0.0843272966865577,
+              "condition": 19.602741063649958,
+              "chi2_per_dof": 1.9384630913770873,
+              "log10_pvalue": -1.0740318217994103,
+              "log10_pvalue_minus_fitted_norms": -1.338188765897048
+            },
+            "unfolded_stat_only": {
+              "chi2": 18.130853859377655,
+              "ndof": 5.007345001923241,
+              "cov_rank": 5.0,
+              "pvalue": 0.00280337711628968,
+              "condition": 5.7001333102660725,
+              "chi2_per_dof": 3.6208517392777777,
+              "log10_pvalue": -2.552318476086605,
+              "log10_pvalue_minus_fitted_norms": -2.9312185244050752
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 149.03172107828829,
+              "ndof": 27.0,
+              "cov_rank": 27.0,
+              "pvalue": 7.700806412614041e-19,
+              "condition": 11856.79897034109,
+              "chi2_per_dof": 5.519693373269937,
+              "log10_pvalue": -18.113463794020948,
+              "log10_pvalue_minus_fitted_norms": -19.300021674078167
+            },
+            "unfolded": {
+              "chi2": 76.66442171042821,
+              "ndof": 15.015075237658724,
+              "cov_rank": 15.0,
+              "pvalue": 2.866368826999974e-10,
+              "condition": 59198.175946049305,
+              "chi2_per_dof": 5.1058300073081995,
+              "log10_pvalue": -9.542667927956483,
+              "log10_pvalue_minus_fitted_norms": -10.743515027642795
+            },
+            "unfolded_stat_only": {
+              "chi2": 93.5471877682199,
+              "ndof": 15.015075237658724,
+              "cov_rank": 15.0,
+              "pvalue": 2.1826563289634366e-13,
+              "condition": 31434.610530179598,
+              "chi2_per_dof": 6.230217717031337,
+              "log10_pvalue": -12.661014640921465,
+              "log10_pvalue_minus_fitted_norms": -13.987696848574345
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ],
+        "accepted_enclosing_model": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 55.00902837333586,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.213137844886986e-08,
+              "condition": 4.012709813028816,
+              "chi2_per_dof": 6.112114263703984,
+              "log10_pvalue": -7.916089848867557,
+              "log10_pvalue_minus_fitted_norms": -8.356831113035529
+            },
+            "unfolded": {
+              "chi2": 18.030420216240127,
+              "ndof": 5.005137689452833,
+              "cov_rank": 5.0,
+              "pvalue": 0.0029205757137132117,
+              "condition": 14.961142071802382,
+              "chi2_per_dof": 3.6023824587753213,
+              "log10_pvalue": -2.5345315305228566,
+              "log10_pvalue_minus_fitted_norms": -2.912492724077438
+            },
+            "unfolded_stat_only": {
+              "chi2": 37.73682685726211,
+              "ndof": 5.005137689452833,
+              "cov_rank": 5.0,
+              "pvalue": 4.286661117965378e-07,
+              "condition": 7.79052901399831,
+              "chi2_per_dof": 7.539618128145349,
+              "log10_pvalue": -6.367880848286648,
+              "log10_pvalue_minus_fitted_norms": -6.89342108900991
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 70.4470711999997,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.2442928818483816e-11,
+              "condition": 4.344564620695808,
+              "chi2_per_dof": 7.827452355555522,
+              "log10_pvalue": -10.905077383311111,
+              "log10_pvalue_minus_fitted_norms": -11.397555841514563
+            },
+            "unfolded": {
+              "chi2": 3.9276973784241234,
+              "ndof": 5.0025925462826475,
+              "cov_rank": 5.0,
+              "pvalue": 0.5602276802014747,
+              "condition": 8.616323366895069,
+              "chi2_per_dof": 0.7851323772796042,
+              "log10_pvalue": -0.2516354369944698,
+              "log10_pvalue_minus_fitted_norms": -0.38063133918598363
+            },
+            "unfolded_stat_only": {
+              "chi2": 8.272036890430577,
+              "ndof": 5.0025925462826475,
+              "cov_rank": 5.0,
+              "pvalue": 0.14204515497684825,
+              "condition": 7.440806054395191,
+              "chi2_per_dof": 1.6535499971064813,
+              "log10_pvalue": -0.8475735750540664,
+              "log10_pvalue_minus_fitted_norms": -1.0849307914653032
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 23.575621504952732,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.005025151307634871,
+              "condition": 2.941390043044091,
+              "chi2_per_dof": 2.6195135005503034,
+              "log10_pvalue": -2.298850857075317,
+              "log10_pvalue_minus_fitted_norms": -2.568840989528233
+            },
+            "unfolded": {
+              "chi2": 5.667144011347638,
+              "ndof": 5.007345001923241,
+              "cov_rank": 5.0,
+              "pvalue": 0.3408470509335445,
+              "condition": 44.40724939786343,
+              "chi2_per_dof": 1.1317662372317023,
+              "log10_pvalue": -0.46744045923873623,
+              "log10_pvalue_minus_fitted_norms": -0.645485615907637
+            },
+            "unfolded_stat_only": {
+              "chi2": 18.130853859377655,
+              "ndof": 5.007345001923241,
+              "cov_rank": 5.0,
+              "pvalue": 0.00280337711628968,
+              "condition": 5.7001333102660725,
+              "chi2_per_dof": 3.6208517392777777,
+              "log10_pvalue": -2.552318476086605,
+              "log10_pvalue_minus_fitted_norms": -2.9312185244050752
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 149.03172107828829,
+              "ndof": 27.0,
+              "cov_rank": 27.0,
+              "pvalue": 7.700806412614041e-19,
+              "condition": 11856.79897034109,
+              "chi2_per_dof": 5.519693373269937,
+              "log10_pvalue": -18.113463794020948,
+              "log10_pvalue_minus_fitted_norms": -19.300021674078167
+            },
+            "unfolded": {
+              "chi2": 41.95984733954858,
+              "ndof": 15.015075237658724,
+              "cov_rank": 15.0,
+              "pvalue": 0.00022997151403980677,
+              "condition": 58288.4927112697,
+              "chi2_per_dof": 2.7945146244962347,
+              "log10_pvalue": -3.63832595555411,
+              "log10_pvalue_minus_fitted_norms": -4.466167798193194
+            },
+            "unfolded_stat_only": {
+              "chi2": 93.5471877682199,
+              "ndof": 15.015075237658724,
+              "cov_rank": 15.0,
+              "pvalue": 2.1826563289634366e-13,
+              "condition": 31434.610530179598,
+              "chi2_per_dof": 6.230217717031337,
+              "log10_pvalue": -12.661014640921465,
+              "log10_pvalue_minus_fitted_norms": -13.987696848574345
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ]
+      },
+      "accepted_model_artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/model_covariance_comparison_2026-09-05_v2/trijet_groomed.npz",
+      "accepted_model_sha256": "e224cd9800e7fc1d32bf461b9ed5e72caedcec40052470312b53c0e499b9dfb2"
+    },
+    {
+      "channel": "trijet",
+      "grooming": "ungroomed",
+      "artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/trijet/aligned/ungroomed/regularization-none__tau-disabled__normalization-minus2p5_to_zero__systematics-57d6a4e8cadbc415/artifacts/ungroomed_results.npz",
+      "artifact_sha256": "0f73df1eb7bf493401c4f0190ba2c3f1ef92351d95a6f95cfa3472ad1b319c61",
+      "reconstruction_checks": {
+        "relative_central_error": 2.7309291050859615e-14,
+        "relative_covariance_error": 3.1360379521917324e-15,
+        "trace_hat": 18.00000000000001,
+        "normalization_window": [
+          -2.5,
+          0.0
+        ]
+      },
+      "prescriptions": {
+        "canonical": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 6.756963043787714,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.6624062626491345,
+              "condition": 1246.980864793691,
+              "chi2_per_dof": 0.7507736715319682,
+              "log10_pvalue": -0.17887557021305553,
+              "log10_pvalue_minus_fitted_norms": -0.24943974822257167
+            },
+            "unfolded": {
+              "chi2": 2.9045521669670245,
+              "ndof": 5.439049506389323,
+              "cov_rank": 5.0,
+              "pvalue": 0.7656009362312455,
+              "condition": 85.11045566986468,
+              "chi2_per_dof": 0.5340183360263606,
+              "log10_pvalue": -0.11599754414472499,
+              "log10_pvalue_minus_fitted_norms": -0.19397687711121284
+            },
+            "unfolded_stat_only": {
+              "chi2": 4.2383850402146805,
+              "ndof": 5.439049506389323,
+              "cov_rank": 5.0,
+              "pvalue": 0.5743745488084747,
+              "condition": 73.75015406659111,
+              "chi2_per_dof": 0.7792510502498265,
+              "log10_pvalue": -0.24080481242335722,
+              "log10_pvalue_minus_fitted_norms": -0.35930725500722344
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 28.35185703976659,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.000832907119954595,
+              "condition": 70.23020853366504,
+              "chi2_per_dof": 3.150206337751843,
+              "log10_pvalue": -3.079403425412159,
+              "log10_pvalue_minus_fitted_norms": -3.385347130301822
+            },
+            "unfolded": {
+              "chi2": 5.489055099918959,
+              "ndof": 5.536240042014552,
+              "cov_rank": 5.0,
+              "pvalue": 0.42555837863125767,
+              "condition": 167.76401848478184,
+              "chi2_per_dof": 0.9914770779920115,
+              "log10_pvalue": -0.3710408544317479,
+              "log10_pvalue_minus_fitted_norms": -0.5187980145887057
+            },
+            "unfolded_stat_only": {
+              "chi2": 5.554125389027025,
+              "ndof": 5.536240042014552,
+              "cov_rank": 5.0,
+              "pvalue": 0.4179674388958983,
+              "condition": 159.46222435237036,
+              "chi2_per_dof": 1.0032305945690108,
+              "log10_pvalue": -0.3788575499442046,
+              "log10_pvalue_minus_fitted_norms": -0.5282421204326379
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 44.236906802531884,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.2763974060905272e-06,
+              "condition": 75.68541660853312,
+              "chi2_per_dof": 4.915211866947987,
+              "log10_pvalue": -5.894014087055866,
+              "log10_pvalue_minus_fitted_norms": -6.289696353532786
+            },
+            "unfolded": {
+              "chi2": 7.593162088030991,
+              "ndof": 5.339528442296468,
+              "cov_rank": 5.0,
+              "pvalue": 0.2088117916495206,
+              "condition": 535.886862954375,
+              "chi2_per_dof": 1.4220660438630908,
+              "log10_pvalue": -0.6802449802688021,
+              "log10_pvalue_minus_fitted_norms": -0.8856590988585452
+            },
+            "unfolded_stat_only": {
+              "chi2": 17.723289757517705,
+              "ndof": 5.339528442296468,
+              "cov_rank": 5.0,
+              "pvalue": 0.004315910626313756,
+              "condition": 312.37584666740435,
+              "chi2_per_dof": 3.3192612323449158,
+              "log10_pvalue": -2.364927557246922,
+              "log10_pvalue_minus_fitted_norms": -2.7205255229524226
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 79.34572688608618,
+              "ndof": 27.0,
+              "cov_rank": 27.0,
+              "pvalue": 4.7430194951987577e-07,
+              "condition": 183516.85122440825,
+              "chi2_per_dof": 2.9387306254105994,
+              "log10_pvalue": -6.323945090266989,
+              "log10_pvalue_minus_fitted_norms": -7.1117054590437405
+            },
+            "unfolded": {
+              "chi2": 36.13976761487056,
+              "ndof": 16.314817990700345,
+              "cov_rank": 15.0,
+              "pvalue": 0.003211217747416764,
+              "condition": 1704429.102055157,
+              "chi2_per_dof": 2.215149910680627,
+              "log10_pvalue": -2.4933302446373973,
+              "log10_pvalue_minus_fitted_norms": -3.1691499437284834
+            },
+            "unfolded_stat_only": {
+              "chi2": 44.83138726941879,
+              "ndof": 16.314817990700345,
+              "cov_rank": 15.0,
+              "pvalue": 0.00017632097321586618,
+              "condition": 666939.7384451353,
+              "chi2_per_dof": 2.74789380396234,
+              "log10_pvalue": -3.7536960257031167,
+              "log10_pvalue_minus_fitted_norms": -4.558307466800185
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ],
+        "accepted_enclosing_model": [
+          {
+            "pt_low_GeV": 200,
+            "pt_high_GeV": 290,
+            "smeared": {
+              "chi2": 6.756963043787714,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.6624062626491345,
+              "condition": 1246.980864793691,
+              "chi2_per_dof": 0.7507736715319682,
+              "log10_pvalue": -0.17887557021305553,
+              "log10_pvalue_minus_fitted_norms": -0.24943974822257167
+            },
+            "unfolded": {
+              "chi2": 1.8050372788928042,
+              "ndof": 5.439049506389323,
+              "cov_rank": 5.0,
+              "pvalue": 0.9067010723184848,
+              "condition": 95.14152747163989,
+              "chi2_per_dof": 0.3318663080327552,
+              "log10_pvalue": -0.04253587064734296,
+              "log10_pvalue_minus_fitted_norms": -0.08444347153558195
+            },
+            "unfolded_stat_only": {
+              "chi2": 4.2383850402146805,
+              "ndof": 5.439049506389323,
+              "cov_rank": 5.0,
+              "pvalue": 0.5743745488084747,
+              "condition": 73.75015406659111,
+              "chi2_per_dof": 0.7792510502498265,
+              "log10_pvalue": -0.24080481242335722,
+              "log10_pvalue_minus_fitted_norms": -0.35930725500722344
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 290,
+            "pt_high_GeV": 400,
+            "smeared": {
+              "chi2": 28.35185703976659,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 0.000832907119954595,
+              "condition": 70.23020853366504,
+              "chi2_per_dof": 3.150206337751843,
+              "log10_pvalue": -3.079403425412159,
+              "log10_pvalue_minus_fitted_norms": -3.385347130301822
+            },
+            "unfolded": {
+              "chi2": 4.971961715182244,
+              "ndof": 5.536240042014552,
+              "cov_rank": 5.0,
+              "pvalue": 0.48893344820090656,
+              "condition": 331.6889690769024,
+              "chi2_per_dof": 0.8980755309469971,
+              "log10_pvalue": -0.31075025140011686,
+              "log10_pvalue_minus_fitted_norms": -0.44521189332351035
+            },
+            "unfolded_stat_only": {
+              "chi2": 5.554125389027025,
+              "ndof": 5.536240042014552,
+              "cov_rank": 5.0,
+              "pvalue": 0.4179674388958983,
+              "condition": 159.46222435237036,
+              "chi2_per_dof": 1.0032305945690108,
+              "log10_pvalue": -0.3788575499442046,
+              "log10_pvalue_minus_fitted_norms": -0.5282421204326379
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": 400,
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 44.236906802531884,
+              "ndof": 9.0,
+              "cov_rank": 9.0,
+              "pvalue": 1.2763974060905272e-06,
+              "condition": 75.68541660853312,
+              "chi2_per_dof": 4.915211866947987,
+              "log10_pvalue": -5.894014087055866,
+              "log10_pvalue_minus_fitted_norms": -6.289696353532786
+            },
+            "unfolded": {
+              "chi2": 5.598148937889611,
+              "ndof": 5.339528442296468,
+              "cov_rank": 5.0,
+              "pvalue": 0.38873154098447765,
+              "condition": 568.8803464155085,
+              "chi2_per_dof": 1.048435081559733,
+              "log10_pvalue": -0.4103502200587807,
+              "log10_pvalue_minus_fitted_norms": -0.5699175644026785
+            },
+            "unfolded_stat_only": {
+              "chi2": 17.723289757517705,
+              "ndof": 5.339528442296468,
+              "cov_rank": 5.0,
+              "pvalue": 0.004315910626313756,
+              "condition": 312.37584666740435,
+              "chi2_per_dof": 3.3192612323449158,
+              "log10_pvalue": -2.364927557246922,
+              "log10_pvalue_minus_fitted_norms": -2.7205255229524226
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          },
+          {
+            "pt_low_GeV": "global",
+            "pt_high_GeV": null,
+            "smeared": {
+              "chi2": 79.34572688608618,
+              "ndof": 27.0,
+              "cov_rank": 27.0,
+              "pvalue": 4.7430194951987577e-07,
+              "condition": 183516.85122440825,
+              "chi2_per_dof": 2.9387306254105994,
+              "log10_pvalue": -6.323945090266989,
+              "log10_pvalue_minus_fitted_norms": -7.1117054590437405
+            },
+            "unfolded": {
+              "chi2": 27.948020645365947,
+              "ndof": 16.314817990700345,
+              "cov_rank": 15.0,
+              "pvalue": 0.03593505358090361,
+              "condition": 2129099.4282151437,
+              "chi2_per_dof": 1.7130451998481795,
+              "log10_pvalue": -1.4444817032526645,
+              "log10_pvalue_minus_fitted_norms": -1.9725739522246628
+            },
+            "unfolded_stat_only": {
+              "chi2": 44.83138726941879,
+              "ndof": 16.314817990700345,
+              "cov_rank": 15.0,
+              "pvalue": 0.00017632097321586618,
+              "condition": 666939.7384451353,
+              "chi2_per_dof": 2.74789380396234,
+              "log10_pvalue": -3.7536960257031167,
+              "log10_pvalue_minus_fitted_norms": -4.558307466800185
+            },
+            "raw_chi2_pass": true,
+            "pvalue_pass": true,
+            "reduced_chi2_pass": true,
+            "pvalue_pass_minus_fitted_norms": true
+          }
+        ]
+      },
+      "accepted_model_artifact": "/Users/aritra/Projects/unfold/outputs/pairsplit_run2/model_covariance_comparison_2026-09-05_v2/trijet_ungroomed.npz",
+      "accepted_model_sha256": "a2bf165105053de98b45e540ec66ba7a82274b0b4417d71daceb3175ff05d0b5"
+    }
+  ]
+}
