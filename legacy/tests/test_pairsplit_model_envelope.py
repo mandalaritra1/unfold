@@ -6,15 +6,15 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from unfold.model import (
+from unfold.tools.model_envelope import (
     compute_prepared_model_shifts,
     group_model_shifts,
 )
-from unfold.pairsplit.model_envelope import (
+from unfold.tools.pairsplit_model_envelope import (
     _condition_transfer_weight,
     _derive_iterated_weight,
 )
-from unfold.pairsplit.internal_variations import (
+from unfold.tools.pairsplit_internal_variations import (
     CONFIGS,
     load_pairsplit_internal_transfers,
 )

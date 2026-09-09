@@ -1,32 +1,17 @@
-# Script map
+# scripts
 
-Run commands from the repository root.  The supported production entry points
-are kept at this level:
+Everything here reads finished runs under `outputs/` or the input pickles;
+the unfolding itself is the `unfold` command (see the top-level README).
 
-```bash
-source scripts/setup_root.sh
-python scripts/run_unfolding.py --channel zjet --observable rho --tag original
-python scripts/run_rho_unfolding.py --channel dijet --tag <tag>
-python scripts/run_pairsplit_unfolding.py --channel dijet   # pair-split Run-2 inputs
-```
+| script | what it makes |
+|---|---|
+| `pairsplit_plot_book.py` | the dijet / trijet plot book PDF from the four `original` run manifests |
+| `pairsplit_slide_deck.py` | slide deck built from the plot book and the combined figures |
+| `combined_channels_rho.py` | Z+jet / dijet / trijet overlays from the saved artifacts |
+| `datamc/` | reco-level data vs MC validation figures for the AN (Z+jet and pair-split), theory overlays, per-systematic reco variations |
+| `hepdata/export_zjet.py` | reruns the zjet unfolding with all systematics and writes the HEPData intermediate npz |
+| `hepdata/build_submission.py` | assembles the HEPData YAML submission from that npz |
 
-The remaining scripts are grouped by purpose.  They are opt-in tools rather
-than part of the default production workflow.
-
-| Directory | Purpose |
-| --- | --- |
-| `staging/` | Prepare, combine, and inspect external input pickles. |
-| `diagnostics/` | Purity, closure, normalization, covariance, and response checks. |
-| `plotting/` | Re-render figures and build image grids from existing outputs. |
-| `studies/` | Explicit alternate-unfolding, regularization, model-closure, and Combine studies. |
-| `release/` | Export validated results and assemble a HEPData submission. |
-| `_superseded/` | Quarantined scripts replaced by current tooling; see its README before using anything here. |
-
-The pair-split plot book and slide deck builders live in `plotting/`
-(`build_pairsplit_all_modes_plot_book.py`, `build_pairsplit_slide_deck.py`);
-they read finished runs from `outputs/pairsplit_run2/` via their manifests.
-
-Each script exposes its options with `--help` when it has a command-line
-interface.  Scripts that write results use `outputs/`, which is intentionally
-ignored by Git; retain important generated products in the configured CERNBox
-archive rather than committing them.
+Run them from the repository root with the venv active.  `scripts/datamc`
+reads `inputs/zjet/validation/` and the arc_r2 / jmsjmr_unity pickles; the
+per-era luminosities come from `unfold.systematics.RUN2_LUMI`.

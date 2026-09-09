@@ -9,7 +9,7 @@ import unittest
 import hist
 import numpy as np
 
-from unfold.pairsplit.inputs import (
+from unfold.tools.pairsplit_run2_inputs import (
     LEGACY_HISTOGRAM_KEYS,
     PAIR_SPLIT_FINE_AXES,
     PairSplitRun2Inputs,

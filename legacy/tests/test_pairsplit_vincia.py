@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from unfold.pairsplit.vincia import (
+from unfold.tools.pairsplit_vincia import (
     PairSplitVinciaPrediction,
     PairSplitVinciaSource,
     PairSplitVinciaValidationError,

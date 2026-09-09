@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from unfold.pairsplit.vincia import (
+from unfold.tools.pairsplit_vincia import (
     attach_pairsplit_vincia_prediction, derive_pairsplit_vincia_prediction,
 )
 

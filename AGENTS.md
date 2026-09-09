@@ -1,24 +1,28 @@
 # Unfold repository instructions
 
-This repository implements CMS jet-mass unfolding. Preserve unrelated work and
-keep requested changes small. Explain any effect on physics results.
+This repository implements CMS jet-mass unfolding.  Preserve unrelated work and
+keep requested changes small.  Explain any effect on physics results.
 
-For analysis interpretation or workflow changes, consult the relevant sections of
-`~/Projects/ai-wiki/wiki/repos/unfold.md`. Search `wiki/meta/index.md` when
-additional context is needed. Small edits do not require the full wiki or repo card.
-Read the wiki's `AGENTS.md` before editing it.
+Layout and commands: `README.md` (top level) and `scripts/README.md`.  The
+package is `src/unfold/`; `legacy/` is the pre-restructure tree and is
+reference only, never imported.
 
 Preserve selections, weights, corrections, binning, response definitions,
-normalization, and uncertainty conventions unless the requested change authorizes
-otherwise. Resolve material physics ambiguity before changing behavior; routine
-implementation and local validation within an established choice may continue.
+normalization, and uncertainty conventions unless the requested change
+authorizes otherwise.  Resolve material physics ambiguity before changing
+behavior.  The Z+jet JES year-correlation split changed to the JetMET sqrt prescription
+on 2026-09-09; the Z+jet golden regression runs with `--era-split linear`
+because its reference tree predates that (README "Physics changes and
+caveats").  The legacy herwig fallback projection is frozen on purpose.
 
-Use `README.md` and `scripts/README.md` for environment and workflow commands.
-Run checks appropriate to the changed behavior. Repeat or broaden checks when a
-change, failure, or unresolved concern justifies it. Verify required inputs before
-an unfolding run. For plot changes, inspect affected renders.
+Every channel runs through `unfold run --channel C [--observable O] [--tag T]`;
+`original` is the production tag.  Before an unfolding run verify the inputs
+exist.  After a change to the
+engine, the loaders or the binnings, rerun the affected golden case and
+compare with `tests/compare_golden.py` (README "Checking that nothing
+changed").  For plot changes, inspect the affected renders.
 
-Record confirmed reusable findings in the existing ai-wiki pages when warranted.
-Follow its index/log conventions for wiki edits. Routine passing checks, unchanged
-status, and cosmetic edits do not require a new knowledge entry. Treat raw sources
-and other linked repositories as read-only unless authorized.
+For analysis interpretation or workflow history consult
+`~/Projects/ai-wiki/wiki/repos/unfold.md`; read that wiki's `AGENTS.md` before
+editing it.  Record confirmed reusable findings there.  Treat raw sources and
+other linked repositories as read-only unless authorized.

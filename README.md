@@ -1,272 +1,149 @@
 # unfold
 
-Jet substructure unfolding for the CMS Z+jet / dijet / trijet analyses. The
-repository unfolds two observables — **rho** (`log10(rho^2)`) and **jet mass** —
-each for three channels: **zjet**, **dijet**, **trijet**.
+TUnfold-based unfolding of the jet-mass observable rho = m / (pT R), stored as
+log10(rho^2), for the three CMS Run-2 channels **zjet**, **dijet** and
+**trijet**.  The second observable, the jet mass, has the code path but no
+inputs yet.
 
-A single shared implementation, `Unfolder` in
-[`src/unfold/tools/unfolder_core.py`](src/unfold/tools/unfolder_core.py), drives
-every cell. An `ObservableSpec` parameterizes it per observable, and a
-`(channel, observable, tag)` registry (`CHANNEL_OBSERVABLES`, `get_spec`) makes
-the full matrix first-class.
+```bash
+unfold run --channel zjet            # = --observable rho --tag original
+unfold run --channel dijet
+unfold run --channel trijet
+unfold tags                          # every registered channel / observable / tag
+```
 
-## The matrix
+A tag names one complete configuration (inputs, binning, systematics, knobs)
+in `config.TAGS`; `original` is the production configuration of every
+channel.  All channels run the same engine (`unfold/engine.py`) and the same
+figure suite (`unfold/plots.py`); they differ only in how the inputs are read:
 
-| Channel \ Observable | rho | mass |
+| channel | `original` inputs | loader |
 |---|---|---|
-| **zjet** | ✅ `RHO_SPECS["original"]` (default) + `["fixed_jec"]` | ⚙️ `MASS_SPEC` — code ready, **inputs must be regenerated** |
-| **dijet** | ✅ 2018, prepared channel inputs | — not available |
-| **trijet** | ✅ 2018, prepared channel inputs | — not available |
+| zjet | merged-era coffea pickles, `inputs/zjet/rho/jmsjmr_unity/` | `zjet_inputs.py` |
+| dijet, trijet | full Run-2 pair-split pickles on CERNBox (`paths.py`) | `pairsplit/` |
+| dijet, trijet, tag `2018` | single-year `inputs/<channel>/rho/minimal_rho_*.pkl` | `channel_inputs.py` |
 
-- **zjet** rho/mass run from merged-era pickles (`inputs/zjet/...`) via the spec
-  path (`Unfolder(spec, groomed).run_all_plots()`), interactively from notebooks
-  or from the CLI.
-- **dijet/trijet** rho run from prepared per-channel inputs
-  (`inputs/<channel>/rho/`) and omit jackknife response statistics (no jackknife
-  inputs). The HERWIG/model uncertainty is included **when** a
-  `minimal_rho_<channel>_herwig_<year>.pkl` is present (auto-discovered; dijet
-  2018 has one, so it gets the alternate-generator model uncertainty + bias
-  test); otherwise it is skipped. Detector-level validation is deferred until
-  dedicated validation inputs exist.
+## Setup
 
-## Repository layout
-
-```
-src/unfold/tools/
-  unfolder_core.py     # Unfolder class, ObservableSpec, specs + registry
-  binning.py           # binning helpers
-  rho_channel_inputs.py# dijet/trijet input discovery + adaptation
-  hepdata_export.py    # HEPData export
-  merge_data.py        # per-era pickle merger
-src/unfold/utils/      # integrate_and_rebin, merge_helpers
-scripts/               # supported runners and environment helpers; see scripts/README.md
-  staging/              # input preparation helpers
-  diagnostics/          # validation and printed checks
-  plotting/             # figure and gallery tools
-  studies/              # explicit non-production studies
-  release/              # HEPData packaging/export
-notebooks/             # interactive runners (unfolder_v4_{rho,mass}, data_mc_rho_fancy)
-inputs/                # gitignored data; see inputs/README.md for the layout
-  zjet/{rho/{original,fixed_jec},mass,validation}/
-  {dijet,trijet}/rho/
-  _archive/
-outputs/               # generated plots + artifacts, retained outside Git
-  zjet/{rho/{original,fixed_jec},mass,validation}/
-  {dijet,trijet}/<year>/rho/
-  _archive/
-docs/                  # reference docs (see Documentation below)
-```
-
-Input pickles are gitignored — [`inputs/README.md`](inputs/README.md) is the
-tracked record of the expected files and their provenance.
-
-## Environment
-
-Activate the project venv from the repository root; the activation hook sources
-`scripts/setup_root.sh` (ROOT defaults to `/Users/aritra/opt/root-6.40.00-rc1`):
+One command, from the repository root, in every new shell:
 
 ```bash
-source .venv/bin/activate
-# or, in an existing shell:
-source scripts/setup_root.sh
+source env.sh
 ```
 
-Install the package so `unfold` is importable without `PYTHONPATH=src`:
-
-```bash
-pip install -e .            # deps come from requirements.txt; PyROOT stays external
-```
-
-`import ROOT` is required for an actual unfolding run and is provided by the
-external ROOT build, not pip. The scripts also fall back to adding `src/` to
-`sys.path`, so they work even without the editable install.
+It creates `.venv` on first use (Python 3.11, the version the local ROOT
+build was compiled against), installs this package into it, activates the
+venv and puts ROOT on the path.  After that `unfold`, `python` and `pytest`
+refer to this environment.  ROOT with TUnfold comes from an external build
+(`UNFOLD_ROOTSYS` in `setup_root.sh`), not from pip; RooUnfold is picked up
+when it has been built (`setup_roounfold.sh`, only for `--method roounfold_bayes`).
+Everything that lives outside the repository (CERNBox skims, the generator
+campaigns of the pair-split modelling uncertainty) is located through the
+environment variables listed in `src/unfold/paths.py`.
 
 ## Running
 
-### Unified runner
-
-[`scripts/run_unfolding.py`](scripts/run_unfolding.py) is the single entrypoint:
-
 ```bash
-source scripts/setup_root.sh
+unfold run --channel zjet                        # all systematics, ~10 min per grooming mode
+unfold run --channel zjet --no-syst --grooming-mode groomed    # quick nominal-only run
+unfold run --channel dijet --tag 2018            # the older single-year inputs
 
-# zjet rho (default tag = original); use --tag fixed_jec for the JEC-fixed set
-python scripts/run_unfolding.py --channel zjet  --observable rho
-python scripts/run_unfolding.py --channel zjet  --observable rho --tag fixed_jec
+# option runs never overwrite the tag's outputs: the directory gets a suffix
+unfold run --channel zjet --jacobian --regularization ratio_curvature   # outputs/zjet/rho/original_jacobian_reg/
 
-# Every tag has a "<tag>_jacobian" twin (same inputs) whose normalized-result
-# statistics are propagated through the normalization Jacobian: error bars and
-# the correlation matrix describe the normalized spectrum, and a
-# normalized_covariance_{groomed,ungroomed}.npz (stat + rank-1 systematic
-# covariances) is written under unfold/. Outputs land in a sibling dir
-# (e.g. outputs/zjet/rho/original_jacobian/) for comparison-app pairing.
-python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_jacobian
+# publication figures: no provenance stamp (date | git revision | inputs)
+unfold run --channel trijet --no-stamp --cms-label Preliminary
 
-# "<tag>_jacobian_reg" additionally enables ratio-curvature regularization:
-# custom L rows penalize the curvature of x/x_MC per pT slice (zero penalty
-# for spectra proportional to the MC prior), tau from an L-curve scan on the
-# nominal data unfold and frozen for systematic/jackknife re-unfolds.
-# Validation: scripts/studies/study_regularization_rho.py (exact self-closure, <1%
-# added HERWIG-closure bias, roughly halved input-stat uncertainties).
-python scripts/run_unfolding.py --channel zjet  --observable rho --tag original_jacobian_reg
-
-# The same options are available as flags for ANY channel/observable/tag;
-# flag runs auto-suffix the output dir (_jacobian/_reg) so the baseline
-# outputs are never overwritten. --tau fixes the strength (skips the scan).
-python scripts/run_unfolding.py --channel zjet  --observable mass --jacobian --regularization ratio_curvature
-python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --jacobian --regularization ratio_curvature
-# -> outputs/dijet/2018/rho/unfolding_jacobian_reg/ (settings + per-mode tau in run_manifest.json)
-
-# Backend choice: iterative Bayes / D'Agostini via RooUnfold (CMS-recommended)
-# instead of TUnfold. The jackknife replicas re-unfold through it unchanged, so
-# the statistical uncertainty stays jackknife-based. Needs a built libRooUnfold
-# (source scripts/setup_roounfold.sh); --n-iter sets the iterations (default 4).
-# The output dir gets a '_bayes' suffix.
-source scripts/setup_roounfold.sh
-python scripts/run_unfolding.py --channel zjet --observable rho --method roounfold_bayes --n-iter 4
-# -> outputs/zjet/rho/original_bayes/  (full plot suite + 2D summaries through Bayes)
-# Works for dijet/trijet too; those have no jackknife inputs, so the Bayes stat
-# uncertainty falls back to RooUnfold's propagated covariance.
-python scripts/run_unfolding.py --channel dijet --observable rho --year 2018 --method roounfold_bayes
-# -> outputs/dijet/2018/rho/unfolding_bayes/
-
-# dijet / trijet rho (delegates to run_rho_unfolding.py)
-python scripts/run_unfolding.py --channel dijet  --observable rho --year 2018
-python scripts/run_unfolding.py --channel trijet --observable rho --year 2018
-
-# zjet mass (requires regenerated inputs/zjet/mass/ pickles)
-python scripts/run_unfolding.py --channel zjet --observable mass
+unfold gallery --root outputs/zjet/rho/original  # rebuild the HTML gallery
 ```
 
-`run_unfolding.py --help` works without ROOT. Unavailable combinations
-(dijet/mass, trijet/mass) exit with a clear message.
+Outputs go to `outputs/<channel>/<observable>/<tag>/` (git-ignored) in a
+categorized layout (`summary/`, `unfolded/`, `uncertainties/`,
+`bottom_line/`, `response/`, `validation/`, `data/`); the pair-split channels
+add one level, `groomed/` and `ungroomed/`.  Every run writes
+`run_manifest.json` with the resolved configuration, the command and the git
+revision.  The numeric products are:
 
-### Notebooks (interactive)
+* zjet: `data/normalized_covariance_<mode>.npz`, `data/unfolded_2d_<mode>.pkl`,
+  `data/uncertainty_summary_2d_<mode>.pkl`
+* dijet, trijet: `<mode>/artifacts/<mode>_results.npz` (`artifacts/` for tag `2018`)
 
-- [`notebooks/unfolder_v4_rho.ipynb`](notebooks/unfolder_v4_rho.ipynb) — produces
-  tagged zjet rho outputs under `outputs/zjet/rho/original/` and
-  `outputs/zjet/rho/fixed_jec/`.
-- [`notebooks/unfolder_v4_mass.ipynb`](notebooks/unfolder_v4_mass.ipynb) — zjet
-  mass workflow.
+The provenance stamp on every figure is one switch: `--no-stamp` on the
+command line or `UNFOLD_NO_STAMP=1` in the environment (`cms_plot.set_stamp`),
+and the `scripts/` figure producers honour the same variable.
 
-### Dijet/trijet direct runner
+## Layout
 
-The unified runner delegates to the producer-compatible path, which can also be
-called directly:
-
-```bash
-python scripts/run_rho_unfolding.py --channel dijet  --year 2018
-python scripts/run_rho_unfolding.py --channel trijet --year 2018
+```
+src/unfold/
+  binning.py        analysis binnings as data (Binning dataclass, ZJET_BINNINGS)
+  config.py         the tag registry TAGS[(channel, observable)] and ObservableSpec
+  systematics.py    JES year correlations, luminosities, systematic-name helpers
+  histmath.py       flatten / merge / mosaic helpers on numpy arrays
+  inputs.py         UnfoldInputs (the engine's input contract) + prepared-input builder
+  zjet_inputs.py    merged-era Z+jet pickles -> UnfoldInputs
+  channel_inputs.py dijet/trijet minimal_rho pickles -> adapted hists
+  pairsplit/        pair-split inputs, Vincia/CR/frag modelling, diagnostics, run glue
+  engine.py         Unfolder: TUnfold / RooUnfold, stat and syst propagation, bottom line
+  model.py          model envelope, enclosing-template covariance, prediction statistics
+  plots.py          every figure, as functions of a run Unfolder
+  cli.py            the `unfold` command
+  gallery.py, hepdata.py, cms_plot.py, roounfold.py, theory_*.py
+scripts/            plot book, slide deck, data/MC validation figures, HEPData packaging
+tests/              unit tests on the pure functions + the golden regression
+legacy/             the pre-restructure tree, kept for reference (see legacy/README.md)
+docs/               method notes
 ```
 
-Outputs go to `outputs/<channel>/<year>/rho/unfolding/` (plots, NPZ artifacts,
-a run manifest, and a text summary). The dijet groomed result uses a studied
-variable low-rho binning in the 400–570 and 570–760 GeV intervals; trijet and
-legacy zjet binning are unchanged
-([docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md)).
+## Adding a tag
 
-## Galleries
+Add an entry to `config.TAGS[(channel, observable)]`.  For zjet that is an
+`ObservableSpec` built with `dataclasses.replace(...)` from `RHO_BASE`,
+`ZJET_RHO_ORIGINAL` or `ZJET_RHO_ARC_R2` (pick the binning by name from
+`binning.ZJET_BINNINGS`); for dijet / trijet a `PairSplitTag` (normalization
+window, binning variant, systematics request, model covariance) or a
+`ChannelTag` (year).  Give it `output_dir("<channel>", "<observable>", "<tag>")`.
+`unfold tags` lists the registry and `config.describe(tag)` prints one entry.
 
-Build static scrollable HTML galleries of the saved plots:
+## Adding a channel
 
-```bash
-python outputs/build_rho_gallery.py  --root outputs/zjet/rho/original
-python outputs/build_rho_gallery.py  --root outputs/zjet/rho/fixed_jec
-python outputs/build_mass_gallery.py --root outputs/zjet/mass
-```
+Write a loader that returns an `UnfoldInputs` (see the field comments in
+`inputs.py`).  If the producer histograms carry a `systematic` axis, adapt
+them and call `inputs.prepared_inputs(...)` as `channel_inputs.py` and
+`pairsplit/run.py` do.  Then `Unfolder(inputs, spec, groomed).run()` and
+`plots.run_all_plots(u)`.
 
-Then open the generated `index.html` in the chosen `--root`.
+## Checking that nothing changed
 
-> The external `unfold-rho-compare` app syncs committed PNG previews from
-> `outputs/zjet/rho/{original,fixed_jec,original_jacobian}/_previews/`; its
-> sync script handles the channel-reorganized layout and takes
-> `--unfold-root` / `--versions` arguments.
-
-To combine selected PNG/JPEG plots into a configurable slide-ready grid:
-
-```bash
-python scripts/plotting/serve_image_grid.py
-```
-
-The local webpage supports folder selection, thumbnail filtering and
-selection, drag reordering, adjustable columns/spacing/padding, and copying or
-downloading the rendered grid as a PNG.
-
-## Run 2 detector-level rho validation
+`outputs/_golden_legacy/` (local only) holds the data products produced by
+the pre-restructure code at tag `snapshot-2026-09-09` for the dijet and trijet
+`original` runs (both grooming modes) and zjet `original`.
+After a change, rerun the same commands into another directory and compare:
 
 ```bash
-python notebooks/data_mc_rho_fancy.py --input-production-tag validation
+unfold run --channel zjet  --era-split linear --output-dir outputs/_golden_new/zjet/rho/original  --no-gallery --no-stamp
+unfold run --channel dijet --output-dir outputs/_golden_new/dijet/rho/original --no-gallery --no-stamp
+python tests/compare_golden.py outputs/_golden_legacy/zjet/rho/original outputs/_golden_new/zjet/rho/original
 ```
 
-CMS Internal PDFs are written to `outputs/zjet/rho/data_mc/`, CMS Preliminary
-versions to `outputs/zjet/rho/data_mc/Preliminary/`. A `run2_plot_config.json`
-records the command, phase-space configuration, input production tag, and a
-SHA-256 hash of every input pickle. Inputs come from `inputs/zjet/validation/`.
-The plotting command also refreshes `outputs/zjet/rho/data_mc/index.html` and
-its cached PNG previews; pass `--no-gallery` to skip that step.
+The zjet `original` tag is the configuration that was called
+`jmsjmr_unity_groomed400_floor3` before 2026-09-09; the golden tree carries
+that name's outputs.
 
-## Studies and cross-checks
+`tests/test_golden.py` does the same from pytest when both trees exist.
 
-Standalone scripts that probe the robustness of the zjet rho unfolding. Each
-writes a self-contained folder under `outputs/zjet/rho/` with its own
-`README.md` summarizing method and results. Generated products, including small
-`.npz` plot inputs, are retained outside Git; see
-[docs/analysis_workflow_status.md](docs/analysis_workflow_status.md) for the
-current archive and provenance policy.
+## Physics changes and caveats
 
-```bash
-source scripts/setup_root.sh
-
-# Regularization L-curve / closure study (tau scan, self-closure, HERWIG bias)
-python scripts/studies/study_regularization_rho.py
-
-# Response reweight-to-data: rebuild the response from a data-matched gen prior
-python scripts/studies/study_response_reweight.py            # -> outputs/zjet/rho/reweight_test/
-
-# Data-prior response test: unfold through a response whose gen prior is
-# reweighted toward the unfolded data (needs the weighted producer pickle)
-python scripts/studies/study_data_prior.py --weighted-mc /path/to/weighted_pythia_all.pkl
-python scripts/plotting/plot_data_prior_unfolded_comparison.py  # redraw from committed npz, no ROOT
-#   -> outputs/zjet/rho/original_data_prior_test/
-
-# Rho-averaged-per-pT jackknife stat-uncertainty convergence sheet
-python scripts/plotting/plot_jk_convergence_pt_avg.py --tag original
-#   -> outputs/zjet/rho/original/unfold/jackknife_convergence_pt_avg_{mode}.pdf
-
-# D'Agostini (iterative Bayes) via RooUnfold vs TUnfold, reusing the same
-# jackknife replicas for the stat uncertainty (needs a built libRooUnfold)
-source scripts/setup_roounfold.sh
-python scripts/studies/study_roounfold_bayes.py --tag original --n-iter 4
-#   -> outputs/zjet/rho/original/roounfold_bayes/
-```
-
-## HEPData export
-
-```bash
-python scripts/release/run_hepdata_export.py --spec fixed_jec        # -> outputs/zjet/rho/hepdata
-python scripts/release/build_hepdata_submission.py --root outputs/zjet/rho/hepdata
-```
-
-## Tests
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-The suite uses the stdlib `unittest` (no extra dependency).
-
-## Documentation
-
-- [docs/Unfolder_core_class_reference.md](docs/Unfolder_core_class_reference.md)
-  — `Unfolder` / `ObservableSpec` reference.
-- [docs/rho_channel_unfolding.md](docs/rho_channel_unfolding.md) — dijet/trijet
-  rho runner details.
-- [docs/dijet_groomed_rho_binning_study.md](docs/dijet_groomed_rho_binning_study.md)
-  — the dijet groomed low-rho binning study.
-- [docs/ratio_curvature_regularization.md](docs/ratio_curvature_regularization.md)
-  — how the regularization L-matrix is modified (curvature of `x/x_MC`), with a
-  figure of its block-diagonal structure and the validation summary.
-- [docs/analysis_workflow_status.md](docs/analysis_workflow_status.md) — current
-  rho-unfolding validation status, generated-output retention, provenance gaps,
-  and exploratory Combine/theory boundaries.
-- [inputs/README.md](inputs/README.md) — input file layout and provenance.
+* The Z+jet JES year-correlation split now uses the JetMET prescription
+  (amplitudes sqrt(rho), sqrt(1-rho)), as the pair-split channels always did.
+  Before 2026-09-09 Z+jet used linear coefficients (rho, 1-rho), which
+  under-covers the rho = 0.5 sources by a factor sqrt(2) in amplitude.  The
+  central values are unchanged; only the JES legs of the band move.  The old
+  behaviour is available as `unfold zjet --era-split linear`, and that is what
+  the Z+jet golden regression uses (its reference tree predates the fix).
+  Measured effect: central values identical, JES leg +4-8% per bin (max
+  +19%), total band +0.2-0.8% per bin (max +4.6%).  See
+  `systematics.era_split_coefficients`.
+* The `herwig` systematic of the legacy Z+jet tags projects the fallback
+  response without selecting a systematic category (see
+  `zjet_inputs._reweighted_response`).

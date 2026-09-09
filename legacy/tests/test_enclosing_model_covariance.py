@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from unfold.model import (
+from unfold.tools.model_covariance import (
     MODEL_GROUPS, enclosing_template_covariance, two_group_model_covariance,
 )
 
