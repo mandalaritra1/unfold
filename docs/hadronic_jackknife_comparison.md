@@ -30,10 +30,11 @@ whole run, with the reason in the manifest. Existing corrupt files and
 incompatible histogram axes or labels fail explicitly. The manifest records
 the actual method, file hashes, fixed-fake policy, group count, and ranks.
 
-The CLI checks that nominal data and the full sample reconstructed from the
-replicas agree. The current older nominal data fail this check by 10.51% for
-groomed dijet. Choosing a new central data spectrum is a separate physics
-decision, so this pairing is rejected while that decision is pending.
+The CLI compares the nominal data with the full sample reconstructed from the
+replicas and records the relative L1 difference in the manifest (10.51% for
+groomed dijet with the current inputs). On 2026-09-11 Aritra decided to treat
+the two as the same campaign, so the difference is reported, not fatal; the
+replica covariance is applied to the nominal central values.
 
 The four covariance calculations reproduce the accepted September 10 study
 using its exact normalization windows and matching reconstructed sample.

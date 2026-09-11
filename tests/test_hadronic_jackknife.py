@@ -102,10 +102,9 @@ def test_normalization_null_and_independent_components():
     assert not np.allclose(total, covariance(normalize(data) + normalize(mc)))
 
 
-def test_mismatched_data_is_not_silently_accepted():
-    check_data_sample(np.array([10., 20.]), np.array([10., 20.]))
-    with pytest.raises(ValueError, match="samples differ"):
-        check_data_sample(np.array([10., 20.]), np.array([11., 22.]))
+def test_data_sample_difference_is_reported_not_fatal():
+    assert check_data_sample(np.array([10., 20.]), np.array([10., 20.])) == 0.0
+    assert check_data_sample(np.array([10., 20.]), np.array([11., 22.])) == pytest.approx(0.1)
 
 
 def test_engine_uses_exact_normalized_replica_covariance():

@@ -55,7 +55,7 @@ def _write_final_all_fixture(root: Path) -> tuple[Path, Path, Path]:
                 "complete": True,
                 "campaign": "synthetic_mess",
                 "phase": "full",
-                "selection": "CMS_HADRONIC_HADRONIC",
+                "selection": "CMS_HADRONIC_PAIR_SPLIT",
                 "bin": ht_bin,
                 "seed": seed,
                 "lhe_events": lhe_events,

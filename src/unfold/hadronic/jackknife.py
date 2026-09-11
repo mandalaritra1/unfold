@@ -159,14 +159,20 @@ def load_jackknife_inputs(root, channel, mode, *, requested="jackknife"):
 
 
 def check_data_sample(nominal, reconstructed):
-    """Reject a different data cohort instead of silently borrowing its covariance."""
-    if not np.allclose(nominal, reconstructed, rtol=1e-7, atol=1e-7):
-        difference = np.abs(nominal - reconstructed).sum() / np.abs(nominal).sum()
-        raise ValueError(
-            f"Jackknife and nominal data samples differ (relative L1 difference {difference:.2%}). "
-            "Use matching nominal/replica inputs, or --stat-method analytic. "
-            "No jackknife covariance was applied to the different nominal sample."
-        )
+    """Compare the nominal data with the full sample rebuilt from the replicas.
+
+    Returns the relative L1 difference.  The two are expected to come from
+    the same campaign but need not be identical: the 2026-09-08 replica
+    campaign carries ~10% more weighted data than the aligned nominal inputs
+    (Aritra, 2026-09-11: accept them as the same sample; the effect on the
+    statistical uncertainty is small).  The value goes into the manifest so a
+    larger drift is still visible.
+    """
+    difference = float(np.abs(nominal - reconstructed).sum() / np.abs(nominal).sum())
+    if difference > 1e-7:
+        print(f"Jackknife: replica campaign differs from the nominal data sample "
+              f"(relative L1 difference {difference:.2%}); using its covariance anyway", flush=True)
+    return difference
 
 
 def apply_jackknife(unfolder, replicas, variant):

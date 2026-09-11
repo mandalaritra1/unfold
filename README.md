@@ -88,11 +88,12 @@ fallback reason, replica hashes, fixed-fake policy, and covariance ranks.
 `artifacts/jackknife_statistics.npz` retains the replicas and analytical
 covariances for comparison. Z+jet and single-year tags keep their existing method.
 
-Nominal data and reconstructed jackknife data must describe the same sample.
-The September 8 replica campaign has about 10.5% more weighted data than the
-older nominal inputs. The CLI currently rejects that pairing; use matching
-inputs or `--stat-method analytic`. It does not silently change the central
-spectrum or attach statistics from the different cohort. See
+The September 8 replica campaign carries about 10.5% more weighted data than
+the aligned nominal inputs. They are treated as the same sample: the replica
+covariance is applied to the nominal central values and the relative
+difference is recorded in the manifest (`statistics.data_sample_relative_l1_difference`).
+The data statistical uncertainty is therefore that of the slightly larger
+sample, about 5% smaller in relative terms. See
 [the jackknife study](docs/hadronic_jackknife_comparison.md).
 
 The provenance stamp on every figure is one switch: `--no-stamp` on the

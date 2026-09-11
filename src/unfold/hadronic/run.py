@@ -662,7 +662,8 @@ def run_channel(
         print(f"Analytic fallback: {statistics['fallback_reason']}: "
               + ", ".join(statistics["missing_files"]), flush=True)
     if replicas is not None:
-        check_data_sample(inputs.modes[grooming_mode].nominal_data, full_sample(replicas.data)["reco"])
+        statistics["data_sample_relative_l1_difference"] = check_data_sample(
+            inputs.modes[grooming_mode].nominal_data, full_sample(replicas.data)["reco"])
     resolved_systematics = resolve_hadronic_systematics(
         inputs.modes[grooming_mode].systematics,
         args.systematics,
