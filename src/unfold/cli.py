@@ -20,7 +20,7 @@ import subprocess
 import sys
 
 from unfold.config import (
-    CHANNELS, ChannelTag, DEFAULT_TAG, OBSERVABLES, ObservableSpec, PairSplitTag, describe, get_tag,
+    CHANNELS, ChannelTag, DEFAULT_TAG, OBSERVABLES, ObservableSpec, HadronicTag, describe, get_tag,
     list_tags, option_suffix, with_options,
 )
 from unfold.paths import REPO_ROOT
@@ -53,7 +53,7 @@ def resolve_output_dir(tag, args):
     base_reg = getattr(tag, "regularization", "none")
     suffix = option_suffix(jacobian=args.jacobian, regularization=args.regularization,
                            method=args.method, base_regularization=base_reg)
-    if isinstance(tag, PairSplitTag) and args.stat_method is not None and args.stat_method != tag.stat_method:
+    if isinstance(tag, HadronicTag) and args.stat_method is not None and args.stat_method != tag.stat_method:
         suffix += "_stat_" + args.stat_method
     return (REPO_ROOT / (tag.output_dir.rstrip("/") + suffix)).resolve()
 
@@ -159,20 +159,20 @@ def run_channel_year(args, tag, output_dir):
 
 
 # ---------------------------------------------------------------------------
-# dijet / trijet, Run 2 pair-split
+# dijet / trijet, Run 2 hadronic
 # ---------------------------------------------------------------------------
-def run_pairsplit(args, tag, output_dir):
-    from unfold.pairsplit.run import PairSplitOptions, run_all
+def run_hadronic(args, tag, output_dir):
+    from unfold.hadronic.run import HadronicOptions, run_all
 
     if args.method not in (None, "tunfold"):
-        sys.exit("the pair-split path has no RooUnfold backend")
+        sys.exit("the hadronic path has no RooUnfold backend")
     regularization = args.regularization if args.regularization is not None else tag.regularization
     if regularization == "ratio_curvature":
-        sys.exit("the pair-split path supports --regularization none|curvature")
+        sys.exit("the hadronic path supports --regularization none|curvature")
     tau = args.tau if args.tau is not None else tag.tau
     if tau is not None and regularization == "none":
         sys.exit("--tau requires --regularization curvature")
-    options = PairSplitOptions(
+    options = HadronicOptions(
         channel=tag.channel, grooming_mode=args.grooming_mode, binning=tag.binning,
         regularization=regularization, normalization_window=tag.normalization_window, tau=tau,
         systematics="nominal" if args.no_syst else tag.systematics, output_dir=output_dir,
@@ -200,7 +200,7 @@ def run(args):
 
     set_stamp(not args.no_stamp)
     tag = get_tag(args.channel, args.observable, args.tag)
-    if not isinstance(tag, PairSplitTag) and (
+    if not isinstance(tag, HadronicTag) and (
         args.stat_method is not None or args.jackknife_input_root is not None
     ):
         sys.exit("--stat-method and --jackknife-input-root apply to Run-2 dijet/trijet tags only")
@@ -208,8 +208,8 @@ def run(args):
     output_dir.mkdir(parents=True, exist_ok=True)
     if isinstance(tag, ObservableSpec):
         manifest = run_zjet(args, tag, output_dir)
-    elif isinstance(tag, PairSplitTag):
-        manifest = run_pairsplit(args, tag, output_dir)
+    elif isinstance(tag, HadronicTag):
+        manifest = run_hadronic(args, tag, output_dir)
     elif isinstance(tag, ChannelTag):
         manifest = run_channel_year(args, tag, output_dir)
     else:
@@ -241,7 +241,7 @@ def build_parser():
     r.add_argument("--stat-method", choices=("analytic", "jackknife"), default=None,
                    help="Run-2 dijet/trijet: jackknife by default, analytic if replica files are absent")
     r.add_argument("--jackknife-input-root", type=Path, default=None,
-                   help="Run-2 replica campaign containing data/ and mc/; overrides UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS")
+                   help="Run-2 replica campaign containing data/ and mc/; overrides UNFOLD_HADRONIC_JACKKNIFE_INPUTS")
     r.add_argument("--n-iter", type=int, default=None, help="D'Agostini iterations for roounfold_bayes")
     r.add_argument("--era-split", choices=("sqrt", "linear"), default="sqrt",
                    help="Z+jet JES year-correlation split: 'sqrt' is the JetMET prescription (default); "

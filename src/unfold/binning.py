@@ -6,8 +6,8 @@ the pT edges, the fine observable edges the input histograms are stored with
 on (a subset of the fine edges, possibly different per slice).
 
 Z+jet binnings are listed in ``ZJET_BINNINGS`` by name; the dijet/trijet and
-pair-split loaders build their ``Binning`` from their own tables (see
-``channel_inputs.py`` and ``pairsplit/inputs.py``).
+hadronic loaders build their ``Binning`` from their own tables (see
+``channel_inputs.py`` and ``hadronic/inputs.py``).
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Fail-closed MESS+Vincia inputs for the Run-2 pair-split unfolding plots.
+"""Fail-closed MESS+Vincia inputs for the Run-2 hadronic unfolding plots.
 
 The hadronic MESS prediction is intentionally separate from the Z+jet model
 cache in :mod:`unfold.model`.  It consumes the audited
@@ -26,7 +26,7 @@ from unfold.model import normalized_prediction_covariance
 from unfold.paths import MESS_CAMPAIGN_DIR, MESS_RESULTS
 
 
-PAIR_SPLIT_CHANNELS = ("dijet", "trijet")
+HADRONIC_CHANNELS = ("dijet", "trijet")
 JET_RADIUS = 0.8
 NUMERICAL_MASS_TOLERANCE_GEV = 1.0e-4
 PREDICTION_LABEL = "Vincia"
@@ -34,7 +34,7 @@ PREDICTION_LABEL = "Vincia"
 # label above was shortened to "Vincia" (2026-09-02); keeping the identity
 # string unchanged keeps the immutable run directory names stable.
 CAMPAIGN_IDENTITY_LABEL = "MESS+Vincia"
-SELECTION = "CMS_HADRONIC_PAIR_SPLIT"
+SELECTION = "CMS_HADRONIC_PAIR_SPLIT"   # producer label, external data
 ALLOWED_PHASES = frozenset(("pilot2", "full"))
 
 DEFAULT_FINAL_ALL_DIRECTORY = MESS_RESULTS / "final-all"
@@ -46,7 +46,7 @@ DEFAULT_COMPILED_DIJET_REFERENCE = (
 )
 
 
-class PairSplitVinciaValidationError(RuntimeError):
+class HadronicVinciaValidationError(RuntimeError):
     """An audited MESS+Vincia input does not satisfy the final-all contract."""
 
 
@@ -82,11 +82,11 @@ def _read_rows(path: Path) -> np.ndarray:
     if rows.size == 0:
         return np.empty((0, 6), dtype=float)
     if rows.ndim != 2 or rows.shape[1] != 6:
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             f"unexpected MESS ntuple schema in {path}: {rows.shape}; expected (N, 6)"
         )
     if not np.all(np.isfinite(rows[:, (0, 1, 2, 5)])):
-        raise PairSplitVinciaValidationError(f"non-finite pT, mass, or weight in {path}")
+        raise HadronicVinciaValidationError(f"non-finite pT, mass, or weight in {path}")
     return rows
 
 
@@ -110,31 +110,31 @@ def _validate_allowlist_and_audit(
     allowlist = json.loads(allowlist_path.read_text())
     audit = json.loads(audit_path.read_text())
     if audit.get("valid") is not True or audit.get("errors"):
-        raise PairSplitVinciaValidationError("MESS final-all audit is not valid")
+        raise HadronicVinciaValidationError("MESS final-all audit is not valid")
     if allowlist.get("audit_sha256") != sha256(audit_path):
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "MESS allowlist audit hash does not match the final-all audit"
         )
     manifests = allowlist.get("manifests")
     if not isinstance(manifests, list) or not manifests:
-        raise PairSplitVinciaValidationError("MESS final-all allowlist has no manifests")
+        raise HadronicVinciaValidationError("MESS final-all allowlist has no manifests")
     if int(allowlist.get("manifest_count", -1)) != len(manifests):
-        raise PairSplitVinciaValidationError("MESS allowlist manifest_count is inconsistent")
+        raise HadronicVinciaValidationError("MESS allowlist manifest_count is inconsistent")
     if int(audit.get("valid_manifests", -1)) != len(manifests):
-        raise PairSplitVinciaValidationError("MESS audit and allowlist manifest counts differ")
+        raise HadronicVinciaValidationError("MESS audit and allowlist manifest counts differ")
     if allowlist.get("campaign") != audit.get("campaign"):
-        raise PairSplitVinciaValidationError("MESS audit and allowlist campaigns differ")
+        raise HadronicVinciaValidationError("MESS audit and allowlist campaigns differ")
     selected_phases = set(audit.get("selected_phases", []))
     if not selected_phases or not selected_phases <= ALLOWED_PHASES:
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             f"MESS audit has unsupported selected phases: {sorted(selected_phases)}"
         )
     return allowlist, audit
 
 
 @dataclass(frozen=True)
-class PairSplitVinciaSource:
-    """Validated raw event rows and stable provenance for one pair-split channel."""
+class HadronicVinciaSource:
+    """Validated raw event rows and stable provenance for one hadronic channel."""
 
     channel: str
     campaign: str
@@ -188,10 +188,10 @@ class PairSplitVinciaSource:
 
 
 @dataclass(frozen=True)
-class PairSplitVinciaPrediction:
+class HadronicVinciaPrediction:
     """MESS+Vincia density arrays on the exact Unfolder truth binning."""
 
-    source: PairSplitVinciaSource
+    source: HadronicVinciaSource
     pt_edges: tuple[float, ...]
     gen_edges_by_pt: tuple[tuple[float, ...], ...]
     density_by_pt: tuple[np.ndarray, ...]
@@ -273,13 +273,13 @@ class PairSplitVinciaPrediction:
         }
 
 
-def load_pairsplit_vincia_source(
+def load_hadronic_vincia_source(
     channel: str,
     *,
     allowlist_path: Path = DEFAULT_ALLOWLIST,
     audit_path: Path = DEFAULT_AUDIT,
     campaign_directory: Path = DEFAULT_CAMPAIGN_DIRECTORY,
-) -> PairSplitVinciaSource:
+) -> HadronicVinciaSource:
     """Read the final-all raw rows after validating every input hash and count.
 
     This deliberately does not inspect the coarse ``model_comparison_arrays``
@@ -287,8 +287,8 @@ def load_pairsplit_vincia_source(
     binning, so the raw final-all rows are the only valid source.
     """
 
-    if channel not in PAIR_SPLIT_CHANNELS:
-        raise ValueError(f"unsupported pair-split MESS channel {channel!r}")
+    if channel not in HADRONIC_CHANNELS:
+        raise ValueError(f"unsupported hadronic MESS channel {channel!r}")
     allowlist_path = Path(allowlist_path).resolve()
     audit_path = Path(audit_path).resolve()
     campaign_directory = Path(campaign_directory).resolve()
@@ -300,7 +300,7 @@ def load_pairsplit_vincia_source(
         audited_campaign_directory is not None
         and Path(audited_campaign_directory).name != campaign_directory.name
     ):
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "requested MESS campaign name does not match the final-all audit"
         )
     # The campaign can move when a CERNBox mount is renamed. Its identity is
@@ -314,25 +314,25 @@ def load_pairsplit_vincia_source(
         manifest_path = _resolve_manifest_path(Path(record["path"]), campaign_directory)
         manifest_hash = sha256(manifest_path)
         if manifest_hash != record.get("sha256"):
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"allowlisted manifest hash mismatch: {manifest_path}"
             )
         manifest = json.loads(manifest_path.read_text())
         if manifest.get("campaign") != allowlist.get("campaign"):
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"campaign mismatch in {manifest_path}"
             )
         if manifest.get("selection") != SELECTION:
-            raise PairSplitVinciaValidationError(f"selection mismatch in {manifest_path}")
+            raise HadronicVinciaValidationError(f"selection mismatch in {manifest_path}")
         if manifest.get("phase") not in selected_phases or manifest.get("phase") not in ALLOWED_PHASES:
-            raise PairSplitVinciaValidationError(f"disallowed final-all phase in {manifest_path}")
+            raise HadronicVinciaValidationError(f"disallowed final-all phase in {manifest_path}")
         for field in ("bin", "seed", "lhe_events", "phase"):
             if manifest.get(field) != record.get(field):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"allowlist/manifest {field} mismatch in {manifest_path}"
                 )
         if not manifest.get("complete", False):
-            raise PairSplitVinciaValidationError(f"incomplete MESS manifest: {manifest_path}")
+            raise HadronicVinciaValidationError(f"incomplete MESS manifest: {manifest_path}")
         manifests_by_ht[str(manifest["bin"])].append(
             (manifest, manifest_path, manifest_hash)
         )
@@ -343,7 +343,7 @@ def load_pairsplit_vincia_source(
     for ht_bin, entries in sorted(manifests_by_ht.items()):
         denominator = sum(int(manifest["lhe_events"]) for manifest, _, _ in entries)
         if denominator <= 0:
-            raise PairSplitVinciaValidationError(f"nonpositive LHE denominator in {ht_bin}")
+            raise HadronicVinciaValidationError(f"nonpositive LHE denominator in {ht_bin}")
         ntuple_rows: list[np.ndarray] = []
         ntuple_weights: list[np.ndarray] = []
         xsecs: list[float] = []
@@ -352,7 +352,7 @@ def load_pairsplit_vincia_source(
         for manifest, manifest_path, manifest_hash in entries:
             ntuple_name = manifest.get(f"{channel}_ntuple")
             if not isinstance(ntuple_name, str):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"missing {channel} ntuple name in {manifest_path}"
                 )
             ntuple_path = manifest_path.parent / ntuple_name
@@ -360,11 +360,11 @@ def load_pairsplit_vincia_source(
                 raise FileNotFoundError(f"missing MESS ntuple {ntuple_path}")
             ntuple_hash = sha256(ntuple_path)
             if ntuple_hash != manifest.get("files_sha256", {}).get(ntuple_name):
-                raise PairSplitVinciaValidationError(f"ntuple hash mismatch: {ntuple_path}")
+                raise HadronicVinciaValidationError(f"ntuple hash mismatch: {ntuple_path}")
             rows = _read_rows(ntuple_path)
             manifest_rows = int(manifest.get(f"{channel}_rows", -1))
             if len(rows) != manifest_rows:
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"{channel} row count mismatch in {ntuple_path}: "
                     f"{len(rows)} != {manifest_rows}"
                 )
@@ -396,14 +396,14 @@ def load_pairsplit_vincia_source(
             else np.empty(0, dtype=float)
         )
         if len(rows_by_ht[ht_bin]) != expected_rows:
-            raise PairSplitVinciaValidationError(f"assembled row count mismatch in {ht_bin}")
+            raise HadronicVinciaValidationError(f"assembled row count mismatch in {ht_bin}")
         if len(row_weights_by_ht[ht_bin]) != expected_rows:
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"assembled normalized-weight count mismatch in {ht_bin}"
             )
         audit_rows = audit.get(f"{channel}_rows_by_bin", {}).get(ht_bin)
         if audit_rows is not None and int(audit_rows) != expected_rows:
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"audit {channel} rows disagree in {ht_bin}: {expected_rows} != {audit_rows}"
             )
         per_ht[ht_bin] = {
@@ -415,7 +415,7 @@ def load_pairsplit_vincia_source(
             "selected_events": selected_events,
         }
 
-    return PairSplitVinciaSource(
+    return HadronicVinciaSource(
         channel=channel,
         campaign=str(allowlist["campaign"]),
         campaign_directory=campaign_directory,
@@ -431,14 +431,14 @@ def load_pairsplit_vincia_source(
 
 
 def validate_compiled_reference(
-    source: PairSplitVinciaSource,
+    source: HadronicVinciaSource,
     *,
-    target_prediction: PairSplitVinciaPrediction | None = None,
+    target_prediction: HadronicVinciaPrediction | None = None,
     reference_path: Path = DEFAULT_COMPILED_DIJET_REFERENCE,
     rtol: float = 1.0e-11,
     atol: float = 1.0e-12,
 ) -> dict[str, object]:
-    """Cross-check pair-split MESS rows against the harvested final-all NPZ.
+    """Cross-check hadronic MESS rows against the harvested final-all NPZ.
 
     The reference was produced on the coarser ``400--infinity`` pT interval.
     We deliberately recombine the raw ``400--480``, ``480--570``, and
@@ -463,7 +463,7 @@ def validate_compiled_reference(
             atol=atol,
         )
     if source.channel != "dijet":
-        raise ValueError(f"unsupported pair-split MESS channel {source.channel!r}")
+        raise ValueError(f"unsupported hadronic MESS channel {source.channel!r}")
     reference_path = Path(reference_path).resolve()
     if not reference_path.is_file():
         raise FileNotFoundError(f"compiled MESS dijet reference is missing: {reference_path}")
@@ -481,7 +481,7 @@ def validate_compiled_reference(
             pt = rows[:, 0]
             groomed_mass = rows[:, 2]
             if np.any(groomed_mass < -NUMERICAL_MASS_TOLERANCE_GEV):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"groomed mass below audited numerical tolerance in {ht_bin}"
                 )
             groomed_mass = np.where(groomed_mass < 0.0, 0.0, groomed_mass)
@@ -502,12 +502,12 @@ def validate_compiled_reference(
                 coordinate[selected], bins=edges, weights=row_weight[selected] ** 2
             )[0]
     if not np.allclose(sumw, expected_sumw, rtol=rtol, atol=atol):
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "raw MESS dijet 400--480 + 480--570 + 570--13000 sumw does not "
             "match the harvested final-all reference"
         )
     if not np.allclose(sumw2, expected_sumw2, rtol=rtol, atol=atol):
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "raw MESS dijet 400--480 + 480--570 + 570--13000 sumw2 does not "
             "match the harvested final-all reference"
         )
@@ -521,7 +521,7 @@ def validate_compiled_reference(
             if pt_low >= 400.0 and pt_high <= 13000.0
         ]
         if not high_pt_indices:
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 "target MESS+Vincia prediction has no 400 GeV high-pT slices"
             )
         target_edges = np.asarray(
@@ -531,7 +531,7 @@ def validate_compiled_reference(
             np.array_equal(target_edges, target_prediction.gen_edges_by_pt[index])
             for index in high_pt_indices
         ):
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 "compiled high-pT regression requires identical target coordinate edges"
             )
         # The compiled reference is frozen on the pre-2026-08-27 free-edge
@@ -547,7 +547,7 @@ def validate_compiled_reference(
             rebinned_reference2 = _rebin_histogram_to_target_edges(
                 expected_sumw2, edges, target_edges
             )
-        except PairSplitVinciaValidationError as nesting_error:
+        except HadronicVinciaValidationError as nesting_error:
             target_rebin_validation = {
                 "applies": False,
                 "target_gen_edges": list(target_edges),
@@ -564,12 +564,12 @@ def validate_compiled_reference(
                 [target_prediction.sumw2_by_pt[index] for index in high_pt_indices], axis=0
             )
             if not np.allclose(target_sumw, rebinned_reference, rtol=rtol, atol=atol):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     "target-binned MESS+Vincia high-pT sumw does not match the "
                     "rebinned harvested final-all reference"
                 )
             if not np.allclose(target_sumw2, rebinned_reference2, rtol=rtol, atol=atol):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     "target-binned MESS+Vincia high-pT sumw2 does not match the "
                     "rebinned harvested final-all reference"
                 )
@@ -599,9 +599,9 @@ def validate_compiled_reference(
 
 
 def _validate_trijet_compiled_reference(
-    source: PairSplitVinciaSource,
+    source: HadronicVinciaSource,
     *,
-    target_prediction: PairSplitVinciaPrediction | None,
+    target_prediction: HadronicVinciaPrediction | None,
     reference_path: Path,
     rtol: float,
     atol: float,
@@ -609,7 +609,7 @@ def _validate_trijet_compiled_reference(
     """Rebin each exact trijet pT reference into the active truth bins."""
 
     if target_prediction is None:
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "trijet compiled-reference regression requires the target prediction"
         )
     reference_path = Path(reference_path).resolve()
@@ -627,7 +627,7 @@ def _validate_trijet_compiled_reference(
                 if bounds == (pt_low, pt_high)
             ]
             if matching != [len(validations)]:
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     "trijet target pT binning no longer matches the final-all reference"
                 )
             index = matching[0]
@@ -641,7 +641,7 @@ def _validate_trijet_compiled_reference(
             # target edges cannot nest and this redundant regression is
             # recorded as skipped rather than failing the run (raw-row
             # integrity is enforced by the allowlist/audit hash contract in
-            # load_pairsplit_vincia_source).
+            # load_hadronic_vincia_source).
             try:
                 rebinned_sumw = _rebin_histogram_to_target_edges(
                     reference_sumw, source_edges, target_edges
@@ -649,7 +649,7 @@ def _validate_trijet_compiled_reference(
                 rebinned_sumw2 = _rebin_histogram_to_target_edges(
                     reference_sumw2, source_edges, target_edges
                 )
-            except PairSplitVinciaValidationError as nesting_error:
+            except HadronicVinciaValidationError as nesting_error:
                 validations.append(
                     {
                         "pt_range_GeV": [pt_low, pt_high],
@@ -665,12 +665,12 @@ def _validate_trijet_compiled_reference(
             target_sumw = target_prediction.sumw_by_pt[index]
             target_sumw2 = target_prediction.sumw2_by_pt[index]
             if not np.allclose(target_sumw, rebinned_sumw, rtol=rtol, atol=atol):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"target-binned MESS+Vincia trijet {int(pt_low)} GeV sumw does not "
                     "match the rebinned harvested final-all reference"
                 )
             if not np.allclose(target_sumw2, rebinned_sumw2, rtol=rtol, atol=atol):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"target-binned MESS+Vincia trijet {int(pt_low)} GeV sumw2 does not "
                     "match the rebinned harvested final-all reference"
                 )
@@ -721,21 +721,21 @@ def _rebin_histogram_to_target_edges(
         if not selected.any() or not np.isclose(selected_edges[0], low) or not np.isclose(
             source_edges[1:][selected][-1], high
         ):
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"target bin [{low}, {high}] is not nested in the compiled reference edges"
             )
         rebinned[index] = values[selected].sum()
     return rebinned
 
 
-def derive_pairsplit_vincia_prediction(
-    source: PairSplitVinciaSource,
+def derive_hadronic_vincia_prediction(
+    source: HadronicVinciaSource,
     *,
     pt_edges: Sequence[float],
     gen_edges_by_pt: Sequence[Sequence[float]],
     normalization_window: tuple[float, float] = (-4.0, 0.0),
     grooming_mode: str = "groomed",
-) -> PairSplitVinciaPrediction:
+) -> HadronicVinciaPrediction:
     """Histogram final-all event rows on the exact current truth binning."""
 
     if grooming_mode not in {"groomed", "ungroomed"}:
@@ -765,7 +765,7 @@ def derive_pairsplit_vincia_prediction(
             pt = rows[:, 0]
             jet_mass = rows[:, mass_column]
             if np.any(jet_mass < -NUMERICAL_MASS_TOLERANCE_GEV):
-                raise PairSplitVinciaValidationError(
+                raise HadronicVinciaValidationError(
                     f"{grooming_mode} mass below audited numerical tolerance in {ht_bin}"
                 )
             # The MESS audit allows only bounded FastJet numerical residuals.
@@ -790,7 +790,7 @@ def derive_pairsplit_vincia_prediction(
         mask = _normalization_mask(edges, normalization_window)
         total = float(sumw[mask].sum())
         if total <= 0.0:
-            raise PairSplitVinciaValidationError(
+            raise HadronicVinciaValidationError(
                 f"MESS+Vincia has nonpositive shown normalization in pT slice {index}"
             )
         widths = np.diff(edges)
@@ -805,7 +805,7 @@ def derive_pairsplit_vincia_prediction(
         sumw2_by_pt.append(sumw2)
         totals_by_pt.append(total)
         masks_by_pt.append(mask)
-    return PairSplitVinciaPrediction(
+    return HadronicVinciaPrediction(
         source=source,
         grooming_mode=grooming_mode,
         pt_edges=tuple(float(value) for value in pt_edges_array),
@@ -821,7 +821,7 @@ def derive_pairsplit_vincia_prediction(
     )
 
 
-def attach_pairsplit_vincia_prediction(unfolder, prediction: PairSplitVinciaPrediction) -> None:
+def attach_hadronic_vincia_prediction(unfolder, prediction: HadronicVinciaPrediction) -> None:
     """Attach a prevalidated prediction to the shared core plotting workflow."""
 
     core_pt_edges = tuple(float(value) for value in np.asarray(unfolder.pt_edges, dtype=float))
@@ -830,11 +830,11 @@ def attach_pairsplit_vincia_prediction(unfolder, prediction: PairSplitVinciaPred
         for edges in unfolder.gen_edges_by_pt
     )
     if prediction.pt_edges != core_pt_edges or prediction.gen_edges_by_pt != core_gen_edges:
-        raise PairSplitVinciaValidationError(
+        raise HadronicVinciaValidationError(
             "MESS+Vincia prediction binning does not match the current Unfolder"
         )
     # The core checks this explicit flag before considering its legacy Z+jet
-    # cache, so a missing pair-split prediction cannot silently fall back.
-    unfolder.pairsplit_vincia_required = True
-    unfolder.pairsplit_vincia_prediction = prediction
+    # cache, so a missing hadronic prediction cannot silently fall back.
+    unfolder.hadronic_vincia_required = True
+    unfolder.hadronic_vincia_prediction = prediction
     unfolder.vincia_stat_covariance_by_pt = prediction.stat_covariance_by_pt

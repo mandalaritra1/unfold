@@ -1,4 +1,4 @@
-"""Run one pair-split channel: inputs, model envelope, unfold, artifact, manifest.
+"""Run one hadronic channel: inputs, model envelope, unfold, artifact, manifest.
 
 The output directory name is a fingerprint of the physics configuration
 (``run_configuration_identity``), so a changed binning, systematic list or
@@ -21,31 +21,31 @@ from unfold.binning import Binning
 from unfold.config import RHO_BASE
 from unfold.engine import Unfolder
 from unfold.inputs import prepared_inputs
-from unfold.paths import REPO_ROOT, PAIRSPLIT_JACKKNIFE_INPUTS
-from unfold.pairsplit.diagnostics import RunDiagnostics, collect_run_diagnostics
-from unfold.pairsplit.inputs import (
-    PAIR_SPLIT_CHANNELS,
-    PAIR_SPLIT_INPUT_ROOT,
-    PAIR_SPLIT_BINNING_VARIANTS,
+from unfold.paths import REPO_ROOT, HADRONIC_JACKKNIFE_INPUTS
+from unfold.hadronic.diagnostics import RunDiagnostics, collect_run_diagnostics
+from unfold.hadronic.inputs import (
+    HADRONIC_CHANNELS,
+    HADRONIC_INPUT_ROOT,
+    HADRONIC_BINNING_VARIANTS,
     FULL_SAFE_SYSTEMATIC_REQUEST,
     LEGACY_HISTOGRAM_KEYS,
     PHYSICAL_RHO_DEFINITION,
     TRANSFORMED_COORDINATE_DEFINITION,
     TRANSFORMED_COORDINATE_NAME,
-    PairSplitPreparedInputs,
-    PairSplitSourceFiles,
-    load_pairsplit_run2_inputs,
-    prepare_pairsplit_inputs,
-    resolve_pairsplit_systematics,
+    HadronicPreparedInputs,
+    HadronicSourceFiles,
+    load_hadronic_inputs,
+    prepare_hadronic_inputs,
+    resolve_hadronic_systematics,
 )
-from unfold.pairsplit.model_envelope import (
-    PairSplitModelEnvelopeInputs,
-    derive_pairsplit_model_envelope_inputs,
+from unfold.hadronic.model_envelope import (
+    HadronicModelEnvelopeInputs,
+    derive_hadronic_model_envelope_inputs,
 )
-from unfold.pairsplit.vincia import (
-    attach_pairsplit_vincia_prediction,
-    derive_pairsplit_vincia_prediction,
-    load_pairsplit_vincia_source,
+from unfold.hadronic.vincia import (
+    attach_hadronic_vincia_prediction,
+    derive_hadronic_vincia_prediction,
+    load_hadronic_vincia_source,
     validate_compiled_reference,
 )
 
@@ -77,12 +77,12 @@ STUDY_RECOMMENDED_VARIANT_BY_CHANNEL = {
 
 
 @dataclass
-class PairSplitOptions:
-    """Command-line options of a pair-split run (see ``cli.py``)."""
+class HadronicOptions:
+    """Command-line options of a hadronic run (see ``cli.py``)."""
 
     channel: str = "dijet"
     grooming_mode: str = "both"
-    input_root: Path = PAIR_SPLIT_INPUT_ROOT
+    input_root: Path = HADRONIC_INPUT_ROOT
     binning: str = STUDY_RECOMMENDED_BINNING
     regularization: str = "none"
     normalization_window: str = "full"
@@ -98,7 +98,7 @@ class PairSplitOptions:
     requested_binning: str | None = None
     command: str = ""
     stat_method: str = "jackknife"
-    jackknife_input_root: Path = PAIRSPLIT_JACKKNIFE_INPUTS
+    jackknife_input_root: Path = HADRONIC_JACKKNIFE_INPUTS
 
 
 def file_sha256(path: Path) -> str:
@@ -109,7 +109,7 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def source_file_metadata(source_files: Sequence[PairSplitSourceFiles]) -> list[dict]:
+def source_file_metadata(source_files: Sequence[HadronicSourceFiles]) -> list[dict]:
     records = []
     for source in source_files:
         records.append(
@@ -137,7 +137,7 @@ def _tau_directory_token(regularization: str, tau: float | None) -> str:
 
 
 def run_configuration_identity(
-    args: PairSplitOptions,
+    args: HadronicOptions,
     resolved_systematics: Sequence[str],
     mess_vincia_source: Mapping[str, object],
     model_envelope_source: Mapping[str, object] | None = None,
@@ -208,7 +208,7 @@ def run_configuration_identity(
 
 
 def resolved_normalization(
-    args: PairSplitOptions, grooming_mode: str
+    args: HadronicOptions, grooming_mode: str
 ) -> tuple[str, tuple[float, float]]:
     """Resolve the mode-specific published unit-area interval."""
 
@@ -217,14 +217,14 @@ def resolved_normalization(
     return args.normalization_window, NORMALIZATION_WINDOWS[args.normalization_window]
 
 
-def build_pairsplit_spec(
+def build_hadronic_spec(
     channel: str,
     output_dir: Path,
-    args: PairSplitOptions,
+    args: HadronicOptions,
     *,
     grooming_mode: str = "groomed",
 ):
-    """Build a pair-split spec without registering a global analysis tag."""
+    """Build a hadronic spec without registering a global analysis tag."""
 
     label = rf"$\log_{{10}}(\rho^2)$, {grooming_mode}"
     _, normalization_window = resolved_normalization(args, grooming_mode)
@@ -282,16 +282,16 @@ def build_pairsplit_spec(
 def resolve_channel_binning(requested_binning: str, channel: str) -> str:
     """Resolve the explicit cross-channel study recommendation for one channel."""
 
-    if channel not in PAIR_SPLIT_CHANNELS:
-        raise ValueError(f"Unsupported pair-split channel {channel!r}")
+    if channel not in HADRONIC_CHANNELS:
+        raise ValueError(f"Unsupported hadronic channel {channel!r}")
     if requested_binning == STUDY_RECOMMENDED_BINNING:
         return STUDY_RECOMMENDED_VARIANT_BY_CHANNEL[channel]
-    if requested_binning not in PAIR_SPLIT_BINNING_VARIANTS:
-        raise ValueError(f"Unsupported pair-split binning request {requested_binning!r}")
+    if requested_binning not in HADRONIC_BINNING_VARIANTS:
+        raise ValueError(f"Unsupported hadronic binning request {requested_binning!r}")
     return requested_binning
 
 
-def channel_resolved_args(args: PairSplitOptions, channel: str) -> PairSplitOptions:
+def channel_resolved_args(args: HadronicOptions, channel: str) -> HadronicOptions:
     """Return options whose binning value is the concrete channel candidate."""
 
     return replace(args, requested_binning=args.binning,
@@ -313,7 +313,7 @@ def run_nominal_mc_self_closure(
     data_unfolder,
     *,
     spec,
-    prepared: PairSplitPreparedInputs,
+    prepared: HadronicPreparedInputs,
     cms_label: str,
     lumi: float,
     com: float,
@@ -362,11 +362,11 @@ def run_nominal_mc_self_closure(
 
 def write_artifact(
     unfolder,
-    prepared: PairSplitPreparedInputs,
+    prepared: HadronicPreparedInputs,
     output_dir: Path,
     diagnostics: RunDiagnostics,
     vincia_prediction,
-    model_envelope: PairSplitModelEnvelopeInputs | None = None,
+    model_envelope: HadronicModelEnvelopeInputs | None = None,
 ) -> Path:
     """Save reproducible inputs, result arrays, and numerical audit diagnostics."""
 
@@ -470,9 +470,9 @@ def write_artifact(
 
 def build_manifest(
     *,
-    args: PairSplitOptions,
+    args: HadronicOptions,
     channel: str,
-    prepared: PairSplitPreparedInputs,
+    prepared: HadronicPreparedInputs,
     source_records: Sequence[dict],
     artifact: Path,
     resolved_tau: float,
@@ -481,13 +481,13 @@ def build_manifest(
     diagnostics: RunDiagnostics,
     vincia_prediction,
     vincia_reference_validation: Mapping[str, object],
-    model_envelope: PairSplitModelEnvelopeInputs | None = None,
+    model_envelope: HadronicModelEnvelopeInputs | None = None,
     model_selection: Mapping[str, object] | None = None,
 ) -> dict:
     """Record terminology, exact group maps, and the current uncertainty scope."""
 
     return {
-        "workflow": f"Run-2 {prepared.metadata['grooming_mode']} pair-split TUnfold",
+        "workflow": f"Run-2 {prepared.metadata['grooming_mode']} hadronic TUnfold",
         "channel": channel,
         "grooming_mode": prepared.metadata["grooming_mode"],
         "run_identity": run_identity,
@@ -645,15 +645,15 @@ def run_channel_plots(unfolder, output_dir: Path, closure_unfolder=None) -> Path
 
 
 def run_channel(
-    args: PairSplitOptions, channel: str, *, grooming_mode: str = "groomed"
+    args: HadronicOptions, channel: str, *, grooming_mode: str = "groomed"
 ) -> Path:
     """Load and unfold one channel, keeping only one channel's arrays resident."""
 
     import ROOT
-    from unfold.pairsplit.jackknife import load_jackknife_inputs, check_data_sample, full_sample, apply_jackknife
+    from unfold.hadronic.jackknife import load_jackknife_inputs, check_data_sample, full_sample, apply_jackknife
 
     args = channel_resolved_args(args, channel)
-    inputs = load_pairsplit_run2_inputs(channel, input_root=args.input_root)
+    inputs = load_hadronic_inputs(channel, input_root=args.input_root)
     replicas, statistics = load_jackknife_inputs(
         args.jackknife_input_root, channel, grooming_mode, requested=args.stat_method
     )
@@ -663,16 +663,16 @@ def run_channel(
               + ", ".join(statistics["missing_files"]), flush=True)
     if replicas is not None:
         check_data_sample(inputs.modes[grooming_mode].nominal_data, full_sample(replicas.data)["reco"])
-    resolved_systematics = resolve_pairsplit_systematics(
+    resolved_systematics = resolve_hadronic_systematics(
         inputs.modes[grooming_mode].systematics,
         args.systematics,
     )
     _, normalization_window = resolved_normalization(args, grooming_mode)
-    # Pair-split must consume the audited hadronic final-all rows; never let
+    # Hadronic must consume the audited hadronic final-all rows; never let
     # the generic core fall through to its unrelated Z+jet Vincia cache.
-    vincia_source = load_pairsplit_vincia_source(channel)
+    vincia_source = load_hadronic_vincia_source(channel)
     model_envelope = (
-        derive_pairsplit_model_envelope_inputs(
+        derive_hadronic_model_envelope_inputs(
             inputs,
             vincia_source,
             variant=args.binning,
@@ -682,7 +682,7 @@ def run_channel(
         if args.model_envelope
         else None
     )
-    prepared = prepare_pairsplit_inputs(
+    prepared = prepare_hadronic_inputs(
         inputs,
         args.binning,
         resolved_systematics,
@@ -698,7 +698,7 @@ def run_channel(
             else None
         ),
     )
-    vincia_prediction = derive_pairsplit_vincia_prediction(
+    vincia_prediction = derive_hadronic_vincia_prediction(
         vincia_source,
         pt_edges=prepared.analysis_binning.pt_edges,
         gen_edges_by_pt=prepared.analysis_binning.gen_two_log10_rho_edges_by_pt,
@@ -721,7 +721,7 @@ def run_channel(
     # <tag dir>/<mode>/; the configuration fingerprint stays in the manifest
     output_dir = (Path(args.output_dir) / grooming_mode).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    spec = build_pairsplit_spec(
+    spec = build_hadronic_spec(
         channel, output_dir, args, grooming_mode=grooming_mode
     )
     ROOT.gErrorIgnoreLevel = ROOT.kError
@@ -739,7 +739,7 @@ def run_channel(
     unfolder = Unfolder(engine_inputs, spec, groomed, cms_label=args.cms_label, lumi=args.lumi, com=args.com).run(
         statistics=(lambda u: apply_jackknife(u, replicas, args.binning)) if replicas is not None else None
     )
-    attach_pairsplit_vincia_prediction(unfolder, vincia_prediction)
+    attach_hadronic_vincia_prediction(unfolder, vincia_prediction)
     closure_unfolder = run_nominal_mc_self_closure(
         unfolder,
         spec=spec,
@@ -819,14 +819,14 @@ def run_channel(
     return manifest_path
 
 
-def run_all(args: PairSplitOptions) -> list[Path]:
+def run_all(args: HadronicOptions) -> list[Path]:
     """Run every requested channel and grooming mode; return the manifest paths."""
     grooming_modes = ("groomed", "ungroomed") if args.grooming_mode == "both" else (args.grooming_mode,)
     manifests = []
     channel = args.channel
     resolved_binning = resolve_channel_binning(args.binning, channel)
     for grooming_mode in grooming_modes:
-        print(f"Running {grooming_mode} pair-split {channel} with {resolved_binning} (requested {args.binning})")
+        print(f"Running {grooming_mode} hadronic {channel} with {resolved_binning} (requested {args.binning})")
         manifests.append(run_channel(args, channel, grooming_mode=grooming_mode))
         print(f"manifest: {manifests[-1]}")
     return manifests

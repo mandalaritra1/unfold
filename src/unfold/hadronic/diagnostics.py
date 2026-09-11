@@ -1,4 +1,4 @@
-"""Numerical audit of one pair-split run (metrics for the manifest, arrays for the artifact).
+"""Numerical audit of one hadronic run (metrics for the manifest, arrays for the artifact).
 
 Everything here reads a finished ``Unfolder``; nothing changes its state.
 """
@@ -9,7 +9,7 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
-from unfold.pairsplit.inputs import PHYSICAL_RHO_DEFINITION, TRANSFORMED_COORDINATE_DEFINITION
+from unfold.hadronic.inputs import PHYSICAL_RHO_DEFINITION, TRANSFORMED_COORDINATE_DEFINITION
 
 
 class RunDiagnostics:
@@ -42,7 +42,7 @@ def _flat_offsets(edges_by_pt: Sequence[Sequence[float]]) -> tuple[np.ndarray, n
 
 
 def _normalization_mask(edges: Sequence[float], window: tuple[float, float] | None) -> np.ndarray:
-    """Select complete coordinate bins inside the explicit pair-split window."""
+    """Select complete coordinate bins inside the explicit hadronic window."""
 
     edges = np.asarray(edges, dtype=float)
     if window is None:

@@ -1,8 +1,8 @@
-# Pair-split model covariance
+# Hadronic model covariance
 
 Accepted by the user on 2026-09-05 after reviewing the before/after comparisons.
 
-The pair-split runner defaults to `--model-covariance enclosing_ellipsoid`.
+The hadronic runner defaults to `--model-covariance enclosing_ellipsoid`.
 `--model-covariance selected_variation` reproduces the previous prescription.
 Z+jet retains its existing default.
 
@@ -34,7 +34,7 @@ compared with the previous two selected covariance directions, it retains
 additional shape directions.
 
 Implementation: `src/unfold/tools/model_covariance.py`, with integration in
-`Unfolder` and `scripts/run_pairsplit_unfolding.py`. The artifact stores both
+`Unfolder` and `scripts/run_hadronic_unfolding.py`. The artifact stores both
 group matrices, the method, and template-containment diagnostics. The raw
 binwise envelopes remain diagnostic quantities, not the new displayed model
 band. Historical selected-vector diagnostics require legacy artifacts.
@@ -44,14 +44,14 @@ Reproduce the saved-output comparison without rerunning unfolding:
 ```bash
 source scripts/setup_root.sh
 MPLBACKEND=Agg PYTHONPATH="$PWD/src:$PYTHONPATH" .venv/bin/python \
-  scripts/diagnostics/compare_pairsplit_model_covariance.py \
-  --output outputs/pairsplit_run2/model_covariance_comparison_new
+  scripts/diagnostics/compare_hadronic_model_covariance.py \
+  --output outputs/hadronic/model_covariance_comparison_new
 ```
 
 The comparison verifies canonical input hashes, reproduces the previous saved
 band and total covariance, checks unchanged central values and non-model
 covariance, and verifies positive semidefiniteness and normalization null modes.
 The 2026-09-05 comparison is in
-`outputs/pairsplit_run2/model_covariance_comparison_2026-09-05_v2/`, including
+`outputs/hadronic/model_covariance_comparison_2026-09-05_v2/`, including
 24-page `comparison.pdf`, PNG/PDF panels, numerical arrays, and `manifest.json`.
 Canonical production outputs and the analysis note were not overwritten.

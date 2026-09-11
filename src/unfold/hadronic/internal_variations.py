@@ -1,4 +1,4 @@
-"""Raw internal-Pythia transfer ratios for pair-split model uncertainties.
+"""Raw internal-Pythia transfer ratios for hadronic model uncertainties.
 
 This is the ungroomed counterpart of the existing harvested groomed transfer
 file.  It deliberately reproduces ``harvest_internal_variations.py``: within
@@ -29,7 +29,7 @@ DEFAULT_CAMPAIGN_DIRECTORY = INTERNAL_CAMPAIGN_DIR
 DEFAULT_FINAL_DIRECTORY = INTERNAL_RESULTS / "final_1000of1000"
 
 
-class PairSplitInternalVariationError(RuntimeError):
+class HadronicInternalVariationError(RuntimeError):
     """The raw internal-variation campaign violates its harvest contract."""
 
 
@@ -46,7 +46,7 @@ def _sha256(path: Path) -> str:
 
 
 @dataclass(frozen=True)
-class PairSplitInternalTransfers:
+class HadronicInternalTransfers:
     channel: str
     grooming_mode: str
     coordinate_edges: tuple[float, ...]
@@ -54,7 +54,7 @@ class PairSplitInternalTransfers:
     provenance: Mapping[str, object]
 
 
-def load_pairsplit_internal_transfers(
+def load_hadronic_internal_transfers(
     channel: str,
     *,
     grooming_mode: str,
@@ -63,7 +63,7 @@ def load_pairsplit_internal_transfers(
     final_directory: Path = DEFAULT_FINAL_DIRECTORY,
     expected_campaign: str = DEFAULT_CAMPAIGN,
     required_manifest_count: int = 1000,
-) -> PairSplitInternalTransfers:
+) -> HadronicInternalTransfers:
     """Derive exact raw variation/CP5 ratios on ``coordinate_edges``."""
 
     if channel not in {"dijet", "trijet"}:
@@ -86,7 +86,7 @@ def load_pairsplit_internal_transfers(
         or validation.get("errors")
         or validation.get("campaign") != expected_campaign
     ):
-        raise PairSplitInternalVariationError("internal-variation campaign validation failed")
+        raise HadronicInternalVariationError("internal-variation campaign validation failed")
 
     selected: list[tuple[Path, dict]] = []
     seen: set[tuple[str, int]] = set()
@@ -101,15 +101,15 @@ def load_pairsplit_internal_transfers(
         if manifest.get("mode") != "five_million":
             continue
         if not manifest.get("complete") or manifest.get("campaign") != expected_campaign:
-            raise PairSplitInternalVariationError(f"invalid manifest: {path}")
+            raise HadronicInternalVariationError(f"invalid manifest: {path}")
         key = (str(manifest["bin"]), int(manifest["seed"]))
         if key in seen:
-            raise PairSplitInternalVariationError(f"duplicate internal manifest key {key}")
+            raise HadronicInternalVariationError(f"duplicate internal manifest key {key}")
         seen.add(key)
         selected.append((path, manifest))
     expected_count = int(validation.get("mode_counts", {}).get("five_million", -1))
     if len(selected) != expected_count or expected_count != required_manifest_count:
-        raise PairSplitInternalVariationError(
+        raise HadronicInternalVariationError(
             f"expected {required_manifest_count} five_million manifests, "
             f"found {len(selected)}"
         )
@@ -125,12 +125,12 @@ def load_pairsplit_internal_transfers(
         manifest_hashes.append(_sha256(manifest_path))
         entries = {str(entry["config"]): entry for entry in manifest["configs"]}
         if tuple(entries) != CONFIGS:
-            raise PairSplitInternalVariationError(f"wrong config set in {manifest_path}")
+            raise HadronicInternalVariationError(f"wrong config set in {manifest_path}")
         for config in CONFIGS:
             entry = entries[config]
             generated_lumi = float(entry["sumw"]) / float(entry["xsec_pb"])
             if not np.isfinite(generated_lumi) or generated_lumi <= 0.0:
-                raise PairSplitInternalVariationError(
+                raise HadronicInternalVariationError(
                     f"invalid generated luminosity in {manifest_path} ({config})"
                 )
             denominators[(ht_bin, config)] = (
@@ -146,11 +146,11 @@ def load_pairsplit_internal_transfers(
             if rows.size == 0:
                 rows = np.empty((0, 6), dtype=float)
             if rows.shape != (int(entry[f"{channel}_rows"]), 6):
-                raise PairSplitInternalVariationError(
+                raise HadronicInternalVariationError(
                     f"row-count/schema mismatch in {ntuple_path}: {rows.shape}"
                 )
             if not np.all(np.isfinite(rows)):
-                raise PairSplitInternalVariationError(f"non-finite row in {ntuple_path}")
+                raise HadronicInternalVariationError(f"non-finite row in {ntuple_path}")
             ntuple_inventory.append(
                 {
                     "path": str(ntuple_path),
@@ -185,7 +185,7 @@ def load_pairsplit_internal_transfers(
                 ]
             total = float(spectrum.sum())
             if not np.isfinite(total) or total <= 0.0:
-                raise PairSplitInternalVariationError(
+                raise HadronicInternalVariationError(
                     f"empty internal {config} {channel} spectrum at {pt_low:g} GeV"
                 )
             spectra[config][int(pt_low)] = spectrum / total
@@ -205,7 +205,7 @@ def load_pairsplit_internal_transfers(
     inventory_hash = hashlib.sha256(
         json.dumps(ntuple_inventory, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
-    return PairSplitInternalTransfers(
+    return HadronicInternalTransfers(
         channel=channel,
         grooming_mode=grooming_mode,
         coordinate_edges=tuple(float(value) for value in coordinate_edges),

@@ -9,8 +9,8 @@ Two loaders exist:
 
 * ``zjet_inputs.load_zjet_inputs`` reads the merged-era Z+jet pickles;
 * ``prepared_inputs`` (this module) takes already adapted ``hist`` objects
-  with a ``systematic`` axis, which is how the dijet/trijet and pair-split
-  channels arrive (``channel_inputs``, ``pairsplit.inputs``).
+  with a ``systematic`` axis, which is how the dijet/trijet and hadronic
+  channels arrive (``channel_inputs``, ``hadronic.inputs``).
 """
 
 from __future__ import annotations
@@ -215,7 +215,7 @@ def _resolve_covariance(covariance, groomed, n_reco):
 
 def prepared_inputs(spec, groomed, binning, *, mc_inputs, data_inputs, systematics,
                     herwig_inputs=None, measured_covariance=None, first_reported_pt_bin=1):
-    """Build ``UnfoldInputs`` from adapted histograms (dijet/trijet, pair-split).
+    """Build ``UnfoldInputs`` from adapted histograms (dijet/trijet, hadronic).
 
     Every requested systematic must exist in the response and in both MC
     marginals: a varied migration matrix is never combined with nominal fakes

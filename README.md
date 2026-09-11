@@ -20,7 +20,7 @@ figure suite (`unfold/plots.py`); they differ only in how the inputs are read:
 | channel | `original` inputs | loader |
 |---|---|---|
 | zjet | merged-era coffea pickles, `inputs/zjet/rho/jmsjmr_unity/` | `zjet_inputs.py` |
-| dijet, trijet | full Run-2 pair-split pickles on CERNBox (`paths.py`) | `pairsplit/` |
+| dijet, trijet | full Run-2 hadronic pickles on CERNBox (`paths.py`) | `hadronic/` |
 | dijet, trijet, tag `2018` | single-year `inputs/<channel>/rho/minimal_rho_*.pkl` | `channel_inputs.py` |
 
 ## Setup
@@ -38,7 +38,7 @@ refer to this environment.  ROOT with TUnfold comes from an external build
 (`UNFOLD_ROOTSYS` in `setup_root.sh`), not from pip; RooUnfold is picked up
 when it has been built (`setup_roounfold.sh`, only for `--method roounfold_bayes`).
 Everything that lives outside the repository (CERNBox skims, the generator
-campaigns of the pair-split modelling uncertainty) is located through the
+campaigns of the hadronic modelling uncertainty) is located through the
 environment variables listed in `src/unfold/paths.py`.
 
 ## Running
@@ -63,7 +63,7 @@ unfold gallery --root outputs/zjet/rho/original  # rebuild the HTML gallery
 
 Outputs go to `outputs/<channel>/<observable>/<tag>/` (git-ignored) in a
 categorized layout (`summary/`, `unfolded/`, `uncertainties/`,
-`bottom_line/`, `response/`, `validation/`, `data/`); the pair-split channels
+`bottom_line/`, `response/`, `validation/`, `data/`); the hadronic channels
 add one level, `groomed/` and `ungroomed/`.  Every run writes
 `run_manifest.json` with the resolved configuration, the command and the git
 revision.  The numeric products are:
@@ -81,7 +81,7 @@ nominal measured covariance remains the fit weight, including dijet event
 correlations. The bottom-line test retains its data-statistics-plus-model scope.
 
 The default replica directory is set in `paths.py`; override it with
-`UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS` or `--jackknife-input-root`. Missing any required
+`UNFOLD_HADRONIC_JACKKNIFE_INPUTS` or `--jackknife-input-root`. Missing any required
 era/data/MC file selects the analytical method for that run. Existing malformed
 files cause an error. The manifest records the requested and actual method,
 fallback reason, replica hashes, fixed-fake policy, and covariance ranks.
@@ -110,7 +110,7 @@ src/unfold/
   inputs.py         UnfoldInputs (the engine's input contract) + prepared-input builder
   zjet_inputs.py    merged-era Z+jet pickles -> UnfoldInputs
   channel_inputs.py dijet/trijet minimal_rho pickles -> adapted hists
-  pairsplit/        pair-split inputs, Vincia/CR/frag modelling, diagnostics, run glue
+  hadronic/        hadronic inputs, Vincia/CR/frag modelling, diagnostics, run glue
   engine.py         Unfolder: TUnfold / RooUnfold, stat and syst propagation, bottom line
   model.py          model envelope, enclosing-template covariance, prediction statistics
   plots.py          every figure, as functions of a run Unfolder
@@ -127,7 +127,7 @@ docs/               method notes
 Add an entry to `config.TAGS[(channel, observable)]`.  For zjet that is an
 `ObservableSpec` built with `dataclasses.replace(...)` from `RHO_BASE`,
 `ZJET_RHO_ORIGINAL` or `ZJET_RHO_ARC_R2` (pick the binning by name from
-`binning.ZJET_BINNINGS`); for dijet / trijet a `PairSplitTag` (normalization
+`binning.ZJET_BINNINGS`); for dijet / trijet a `HadronicTag` (normalization
 window, binning variant, systematics request, model covariance) or a
 `ChannelTag` (year).  Give it `output_dir("<channel>", "<observable>", "<tag>")`.
 `unfold tags` lists the registry and `config.describe(tag)` prints one entry.
@@ -137,7 +137,7 @@ window, binning variant, systematics request, model covariance) or a
 Write a loader that returns an `UnfoldInputs` (see the field comments in
 `inputs.py`).  If the producer histograms carry a `systematic` axis, adapt
 them and call `inputs.prepared_inputs(...)` as `channel_inputs.py` and
-`pairsplit/run.py` do.  Then `Unfolder(inputs, spec, groomed).run()` and
+`hadronic/run.py` do.  Then `Unfolder(inputs, spec, groomed).run()` and
 `plots.run_all_plots(u)`.
 
 ## Checking that nothing changed
@@ -162,7 +162,7 @@ that name's outputs.
 ## Physics changes and caveats
 
 * The Z+jet JES year-correlation split now uses the JetMET prescription
-  (amplitudes sqrt(rho), sqrt(1-rho)), as the pair-split channels always did.
+  (amplitudes sqrt(rho), sqrt(1-rho)), as the hadronic channels always did.
   Before 2026-09-09 Z+jet used linear coefficients (rho, 1-rho), which
   under-covers the rho = 0.5 sources by a factor sqrt(2) in amplitude.  The
   central values are unchanged; only the JES legs of the band move.  The old

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a vector-quality groomed + ungroomed pair-split plot book."""
+"""Build a vector-quality groomed + ungroomed hadronic plot book."""
 
 from __future__ import annotations
 
@@ -20,9 +20,9 @@ from reportlab.pdfgen import canvas
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT_ROOT = ROOT / "outputs" / "pairsplit_run2"
-OUTPUT_PDF = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.pdf"
-INVENTORY_JSON = OUTPUT_ROOT / "PAIR_SPLIT_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.inventory.json"
+OUTPUT_ROOT = ROOT / "outputs" / "hadronic"
+OUTPUT_PDF = OUTPUT_ROOT / "HADRONIC_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.pdf"
+INVENTORY_JSON = OUTPUT_ROOT / "HADRONIC_GROOMED_UNGROOMED_PLOT_BOOK_2026-08-27.inventory.json"
 
 # the four production runs: `unfold run --channel dijet` and `--channel trijet`
 RUN_MANIFESTS = tuple(
@@ -406,7 +406,7 @@ def draw_running_furniture(pdf: canvas.Canvas, page_number: int) -> None:
     pdf.line(36, 32, 576, 32)
     pdf.setFillColor(MUTED)
     pdf.setFont("Helvetica-Bold", 7.8)
-    pdf.drawString(36, 762, "RUN-2 PAIR-SPLIT UNFOLDING | GROOMED + UNGROOMED PLOT BOOK")
+    pdf.drawString(36, 762, "RUN-2 DIJET + TRIJET UNFOLDING | GROOMED + UNGROOMED PLOT BOOK")
     pdf.setFont("Helvetica", 7.8)
     pdf.drawString(36, 20, "Internal evidence review | 18 Aug 2026")
     pdf.drawRightString(576, 20, f"Page {page_number}")
@@ -416,7 +416,7 @@ def draw_cover(pdf: canvas.Canvas, runs: Sequence[RunRecord], n_plots: int) -> N
     draw_running_furniture(pdf, 1)
     pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 20)
-    pdf.drawString(36, 720, "RUN-2 PAIR-SPLIT TUnfold PLOT BOOK")
+    pdf.drawString(36, 720, "RUN-2 DIJET + TRIJET TUnfold PLOT BOOK")
     pdf.setFillColor(DARK_BLUE)
     pdf.setFont("Helvetica-Bold", 11.5)
     pdf.drawString(36, 700, "Groomed and ungroomed | log10(rho^2), rho = m/(pT R), R = 0.8")
@@ -540,7 +540,7 @@ def page_comments(page: PlotPage) -> tuple[str, str]:
         )
         return (
             "Detector-level data vs QCD (MG+Pythia8) on the exact unfolding reco binning; the band is MC stat, detector systematics, and the PS/HAD model envelope; "
-            f"data errors use {error_source} (scripts/datamc/data_mc_pairsplit_rho.py).",
+            f"data errors use {error_source} (scripts/datamc/data_mc_hadronic_rho.py).",
             "The MC is shape-normalized to the data yield within this pT slice (trigger prescale weights make cross-slice yields meaningless), so this is a shape comparison with no absolute-rate claim.",
         )
     if page.product == "unfolded":
@@ -721,7 +721,7 @@ def build() -> tuple[Path, list[dict[str, object]]]:
 
     writer.add_metadata(
         {
-            "/Title": "Run-2 pair-split TUnfold groomed and ungroomed plot book",
+            "/Title": "Run-2 hadronic TUnfold groomed and ungroomed plot book",
             "/Subject": "Canonical dijet and trijet groomed and ungroomed unfolding figures",
             "/Author": "CMS jet-mass analysis",
             "/Creator": "Codex vector plot-book builder",

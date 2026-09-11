@@ -15,9 +15,9 @@ import numpy as np
 
 from unfold.binning import Binning
 from unfold.inputs import prepared_inputs
-from unfold.pairsplit.inputs import (
-    LEGACY_HISTOGRAM_KEYS, PAIR_SPLIT_ERAS, PAIR_SPLIT_FINE_AXES,
-    PairSplitModeArrays, PairSplitRun2Inputs, prepare_pairsplit_inputs,
+from unfold.hadronic.inputs import (
+    LEGACY_HISTOGRAM_KEYS, HADRONIC_ERAS, HADRONIC_FINE_AXES,
+    HadronicModeArrays, HadronicRun2Inputs, prepare_hadronic_inputs,
 )
 
 AXES = {
@@ -49,7 +49,7 @@ def extract_histogram(histogram, role, mode):
         raise ValueError(f"Expected the ten campaign jackknife labels 0..9, got {labels}")
     if list(histogram.axes["systematic"]) != ["nominal"]:
         raise ValueError("Jackknife histograms must contain nominal only")
-    fine = PAIR_SPLIT_FINE_AXES[mode]
+    fine = HADRONIC_FINE_AXES[mode]
     expected = {"ptreco": fine.pt_edges, "ptgen": fine.pt_edges,
                 "mpt_reco": fine.two_log10_rho_reco_edges,
                 "mpt_gen": fine.two_log10_rho_gen_edges}
@@ -81,8 +81,8 @@ class JackknifeInputs:
         """Use the production binning adapter, retaining the fixed full fit metric."""
         mc = full_sample(self.mc) if label is None else {k: v[label] for k, v in self.mc.items()}
         data = full_sample(self.data) if label is None else {k: v[label] for k, v in self.data.items()}
-        source = PairSplitModeArrays(
-            grooming_mode=self.mode, fine_axes=PAIR_SPLIT_FINE_AXES[self.mode],
+        source = HadronicModeArrays(
+            grooming_mode=self.mode, fine_axes=HADRONIC_FINE_AXES[self.mode],
             systematics=("nominal",),
             **{f"{role}_by_systematic": {"nominal": mc[role]} for role in AXES},
             **{f"{role}_variance_by_systematic": {"nominal": mc[role + "_variance"]} for role in AXES},
@@ -91,12 +91,12 @@ class JackknifeInputs:
             # used as the fit metric; the full nominal covariance is supplied below.
             nominal_data_covariance=np.diag(data["reco_variance"].ravel()),
         )
-        bundle = PairSplitRun2Inputs(
-            channel=self.channel, eras=PAIR_SPLIT_ERAS, modes={self.mode: source},
+        bundle = HadronicRun2Inputs(
+            channel=self.channel, eras=HADRONIC_ERAS, modes={self.mode: source},
             source_files=(), observable_metadata={"data_covariance_source_by_mode": {
                 self.mode: "fixed nominal full covariance"}},
         )
-        adapted = prepare_pairsplit_inputs(bundle, variant, ("nominal",), grooming_mode=self.mode)
+        adapted = prepare_hadronic_inputs(bundle, variant, ("nominal",), grooming_mode=self.mode)
         b = adapted.analysis_binning
         binning = Binning(pt_edges=b.pt_edges, reco_edges=b.two_log10_rho_reco_edges,
                           gen_edges=b.two_log10_rho_gen_edges,
@@ -120,7 +120,7 @@ def load_jackknife_inputs(root, channel, mode, *, requested="jackknife"):
         raise ValueError(f"Unknown statistical method: {requested}")
     paths = [(kind, era, root / kind / f"rho_jk_{channel}_{sample}_{era}.pkl")
              for kind, sample in (("data", "data"), ("mc", "mg_pythia8"))
-             for era in PAIR_SPLIT_ERAS]
+             for era in HADRONIC_ERAS]
     missing = [str(path) for _, _, path in paths if not path.exists()]
     if missing:
         metadata.update(fallback_reason="required replica files absent", missing_files=missing)

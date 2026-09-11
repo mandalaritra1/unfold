@@ -10,13 +10,13 @@ from unfold.model import (
     compute_prepared_model_shifts,
     group_model_shifts,
 )
-from unfold.pairsplit.model_envelope import (
+from unfold.hadronic.model_envelope import (
     _condition_transfer_weight,
     _derive_iterated_weight,
 )
-from unfold.pairsplit.internal_variations import (
+from unfold.hadronic.internal_variations import (
     CONFIGS,
-    load_pairsplit_internal_transfers,
+    load_hadronic_internal_transfers,
 )
 
 
@@ -72,7 +72,7 @@ def test_raw_internal_ungroomed_harvest_uses_pooled_generated_luminosity(tmp_pat
         )
     )
 
-    transfers = load_pairsplit_internal_transfers(
+    transfers = load_hadronic_internal_transfers(
         "dijet",
         grooming_mode="ungroomed",
         coordinate_edges=(-10.0, -2.5, -2.0, -1.5, -1.0, -0.5, 0.0),

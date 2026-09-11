@@ -64,7 +64,7 @@ JES_RUN2_CORRELATIONS = {
 }
 JER_RUN2_CORRELATION = 0.0
 
-# Producer-side JES sources known to be broken in the pair-split skims.
+# Producer-side JES sources known to be broken in the hadronic skims.
 DEFECTIVE_JES_SOURCES = ("RelativeJEREC1", "RelativeJEREC2", "RelativeJERHF")
 
 JES_SOURCES = tuple(JES_RUN2_CORRELATIONS)

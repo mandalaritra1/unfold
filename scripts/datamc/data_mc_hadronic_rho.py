@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Run-2 detector-level data/MC validation plots for the pair-split channels.
+"""Run-2 detector-level data/MC validation plots for the hadronic channels.
 
-The pair-split sibling of ``data_mc_rho_fancy.py`` (Z+jet): one panel per
+The hadronic sibling of ``data_mc_rho_fancy.py`` (Z+jet): one panel per
 reported jet-pT slice for dijet/trijet x groomed/ungroomed, on the candidate
 base reco binning actually used by the unfolding.
 
@@ -17,7 +17,7 @@ Two normalization facts make this comparison honest:
 The uncertainty band is MC-stat (+) detector systematics (the same resolved
 Run-2 virtual JES/JER legs and safe categories the unfolding uses, each
 variation shape-normalized to data so only shape enters) (+) the two-leg
-PS/HAD model band built from the audited pair-split model-envelope weights
+PS/HAD model band built from the audited hadronic model-envelope weights
 (PS = max(MESS+Vincia, FSR); HAD = max(CR1, CR2, frag-hard, frag-soft)).
 Data error bars use the diagonal of the same measured covariance fed to
 TUnfold (event-clustered for dijet, sumw2 for trijet).
@@ -46,21 +46,21 @@ from matplotlib.ticker import LogLocator
 
 ROOT = Path(__file__).resolve().parents[2]
 
-from unfold.pairsplit.inputs import (
+from unfold.hadronic.inputs import (
     FULL_SAFE_SYSTEMATIC_REQUEST,
     LEGACY_HISTOGRAM_KEYS,
-    PAIR_SPLIT_CHANNELS,
+    HADRONIC_CHANNELS,
     PHYSICAL_RHO_DEFINITION,
     TRANSFORMED_COORDINATE_DEFINITION,
-    load_pairsplit_run2_inputs,
-    prepare_pairsplit_inputs,
-    resolve_pairsplit_systematics,
+    load_hadronic_inputs,
+    prepare_hadronic_inputs,
+    resolve_hadronic_systematics,
 )
-from unfold.pairsplit.model_envelope import (
+from unfold.hadronic.model_envelope import (
     MODEL_SOURCES,
-    derive_pairsplit_model_envelope_inputs,
+    derive_hadronic_model_envelope_inputs,
 )
-from unfold.pairsplit.vincia import load_pairsplit_vincia_source
+from unfold.hadronic.vincia import load_hadronic_vincia_source
 from unfold.cms_plot import (
     PUB_ANNOTATION_FONTSIZE,
     PUB_LABEL_FONTSIZE,
@@ -69,7 +69,7 @@ from unfold.cms_plot import (
     save_cms_label_flavors,
 )
 
-# Mirrors unfold pairsplit: the delivered candidate per
+# Mirrors unfold hadronic: the delivered candidate per
 # channel and the published display windows.
 STUDY_RECOMMENDED_VARIANT_BY_CHANNEL = {"dijet": "aligned", "trijet": "aligned"}
 DISPLAY_WINDOWS = {"groomed": (-3.5, 0.0), "ungroomed": (-2.5, 0.0)}
@@ -88,18 +88,18 @@ hep.style.use("CMS")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--channel", action="append", choices=PAIR_SPLIT_CHANNELS,
+    parser.add_argument("--channel", action="append", choices=HADRONIC_CHANNELS,
                         default=None, help="Repeatable; defaults to both channels.")
     parser.add_argument("--grooming-mode", choices=("groomed", "ungroomed", "both"),
                         default="both")
     parser.add_argument("--output-root", type=Path,
-                        default=ROOT / "outputs" / "pairsplit_run2" / "data_mc")
+                        default=ROOT / "outputs" / "hadronic" / "data_mc")
     parser.add_argument("--cms-label", default="Internal")
     parser.add_argument("--lumi", type=float, default=138.0)
     parser.add_argument("--no-stamp", action="store_true",
                         help="Drop the working-plot provenance stamp (publication use).")
     args = parser.parse_args()
-    args.channel = tuple(args.channel or PAIR_SPLIT_CHANNELS)
+    args.channel = tuple(args.channel or HADRONIC_CHANNELS)
     return args
 
 
@@ -299,14 +299,14 @@ def make_panel(
 def run_channel_mode(args, channel: str, mode: str, inputs, vincia_source) -> dict:
     variant = STUDY_RECOMMENDED_VARIANT_BY_CHANNEL[channel]
     window = DISPLAY_WINDOWS[mode]
-    resolved = resolve_pairsplit_systematics(
+    resolved = resolve_hadronic_systematics(
         inputs.modes[mode].systematics, FULL_SAFE_SYSTEMATIC_REQUEST
     )
-    model_envelope = derive_pairsplit_model_envelope_inputs(
+    model_envelope = derive_hadronic_model_envelope_inputs(
         inputs, vincia_source, variant=variant,
         normalization_window=window, grooming_mode=mode,
     )
-    prepared = prepare_pairsplit_inputs(
+    prepared = prepare_hadronic_inputs(
         inputs, variant, resolved, grooming_mode=mode,
         model_variations=model_envelope.prepared_variations(),
         model_metadata=model_envelope.provenance_payload(),
@@ -324,7 +324,7 @@ def run_channel_mode(args, channel: str, mode: str, inputs, vincia_source) -> di
     output_dir = args.output_root / channel
     stamp = None if args.no_stamp else (
         f"{datetime.date.today().isoformat()}  |  unfold {repo_version()}  |  "
-        f"inputs: pairsplit_run2 {variant} {mode}"
+        f"inputs: hadronic {variant} {mode}"
     )
     outputs = []
     bin_widths = np.diff(shown_edges)
@@ -389,8 +389,8 @@ def main() -> None:
         "runs": [],
     }
     for channel in args.channel:
-        inputs = load_pairsplit_run2_inputs(channel)
-        vincia_source = load_pairsplit_vincia_source(channel)
+        inputs = load_hadronic_inputs(channel)
+        vincia_source = load_hadronic_vincia_source(channel)
         for mode in modes:
             print(f"data/MC: {channel} {mode}")
             provenance["runs"].append(

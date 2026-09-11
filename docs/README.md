@@ -12,7 +12,7 @@ restructure, so their file references use the old layout; the mapping is:
 | `outputs/pairsplit_run2/<channel>/aligned/<fingerprint>/` | `outputs/<channel>/rho/original/<mode>/` |
 | `src/unfold/tools/unfolder_core.py` (`Unfolder`, `RHO_SPECS`, `ObservableSpec`) | `src/unfold/engine.py`, `config.py` (`TAGS`) |
 | `src/unfold/tools/binning.py` (`bin_edges`) | `src/unfold/binning.py` (`ZJET_BINNINGS`) |
-| `src/unfold/tools/pairsplit_*.py` | `src/unfold/pairsplit/` |
+| `src/unfold/tools/pairsplit_*.py` | `src/unfold/hadronic/` |
 | `src/unfold/tools/model_envelope.py`, `model_covariance.py`, `prediction_statistics.py` | `src/unfold/model.py` |
 | `notebooks/*.py` data/MC figures | `scripts/datamc/` |
 | `scripts/studies/`, `scripts/diagnostics/` | `legacy/scripts/` (run against the snapshot tag, see `legacy/README.md`) |

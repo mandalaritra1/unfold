@@ -14,7 +14,7 @@ fallback when replica files are absent.
 `--jackknife-input-root` overrides the campaign location. Z+jet and the
 single-year tags retain their previous behavior.
 
-`src/unfold/pairsplit/jackknife.py` validates the input files and selects groups
+`src/unfold/hadronic/jackknife.py` validates the input files and selects groups
 by category label. It runs ten data and ten response/GEN/misses fits with the
 nominal fake fraction, full measured fit covariance, and selected tau fixed.
 Data replicas are multiplied by `10/9` for absolute-yield covariance; that

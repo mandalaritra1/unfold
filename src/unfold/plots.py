@@ -309,7 +309,7 @@ def plot_folded(u, show=True, *, counts=False):
 
     ``counts=False`` retains the historical, independently normalized
     shape comparison.  The opt-in ``counts=True`` path is for prepared
-    pair-split inputs: it compares fake-corrected measured counts to
+    hadronic inputs: it compares fake-corrected measured counts to
     ``x_folded`` on the native reco binning and uses the diagonal of the
     fake-corrected measured covariance for the data error bars.
     """
@@ -907,7 +907,7 @@ def _mark_offscale_ratio_band(ax, centers, frac_up, frac_down, *, top=2.0, botto
 
 
 def plot_unfolded_fancy(u, log=False, show=True):
-    # The focused pair-split runner calls this before any other core plot.
+    # The focused hadronic runner calls this before any other core plot.
     # Establish the CMS 10x10 canvas here rather than inheriting Matplotlib's
     # 6.4x4.8 default: the latter cannot accommodate the public-size labels,
     # CMS/pT annotation, and uncertainty legend without clipping.  This is
@@ -958,17 +958,17 @@ def plot_unfolded_fancy(u, log=False, show=True):
         if has_herwig
         else None
     )
-    # True standalone-Vincia gen prediction (rho only).  Pair-split runs
+    # True standalone-Vincia gen prediction (rho only).  Hadronic runs
     # attach an audited MESS+Vincia prediction explicitly; their required
     # flag prevents any accidental fallback to this core's Z+jet cache.
     vincia_truth = None
     vincia_label = "Vincia"
     if u.spec.name == "rho" and not is_closure:
-        if getattr(u, "pairsplit_vincia_required", False):
-            prediction = getattr(u, "pairsplit_vincia_prediction", None)
+        if getattr(u, "hadronic_vincia_required", False):
+            prediction = getattr(u, "hadronic_vincia_prediction", None)
             if prediction is None:
                 raise RuntimeError(
-                    "pair-split MESS+Vincia prediction was required but not attached"
+                    "hadronic MESS+Vincia prediction was required but not attached"
                 )
             vincia_truth = prediction.truth_by_pt()
             vincia_label = prediction.label
@@ -2708,7 +2708,7 @@ def plot_lcurve(u, show=True):
 def plot_correlation(u, show=True, shown_only=False, covariance="stat"):
     """Plot the normalized-result correlation matrix.
 
-    ``covariance="stat"`` is the historical default.  Prepared pair-split
+    ``covariance="stat"`` is the historical default.  Prepared hadronic
     result plots can opt into ``"total"`` to include the rank-one
     systematic covariance contributions in the displayed correlation.
     """
@@ -2717,7 +2717,7 @@ def plot_correlation(u, show=True, shown_only=False, covariance="stat"):
     # approval-talk figure; the full-space version stays the default.
     cov_matrix = u._correlation_covariance(covariance)
     # The explicit first reported slice controls the correlation view.  Some
-    # legacy inputs have a 185--200 GeV sink at index zero; pair-split
+    # legacy inputs have a 185--200 GeV sink at index zero; hadronic
     # inputs instead begin their physical measurement at that index.
     first_pt_bin = getattr(u, "first_reported_pt_bin", 0)
     gen_offset = sum(

@@ -13,10 +13,10 @@ a code defect does not certify old inputs or authorize a production rerun.
 | R3 | 2017 trigger threshold: code 310 vs AN 359 GeV | User regards AN as outdated; moved on | Keep code at 310; efficiency provenance remains unverified |
 | R4 | AN systematic-closure success claim contradicted by tables | User accepts model-case exception; leave unchanged | No edit; model reco limitations cited by user, not independently verified |
 | R5 | Large dijet refolding residuals and statistical interpretation | Closed by user review on 2026-09-05 | No further investigation or analysis change requested |
-| R6 | Displayed model envelope differs from covariance | Closed; prescription accepted by user on 2026-09-05 | Two enclosing-template group covariances; see pairsplit_model_covariance.md |
+| R6 | Displayed model envelope differs from covariance | Closed; prescription accepted by user on 2026-09-05 | Two enclosing-template group covariances; see hadronic_model_covariance.md |
 | R7 | Dijet model/producer fiducials differ | Closed by user review on 2026-09-05; accepted limitation | No further investigation or selection change; numerical effect not quantified |
 | R8 | JES exclusions and model fake treatment | Fake assumption accepted; JES restoration conditional on valid inputs | Retain defective categories exclusion; restore only verified genuine JES variations |
-| R9 | Prediction statistics omit normalization correlations | Fixed and validated on 2026-09-08 | Jacobian propagation; see pairsplit_prediction_statistics.md |
+| R9 | Prediction statistics omit normalization correlations | Fixed and validated on 2026-09-08 | Jacobian propagation; see hadronic_prediction_statistics.md |
 | R10 | Additional AN physics definitions and claims | Closed on 2026-09-08 | Mass formula, recoil interpretation and bottom-line wording corrected; PDF rebuilt and inspected |
 
 ## R1: Chunk-dependent histogram filling
@@ -219,7 +219,7 @@ the GluonJetMass venv with uproot/XRootD and `--output <review-json-path>`.
   weights with LHA IDs 325300-325402 and central member one. No production
   code, unfolding or uncertainty prescription changed.
 - Coherent symmetric-Hessian members, genWeight, cross-section/sample-sumw HT
-  combination, pair_split truth cuts, and canonical per-pT normalization give
+  combination, hadronic truth cuts, and canonical per-pT normalization give
   reported-bin PDF ranges: dijet groomed 0.089-0.599%, dijet ungroomed
   0.030-1.041%, trijet groomed 0.276-1.931%, trijet ungroomed 0.190-4.562%.
   These are preliminary gen-shape estimates. Half-sample differences are

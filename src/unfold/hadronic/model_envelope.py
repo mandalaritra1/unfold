@@ -1,6 +1,6 @@
-"""Pair-split inputs for the shared Z+jet two-leg model envelope.
+"""Hadronic inputs for the shared Z+jet two-leg model envelope.
 
-This module derives generator-space weights on the *stored fine* pair-split
+This module derives generator-space weights on the *stored fine* hadronic
 coordinate before the candidate GEN-bin merge.  The response adapter applies
 those weights to the nominal response columns and inclusive GEN marginal, then
 the maintained :class:`~unfold.engine.Unfolder` re-unfolds the
@@ -12,7 +12,7 @@ The reported prescription is the Z+jet ARC round-2 one::
     HAD = max(CR1, CR2, fragmentation-hard, fragmentation-soft)
     model = sqrt(PS**2 + HAD**2)
 
-The 2026-08-13 MESS+Vincia numerator is on the exact pair-split fiducial.  The
+The 2026-08-13 MESS+Vincia numerator is on the exact hadronic fiducial.  The
 available CR/fragmentation transfer ratios predate that fiducial, so their
 provenance is retained explicitly and the resulting HAD leg is provisional.
 """
@@ -27,13 +27,13 @@ from typing import Mapping, Sequence
 import numpy as np
 
 from unfold.paths import INTERNAL_RESULTS
-from unfold.pairsplit.inputs import PairSplitRun2Inputs, pair_split_binning
-from unfold.pairsplit.internal_variations import (
-    load_pairsplit_internal_transfers,
+from unfold.hadronic.inputs import HadronicRun2Inputs, hadronic_binning
+from unfold.hadronic.internal_variations import (
+    load_hadronic_internal_transfers,
 )
-from unfold.pairsplit.vincia import (
-    PairSplitVinciaSource,
-    derive_pairsplit_vincia_prediction,
+from unfold.hadronic.vincia import (
+    HadronicVinciaSource,
+    derive_hadronic_vincia_prediction,
 )
 
 
@@ -49,8 +49,8 @@ DEFAULT_CLOSURE_TOLERANCE = 0.01
 DEFAULT_MAX_ITERATIONS = 8
 
 
-class PairSplitModelEnvelopeError(RuntimeError):
-    """A model source cannot satisfy the pair-split reweight contract."""
+class HadronicModelEnvelopeError(RuntimeError):
+    """A model source cannot satisfy the hadronic reweight contract."""
 
 
 def _sha256(path: Path) -> str:
@@ -68,7 +68,7 @@ def _normalization_mask(
     low, high = (float(value) for value in window)
     mask = (edges[:-1] >= low - 1.0e-12) & (edges[1:] <= high + 1.0e-12)
     if not np.any(mask):
-        raise PairSplitModelEnvelopeError(
+        raise HadronicModelEnvelopeError(
             f"normalization window {window} contains no complete fine bins"
         )
     return mask
@@ -81,7 +81,7 @@ def _nearest_anchor_fill(values: np.ndarray, anchors: np.ndarray) -> np.ndarray:
     anchors = np.asarray(anchors, dtype=bool)
     anchor_indices = np.flatnonzero(anchors)
     if anchor_indices.size == 0:
-        raise PairSplitModelEnvelopeError("model reweight has no populated anchor bins")
+        raise HadronicModelEnvelopeError("model reweight has no populated anchor bins")
     output = values.copy()
     for index in np.flatnonzero(~anchors):
         nearest = anchor_indices[np.argmin(np.abs(anchor_indices - index))]
@@ -99,7 +99,7 @@ def _renormalize_weight(
         (np.asarray(nominal)[normalization_mask] * np.asarray(weight)[normalization_mask]).sum()
     )
     if nominal_total <= 0.0 or varied_total <= 0.0:
-        raise PairSplitModelEnvelopeError(
+        raise HadronicModelEnvelopeError(
             "model reweight has a nonpositive normalization-window integral"
         )
     return np.asarray(weight, dtype=float) * (nominal_total / varied_total)
@@ -129,11 +129,11 @@ def _derive_iterated_weight(
     if nominal.shape != target.shape or anchors.shape != nominal.shape:
         raise ValueError("nominal, target, and anchor arrays must have identical shapes")
     if np.any(nominal < 0.0) or np.any(target < 0.0):
-        raise PairSplitModelEnvelopeError("model reweight inputs contain negative bins")
+        raise HadronicModelEnvelopeError("model reweight inputs contain negative bins")
     nominal_norm = float(nominal[normalization_mask].sum())
     target_norm = float(target[normalization_mask].sum())
     if nominal_norm <= 0.0 or target_norm <= 0.0:
-        raise PairSplitModelEnvelopeError(
+        raise HadronicModelEnvelopeError(
             "model reweight nominal or target has no normalization-window yield"
         )
 
@@ -171,7 +171,7 @@ def _derive_iterated_weight(
     )
     residual_max = float(np.max(np.abs(closure[anchors] - 1.0)))
     if residual_max > closure_tolerance:
-        raise PairSplitModelEnvelopeError(
+        raise HadronicModelEnvelopeError(
             "iterated model reweight failed its populated-bin closure gate: "
             f"{residual_max:.6g} > {closure_tolerance:.6g}"
         )
@@ -230,8 +230,8 @@ def _condition_transfer_weight(
 
 
 @dataclass(frozen=True)
-class PairSplitModelEnvelopeInputs:
-    """Fine-axis weights and complete provenance for one pair-split channel."""
+class HadronicModelEnvelopeInputs:
+    """Fine-axis weights and complete provenance for one hadronic channel."""
 
     channel: str
     grooming_mode: str
@@ -272,9 +272,9 @@ class PairSplitModelEnvelopeInputs:
         }
 
 
-def derive_pairsplit_model_envelope_inputs(
-    inputs: PairSplitRun2Inputs,
-    vincia_source: PairSplitVinciaSource,
+def derive_hadronic_model_envelope_inputs(
+    inputs: HadronicRun2Inputs,
+    vincia_source: HadronicVinciaSource,
     *,
     variant: str,
     normalization_window: tuple[float, float],
@@ -285,12 +285,12 @@ def derive_pairsplit_model_envelope_inputs(
     clip: tuple[float, float] = DEFAULT_WEIGHT_CLIP,
     closure_tolerance: float = DEFAULT_CLOSURE_TOLERANCE,
     max_iterations: int = DEFAULT_MAX_ITERATIONS,
-) -> PairSplitModelEnvelopeInputs:
+) -> HadronicModelEnvelopeInputs:
     """Derive the five fine-axis response weights used by the model envelope."""
 
     if inputs.channel != vincia_source.channel:
         raise ValueError(
-            f"pair-split input channel {inputs.channel!r} does not match "
+            f"hadronic input channel {inputs.channel!r} does not match "
             f"MESS source channel {vincia_source.channel!r}"
         )
     if grooming_mode not in {"groomed", "ungroomed"}:
@@ -306,7 +306,7 @@ def derive_pairsplit_model_envelope_inputs(
     )
     expected_shape = (len(fine_pt_edges) - 1, len(fine_coordinate_edges) - 1)
     if nominal_gen.shape != expected_shape:
-        raise PairSplitModelEnvelopeError(
+        raise HadronicModelEnvelopeError(
             f"unexpected fine nominal GEN shape {nominal_gen.shape}; expected {expected_shape}"
         )
     normalization_mask = _normalization_mask(
@@ -317,10 +317,10 @@ def derive_pairsplit_model_envelope_inputs(
     # for trijet and the high-pT dijet slice: the final-all sample has adequate
     # statistics after the candidate pT merge, but not in every internal
     # 680--760/760--820/820--infinity source slice separately.
-    candidate = pair_split_binning(
+    candidate = hadronic_binning(
         inputs.channel, variant, grooming_mode=grooming_mode
     )
-    mess_prediction = derive_pairsplit_vincia_prediction(
+    mess_prediction = derive_hadronic_vincia_prediction(
         vincia_source,
         pt_edges=candidate.pt_edges,
         gen_edges_by_pt=(tuple(fine_coordinate_edges),) * len(candidate.pt_groups),
@@ -381,7 +381,7 @@ def derive_pairsplit_model_envelope_inputs(
     # with the old axes; the ratios remain "normalized variation /
     # normalized standalone CP5" applied to the FullSim nominal.
     internal_context = None
-    raw_internal = load_pairsplit_internal_transfers(
+    raw_internal = load_hadronic_internal_transfers(
         inputs.channel,
         grooming_mode=grooming_mode,
         coordinate_edges=fine_coordinate_edges,
@@ -426,7 +426,7 @@ def derive_pairsplit_model_envelope_inputs(
     source_identity = {
         "mess_vincia": vincia_source.identity_payload(),
         "vincia_denominator": {
-            "source": "combined Run-2 FullSim nominal GEN spectrum from the pair-split response inputs",
+            "source": "combined Run-2 FullSim nominal GEN spectrum from the hadronic response inputs",
             "status": "provisional_no_matched_pair_split_standalone_cp5_denominator",
             "interpretation": (
                 "MESS+Vincia / FullSim CP5 is an alternate-model response leg; "
@@ -454,7 +454,7 @@ def derive_pairsplit_model_envelope_inputs(
         "combination": "PS=max(MESS+Vincia,FSR); HAD=max(CR1,CR2,frag-hard,frag-soft); model=sqrt(PS^2+HAD^2)",
         "isr_treatment": "excluded from model band",
     }
-    return PairSplitModelEnvelopeInputs(
+    return HadronicModelEnvelopeInputs(
         channel=inputs.channel,
         grooming_mode=grooming_mode,
         weights_by_source=weights_by_source,

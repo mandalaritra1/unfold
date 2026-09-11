@@ -15,8 +15,8 @@ import pickle
 import hist
 import numpy as np
 
-from unfold.pairsplit.inputs import (
-    LEGACY_HISTOGRAM_KEYS, PAIR_SPLIT_FINE_AXES,
+from unfold.hadronic.inputs import (
+    LEGACY_HISTOGRAM_KEYS, HADRONIC_FINE_AXES,
 )
 
 AXES = {
@@ -65,7 +65,7 @@ def main():
             payload = pickle.load(handle)
         output = {}
         for mode, keys in LEGACY_HISTOGRAM_KEYS.items():
-            fine = PAIR_SPLIT_FINE_AXES[mode]
+            fine = HADRONIC_FINE_AXES[mode]
             expected_edges = {"ptreco": fine.pt_edges, "ptgen": fine.pt_edges,
                               "mpt_reco": fine.two_log10_rho_reco_edges,
                               "mpt_gen": fine.two_log10_rho_gen_edges}

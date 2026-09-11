@@ -4,7 +4,7 @@
 is one of three kinds, which differ only in where the inputs come from:
 
 * ``ObservableSpec``   Z+jet merged-era pickles (``zjet_inputs``);
-* ``PairSplitTag``     dijet / trijet, full Run 2 pair-split pickles (``pairsplit``);
+* ``HadronicTag``     dijet / trijet, full Run 2 hadronic pickles (``hadronic``);
 * ``ChannelTag``       dijet / trijet, single-year ``minimal_rho`` pickles (``channel_inputs``).
 
 Every tag writes to ``outputs/<channel>/<observable>/<tag>/``.  The default
@@ -31,7 +31,7 @@ class ObservableSpec:
     """Z+jet: inputs, binning names, plot labels and the unfolding knobs.
 
     The knobs (``method`` onward) are read by the engine for every channel;
-    the pair-split and channel tags build a spec from ``RHO_BASE`` at run
+    the hadronic and channel tags build a spec from ``RHO_BASE`` at run
     time and only override what they need.
     """
     # identity
@@ -103,12 +103,12 @@ class ObservableSpec:
 
 
 @dataclass(frozen=True)
-class PairSplitTag:
-    """dijet / trijet rho from the Run-2 pair-split pickles (``unfold.pairsplit``)."""
+class HadronicTag:
+    """dijet / trijet rho from the Run-2 hadronic pickles (``unfold.hadronic``)."""
     channel: str
     output_dir: str
     normalization_window: str = "full"          # "full" ([-3.5, 0]) or "peak" ([-2.0, -0.75]); ungroomed always [-2.5, 0]
-    binning: str = "study_recommended"          # name in pairsplit.inputs.PAIR_SPLIT_BINNING_VARIANTS
+    binning: str = "study_recommended"          # name in hadronic.inputs.HADRONIC_BINNING_VARIANTS
     systematics: str = "nominal,all_safe_non_jes,JER,JES"
     model_envelope: bool = True
     model_covariance: str = "enclosing_ellipsoid"   # or "selected_variation"
@@ -235,12 +235,12 @@ TAGS = {
     ("zjet", "mass"): {"original": MASS_BASE},
     ("dijet", "rho"): {
         # the production: aligned binning, peak-window normalization, full safe systematics
-        "original": PairSplitTag("dijet", output_dir("dijet", "rho", "original"), normalization_window="peak"),
-        # single-year minimal_rho pickles under inputs/dijet/rho/ (pre pair-split)
+        "original": HadronicTag("dijet", output_dir("dijet", "rho", "original"), normalization_window="peak"),
+        # single-year minimal_rho pickles under inputs/dijet/rho/ (pre hadronic)
         "2018": ChannelTag("dijet", output_dir("dijet", "rho", "2018")),
     },
     ("trijet", "rho"): {
-        "original": PairSplitTag("trijet", output_dir("trijet", "rho", "original"), normalization_window="full"),
+        "original": HadronicTag("trijet", output_dir("trijet", "rho", "original"), normalization_window="full"),
         "2018": ChannelTag("trijet", output_dir("trijet", "rho", "2018")),
     },
 }

@@ -7,26 +7,26 @@ import numpy as np
 import pytest
 
 from unfold.cli import build_parser, resolve_output_dir
-from unfold.config import PairSplitTag
-from unfold.pairsplit.jackknife import (
+from unfold.config import HadronicTag
+from unfold.hadronic.jackknife import (
     covariance, full_sample, extract_histogram, load_jackknife_inputs, check_data_sample,
 )
-from unfold.pairsplit.inputs import PAIR_SPLIT_FINE_AXES
-from unfold.pairsplit.run import PairSplitOptions
+from unfold.hadronic.inputs import HADRONIC_FINE_AXES
+from unfold.hadronic.run import HadronicOptions
 
 
 def test_cli_default_and_explicit_analytic():
     parser = build_parser()
     args = parser.parse_args(["run", "--channel", "dijet"])
     assert args.stat_method is None
-    assert PairSplitOptions().stat_method == "jackknife"
-    assert PairSplitTag("dijet", "outputs/test").stat_method == "jackknife"
+    assert HadronicOptions().stat_method == "jackknife"
+    assert HadronicTag("dijet", "outputs/test").stat_method == "jackknife"
     assert parser.parse_args(["run", "--channel", "trijet", "--stat-method", "analytic"]).stat_method == "analytic"
 
 
 def test_explicit_method_preserves_default_output_directory():
     parser = build_parser()
-    tag = PairSplitTag("dijet", "outputs/dijet/rho/original/")
+    tag = HadronicTag("dijet", "outputs/dijet/rho/original/")
     default = parser.parse_args(["run", "--channel", "dijet"])
     analytic = parser.parse_args(["run", "--channel", "dijet", "--stat-method", "analytic"])
     assert resolve_output_dir(tag, default).name == "original"
@@ -62,7 +62,7 @@ def test_complete_but_corrupt_campaign_errors(tmp_path):
 
 
 def test_label_order_and_sumw2_reconstruction():
-    fine = PAIR_SPLIT_FINE_AXES["groomed"]
+    fine = HADRONIC_FINE_AXES["groomed"]
     order = [9, 3, 7, 0, 2, 8, 4, 1, 6, 5]
     h = hist.Hist(hist.axis.IntCategory(order, name="jk"),
                   hist.axis.StrCategory(["nominal"], name="systematic"),

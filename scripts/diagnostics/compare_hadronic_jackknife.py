@@ -16,12 +16,12 @@ import numpy as np
 
 from unfold.engine import Unfolder
 from unfold.inputs import prepared_inputs
-from unfold.pairsplit.inputs import (
-    PAIR_SPLIT_FINE_AXES, PairSplitModeArrays, PairSplitRun2Inputs,
-    prepare_pairsplit_inputs,
+from unfold.hadronic.inputs import (
+    HADRONIC_FINE_AXES, HadronicModeArrays, HadronicRun2Inputs,
+    prepare_hadronic_inputs,
 )
-from unfold.pairsplit.run import (
-    PairSplitOptions, analysis_binning_to_binning, build_pairsplit_spec,
+from unfold.hadronic.run import (
+    HadronicOptions, analysis_binning_to_binning, build_hadronic_spec,
 )
 
 
@@ -50,8 +50,8 @@ def full_sample(replicas):
 
 
 def input_bundle(channel, mode, mc, data, spec, variant, measured_covariance):
-    source = PairSplitModeArrays(
-        grooming_mode=mode, fine_axes=PAIR_SPLIT_FINE_AXES[mode], systematics=("nominal",),
+    source = HadronicModeArrays(
+        grooming_mode=mode, fine_axes=HADRONIC_FINE_AXES[mode], systematics=("nominal",),
         response_by_systematic={"nominal": mc["response"]},
         response_variance_by_systematic={"nominal": mc["response_variance"]},
         reco_by_systematic={"nominal": mc["reco"]},
@@ -63,10 +63,10 @@ def input_bundle(channel, mode, mc, data, spec, variant, measured_covariance):
         # supplied full production covariance below, not this diagonal.
         nominal_data_covariance=np.diag(data["reco_variance"].ravel()),
     )
-    study = PairSplitRun2Inputs(channel=channel, eras=("2016APV", "2016", "2017", "2018"),
+    study = HadronicRun2Inputs(channel=channel, eras=("2016APV", "2016", "2017", "2018"),
         modes={mode: source}, source_files=(), observable_metadata={
             "data_covariance_source_by_mode": {mode: "fixed saved nominal covariance"}})
-    adapted = prepare_pairsplit_inputs(study, variant, ("nominal",), grooming_mode=mode)
+    adapted = prepare_hadronic_inputs(study, variant, ("nominal",), grooming_mode=mode)
     result = prepared_inputs(spec, mode == "groomed", analysis_binning_to_binning(adapted.analysis_binning),
         mc_inputs=adapted.mc_inputs, data_inputs=adapted.data_inputs, systematics=["nominal"],
         measured_covariance=measured_covariance, first_reported_pt_bin=0)
@@ -133,9 +133,9 @@ def main():
             reference = np.load(reference_path)
             manifest = json.loads((reference_dir / "run_manifest.json").read_text())
             variant = manifest["binning"]["resolved_candidate"]
-            options = PairSplitOptions(channel=channel, model_envelope=False,
+            options = HadronicOptions(channel=channel, model_envelope=False,
                 normalization_window=manifest["unfolding"]["plot_normalization"]["name"], tau=0)
-            spec = build_pairsplit_spec(channel, args.output / stem, options, grooming_mode=mode)
+            spec = build_hadronic_spec(channel, args.output / stem, options, grooming_mode=mode)
             data_replicas = load_replicas(args.audit, channel, "data", mode)
             mc_replicas = load_replicas(args.audit, channel, "mc", mode)
             data = full_sample(data_replicas)

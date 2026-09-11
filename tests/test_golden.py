@@ -23,8 +23,8 @@ NEW = REPO / "outputs" / "_golden_new"
 CASES = {"zjet_original": "zjet/rho/original/data"}
 
 
-def _pairsplit_cases():
-    """Pair-split run directories are named by a config fingerprint; pair them by channel/mode."""
+def _hadronic_cases():
+    """Hadronic run directories are named by a config fingerprint; pair them by channel/mode."""
     cases = {}
     if not GOLDEN.exists():
         return cases
@@ -33,7 +33,7 @@ def _pairsplit_cases():
         channel = rel.parts[1]
         mode = artifact.stem.replace("_results", "")
         new = sorted(NEW.glob(f"{channel}/rho/original/{mode}/artifacts/{mode}_results.npz"))
-        cases[f"pairsplit_{channel}_{mode}"] = (artifact, new[0] if new else None)
+        cases[f"hadronic_{channel}_{mode}"] = (artifact, new[0] if new else None)
     return cases
 
 
@@ -50,9 +50,9 @@ def test_zjet_products_match(name):
 
 
 @pytest.mark.skipif(not (GOLDEN.exists() and NEW.exists()), reason="golden trees not present")
-@pytest.mark.parametrize("name", list(_pairsplit_cases()))
-def test_pairsplit_artifacts_match(name):
-    golden, new = _pairsplit_cases()[name]
+@pytest.mark.parametrize("name", list(_hadronic_cases()))
+def test_hadronic_artifacts_match(name):
+    golden, new = _hadronic_cases()[name]
     assert new is not None, f"no new artifact for {name}"
     worst, lines = compare_file(golden, new, rtol=1e-9, atol=0.0)
     assert not lines, "\n".join(lines)

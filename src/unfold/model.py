@@ -5,7 +5,7 @@ Three pieces, all pure numpy apart from the pickle read of the fine response:
 1. offline column-scaled responses (Vincia, CR1/CR2, frag hard/soft) for the
    Z+jet shower/hadronization envelope;
 2. the two-group model covariance from origin-centered enclosing ellipsoids
-   (pair-split);
+   (hadronic);
 3. the statistical covariance of a prediction normalized in a fixed window.
 
 Part 1 -- column-scaled responses
@@ -174,7 +174,7 @@ def compute_model_shifts(uf):
 def compute_prepared_model_shifts(uf):
     """Read model shifts already re-unfolded through prepared responses.
 
-    Pair-split inputs build ``model_<source>`` response categories on their
+    Hadronic inputs build ``model_<source>`` response categories on their
     stored fine generator coordinate before the analysis GEN-bin merge.  The
     normal Unfolder systematic loop re-unfolds those responses, so this helper
     only converts their normalized results into the signed fractional shifts

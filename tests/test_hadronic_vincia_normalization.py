@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from unfold.pairsplit.vincia import (
-    attach_pairsplit_vincia_prediction, derive_pairsplit_vincia_prediction,
+from unfold.hadronic.vincia import (
+    attach_hadronic_vincia_prediction, derive_hadronic_vincia_prediction,
 )
 
 
@@ -21,7 +21,7 @@ def _source(coordinates, weights=None):
 
 
 def test_vincia_unit_weight_bins_have_binomial_normalized_covariance():
-    prediction = derive_pairsplit_vincia_prediction(
+    prediction = derive_hadronic_vincia_prediction(
         _source([-2.5, -2.5, -1.0, -1.0, -1.0]),
         pt_edges=(200, 300), gen_edges_by_pt=((-3, -2, 0),),
         normalization_window=(-3, 0),
@@ -37,12 +37,12 @@ def test_vincia_unit_weight_bins_have_binomial_normalized_covariance():
     np.testing.assert_allclose(expected @ [1, 2], 0, atol=1e-15)
     np.testing.assert_allclose(prediction.artifact_arrays()["mess_vincia_stat_covariance"], expected)
     unfolder = SimpleNamespace(pt_edges=prediction.pt_edges, gen_edges_by_pt=prediction.gen_edges_by_pt)
-    attach_pairsplit_vincia_prediction(unfolder, prediction)
+    attach_hadronic_vincia_prediction(unfolder, prediction)
     assert unfolder.vincia_stat_covariance_by_pt is prediction.stat_covariance_by_pt
 
 
 def test_vincia_partial_window_keeps_outside_denominator_fluctuations():
-    prediction = derive_pairsplit_vincia_prediction(
+    prediction = derive_hadronic_vincia_prediction(
         _source([-4.5, -2.5, -1.0], weights=[2, 3, 4]),
         pt_edges=(200, 300), gen_edges_by_pt=((-5, -3, -2, 0),),
         normalization_window=(-3, 0), grooming_mode="ungroomed",

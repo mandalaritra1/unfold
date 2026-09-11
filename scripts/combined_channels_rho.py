@@ -51,11 +51,11 @@ from unfold.cms_plot import (  # noqa: E402
 
 hep.style.use(hep.style.CMS)
 
-OUTPUT_ROOT = ROOT / "outputs" / "pairsplit_run2"
+OUTPUT_ROOT = ROOT / "outputs" / "hadronic"
 OUTPUT_DIR = OUTPUT_ROOT / "combined"
 
 # the production runs of `unfold run --channel <channel>` (tag "original")
-PAIRSPLIT_ARTIFACTS = {
+HADRONIC_ARTIFACTS = {
     (channel, mode): ROOT / "outputs" / channel / "rho" / "original" / mode / "artifacts" / f"{mode}_results.npz"
     for channel in ("dijet", "trijet") for mode in ("groomed", "ungroomed")
 }
@@ -161,8 +161,8 @@ def normalize_jacobian(counts: np.ndarray, widths: np.ndarray) -> np.ndarray:
     return jac
 
 
-def load_pairsplit_channel(channel: str, mode: str) -> dict:
-    path = PAIRSPLIT_ARTIFACTS[(channel, mode)]
+def load_hadronic_channel(channel: str, mode: str) -> dict:
+    path = HADRONIC_ARTIFACTS[(channel, mode)]
     with np.load(path, allow_pickle=True) as f:
         gen_edges = np.asarray(f["two_log10_rho_gen_edges"], dtype=float)
         pt_edges = np.asarray(f["pt_edges"], dtype=float)
@@ -439,8 +439,8 @@ def main() -> None:
     provenance: dict[str, object] = {"inputs": {}, "outputs": []}
     for mode in ("groomed", "ungroomed"):
         channels = {
-            "dijet": load_pairsplit_channel("dijet", mode),
-            "trijet": load_pairsplit_channel("trijet", mode),
+            "dijet": load_hadronic_channel("dijet", mode),
+            "trijet": load_hadronic_channel("trijet", mode),
             "zjet": load_zjet(mode),
         }
         for name, payload in channels.items():

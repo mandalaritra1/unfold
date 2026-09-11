@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a 16:9 Typst slide deck of the pair-split results, product-centric.
+"""Build a 16:9 Typst slide deck of the hadronic results, product-centric.
 
 One slide per product per run, showing ALL pT slices of that product together
 (dijet 3+2 grid, trijet one row of 3): detector-level data/MC, unfolded
@@ -20,18 +20,18 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 _spec = importlib.util.spec_from_file_location(
-    "pairsplit_plot_book", ROOT / "scripts" / "pairsplit_plot_book.py"
+    "hadronic_plot_book", ROOT / "scripts" / "hadronic_plot_book.py"
 )
 plot_book = importlib.util.module_from_spec(_spec)
 sys.modules[_spec.name] = plot_book
 _spec.loader.exec_module(plot_book)
 
 DECK_DATE = "2026-08-27"
-OUTPUT_ROOT = ROOT / "outputs" / "pairsplit_run2"
+OUTPUT_ROOT = ROOT / "outputs" / "hadronic"
 BUILD_DIR = OUTPUT_ROOT / "slides_build"
 FIG_DIR = BUILD_DIR / "figs"
-TYP_PATH = BUILD_DIR / "pairsplit_slides.typ"
-OUTPUT_PDF = OUTPUT_ROOT / f"PAIR_SPLIT_GROOMED_UNGROOMED_SLIDES_{DECK_DATE}.pdf"
+TYP_PATH = BUILD_DIR / "hadronic_slides.typ"
+OUTPUT_PDF = OUTPUT_ROOT / f"HADRONIC_GROOMED_UNGROOMED_SLIDES_{DECK_DATE}.pdf"
 PNG_DPI = 200
 
 # Per-pT products, one slide each per run, in presentation order.  Book
@@ -261,13 +261,13 @@ def divider_slide(run) -> str:
 
 def cover_slide(runs) -> str:
     lines = [
-        "Run-2 pair-split TUnfold: dijet + trijet, groomed + ungroomed, "
+        "Run-2 hadronic TUnfold: dijet + trijet, groomed + ungroomed, "
         "log10(rho^2) with rho = m/(pT R), R = 0.8.",
     ]
     return slide(
         "  #v(3cm)\n"
         "  #align(center)[#text(size: 28pt, weight: \"bold\", "
-        "fill: rgb(\"#0B2545\"))[Run-2 pair-split unfolding]]\n"
+        "fill: rgb(\"#0B2545\"))[Run-2 hadronic unfolding]]\n"
         "  #align(center)[#text(size: 16pt, fill: rgb(\"#1F4D78\"))"
         f"[Groomed and ungroomed plot review | {DECK_DATE}]]\n"
         "  #v(0.8cm)\n"
@@ -360,7 +360,7 @@ def build() -> None:
     header = (
         "#set page(paper: \"presentation-16-9\", margin: (x: 1.0cm, y: 0.7cm),\n"
         "  footer: context [#text(size: 8pt, fill: rgb(\"#5B6572\"))"
-        "[Run-2 pair-split unfolding | " + DECK_DATE + " "
+        "[Run-2 hadronic unfolding | " + DECK_DATE + " "
         "#h(1fr) #counter(page).display()]])\n"
         "#set text(font: \"Helvetica\", size: 11pt)\n"
     )

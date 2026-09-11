@@ -9,18 +9,18 @@ import unittest
 import hist
 import numpy as np
 
-from unfold.pairsplit.inputs import (
+from unfold.hadronic.inputs import (
     LEGACY_HISTOGRAM_KEYS,
-    PAIR_SPLIT_FINE_AXES,
-    PairSplitRun2Inputs,
+    HADRONIC_FINE_AXES,
+    HadronicRun2Inputs,
     PHYSICAL_RHO_DEFINITION,
     TRANSFORMED_COORDINATE_DEFINITION,
     TRANSFORMED_COORDINATE_NAME,
     covariance_rebin_matrix,
-    discover_pairsplit_run2_files,
-    load_pairsplit_run2_inputs,
-    pair_split_binning,
-    prepare_pairsplit_groomed_inputs,
+    discover_hadronic_files,
+    load_hadronic_inputs,
+    hadronic_binning,
+    prepare_hadronic_groomed_inputs,
     rebin_reco_covariance,
 )
 
@@ -33,7 +33,7 @@ def weighted_histogram(*axes, value: float, variance: float):
 
 
 def _mc_histogram(mode: str, role: str, systematics, value: float, variance: float, reco_edges=None):
-    fine = PAIR_SPLIT_FINE_AXES[mode]
+    fine = HADRONIC_FINE_AXES[mode]
     reco_edges = fine.two_log10_rho_reco_edges if reco_edges is None else reco_edges
     dataset = hist.axis.StrCategory(["sample_a", "sample_b"], name="dataset")
     systematic = hist.axis.StrCategory(systematics, name="systematic")
@@ -50,7 +50,7 @@ def _mc_histogram(mode: str, role: str, systematics, value: float, variance: flo
 
 
 def _data_histogram(mode: str, role: str, value: float, variance: float, reco_edges=None):
-    fine = PAIR_SPLIT_FINE_AXES[mode]
+    fine = HADRONIC_FINE_AXES[mode]
     reco_edges = fine.two_log10_rho_reco_edges if reco_edges is None else reco_edges
     dataset = hist.axis.StrCategory(["data"], name="dataset")
     systematic = hist.axis.StrCategory(["nominal"], name="systematic")
@@ -107,7 +107,7 @@ def make_payloads(
     return mc, data
 
 
-def write_pair_split_era(root: Path, era: str, mc, data, *, channel="dijet", nested="producer"):
+def write_hadronic_era(root: Path, era: str, mc, data, *, channel="dijet", nested="producer"):
     base = root / era / nested
     mc_directory = base / f"{channel}_mc"
     data_directory = base / f"{channel}_data"
@@ -122,17 +122,17 @@ def write_pair_split_era(root: Path, era: str, mc, data, *, channel="dijet", nes
     return mc_path, data_path
 
 
-class PairSplitRun2InputTests(unittest.TestCase):
+class HadronicRun2InputTests(unittest.TestCase):
     def test_nested_discovery_excludes_lhe_archive(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc, data = make_payloads()
-            expected_mc, expected_data = write_pair_split_era(root, "2018", mc, data)
-            archive_mc, _ = write_pair_split_era(
+            expected_mc, expected_data = write_hadronic_era(root, "2018", mc, data)
+            archive_mc, _ = write_hadronic_era(
                 root, "2018", mc, data, nested="2018_lhe_basis"
             )
 
-            files = discover_pairsplit_run2_files("dijet", "2018", root)
+            files = discover_hadronic_files("dijet", "2018", root)
 
             self.assertEqual(files.mc, expected_mc)
             self.assertEqual(files.data, expected_data)
@@ -142,44 +142,44 @@ class PairSplitRun2InputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc, data = make_payloads()
-            write_pair_split_era(root, "2018", mc, data, nested="first")
-            write_pair_split_era(root, "2018", mc, data, nested="second")
+            write_hadronic_era(root, "2018", mc, data, nested="first")
+            write_hadronic_era(root, "2018", mc, data, nested="second")
 
             with self.assertRaisesRegex(ValueError, "Expected exactly one mc"):
-                discover_pairsplit_run2_files("dijet", "2018", root)
+                discover_hadronic_files("dijet", "2018", root)
 
     def test_axis_mismatch_is_rejected_before_era_sum(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc, data = make_payloads()
-            write_pair_split_era(root, "2016", mc, data)
+            write_hadronic_era(root, "2016", mc, data)
             incompatible = tuple(
-                edge for edge in PAIR_SPLIT_FINE_AXES["groomed"].two_log10_rho_reco_edges
+                edge for edge in HADRONIC_FINE_AXES["groomed"].two_log10_rho_reco_edges
                 if not np.isclose(edge, -7.5)
             )
             mc_bad, data_bad = make_payloads(groomed_reco_edges=incompatible)
-            write_pair_split_era(root, "2017", mc_bad, data_bad)
+            write_hadronic_era(root, "2017", mc_bad, data_bad)
 
             with self.assertRaisesRegex(ValueError, "physics-axis mismatch"):
-                load_pairsplit_run2_inputs("dijet", ("2016", "2017"), root)
+                load_hadronic_inputs("dijet", ("2016", "2017"), root)
 
     def test_systematic_categories_must_match_each_mc_role(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc, data = make_payloads(gen_systematics=("nominal",))
-            write_pair_split_era(root, "2018", mc, data)
+            write_hadronic_era(root, "2018", mc, data)
 
             with self.assertRaisesRegex(ValueError, "systematic category mismatch"):
-                load_pairsplit_run2_inputs("dijet", ("2018",), root)
+                load_hadronic_inputs("dijet", ("2018",), root)
 
     def test_dataset_and_era_variances_are_added(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             for era in ("2016", "2017"):
                 mc, data = make_payloads()
-                write_pair_split_era(root, era, mc, data)
+                write_hadronic_era(root, era, mc, data)
 
-            inputs = load_pairsplit_run2_inputs("dijet", ("2016", "2017"), root)
+            inputs = load_hadronic_inputs("dijet", ("2016", "2017"), root)
             groomed = inputs.modes["groomed"]
 
             self.assertEqual(inputs.eras, ("2016", "2017"))
@@ -198,10 +198,10 @@ class PairSplitRun2InputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc, data = make_payloads()
-            write_pair_split_era(root, "2018", mc, data)
+            write_hadronic_era(root, "2018", mc, data)
 
             with self.assertRaisesRegex(ValueError, "occur exactly once"):
-                load_pairsplit_run2_inputs("dijet", ("2018", "2018"), root)
+                load_hadronic_inputs("dijet", ("2018", "2018"), root)
 
     def test_trijet_without_reco_covariance_uses_diagonal_reco_sumw2(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -209,9 +209,9 @@ class PairSplitRun2InputTests(unittest.TestCase):
             mc, data = make_payloads()
             for mode, keys in LEGACY_HISTOGRAM_KEYS.items():
                 del data[keys["reco_covariance"]]
-            write_pair_split_era(root, "2016APV", mc, data, channel="trijet")
+            write_hadronic_era(root, "2016APV", mc, data, channel="trijet")
 
-            inputs = load_pairsplit_run2_inputs("trijet", ("2016APV",), root)
+            inputs = load_hadronic_inputs("trijet", ("2016APV",), root)
             covariance = inputs.modes["groomed"].nominal_data_covariance.reshape(
                 inputs.modes["groomed"].nominal_data.size,
                 inputs.modes["groomed"].nominal_data.size,
@@ -228,7 +228,7 @@ class PairSplitRun2InputTests(unittest.TestCase):
                 systematic: np.zeros_like(values)
                 for systematic, values in groomed.response_by_systematic.items()
             }
-            prepared_inputs = PairSplitRun2Inputs(
+            prepared_inputs = HadronicRun2Inputs(
                 channel=inputs.channel,
                 eras=inputs.eras,
                 modes={
@@ -241,7 +241,7 @@ class PairSplitRun2InputTests(unittest.TestCase):
                 source_files=inputs.source_files,
                 observable_metadata=inputs.observable_metadata,
             )
-            prepared = prepare_pairsplit_groomed_inputs(
+            prepared = prepare_hadronic_groomed_inputs(
                 prepared_inputs, "aligned", ("nominal",)
             )
             self.assertEqual(prepared.metadata["data_covariance_source"], "diagonal_reco_sumw2")
@@ -250,14 +250,14 @@ class PairSplitRun2InputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mc_full, data_full = make_payloads()
-            write_pair_split_era(root, "2016", mc_full, data_full, channel="trijet")
+            write_hadronic_era(root, "2016", mc_full, data_full, channel="trijet")
             mc_diagonal, data_diagonal = make_payloads()
             for keys in LEGACY_HISTOGRAM_KEYS.values():
                 del data_diagonal[keys["reco_covariance"]]
-            write_pair_split_era(root, "2017", mc_diagonal, data_diagonal, channel="trijet")
+            write_hadronic_era(root, "2017", mc_diagonal, data_diagonal, channel="trijet")
 
             with self.assertRaisesRegex(ValueError, "mixed data covariance sources"):
-                load_pairsplit_run2_inputs("trijet", ("2016", "2017"), root)
+                load_hadronic_inputs("trijet", ("2016", "2017"), root)
 
     def test_dijet_still_requires_event_clustered_reco_covariance(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -265,10 +265,10 @@ class PairSplitRun2InputTests(unittest.TestCase):
             mc, data = make_payloads()
             for keys in LEGACY_HISTOGRAM_KEYS.values():
                 del data[keys["reco_covariance"]]
-            write_pair_split_era(root, "2018", mc, data)
+            write_hadronic_era(root, "2018", mc, data)
 
             with self.assertRaisesRegex(KeyError, "reco_cov"):
-                load_pairsplit_run2_inputs("dijet", ("2018",), root)
+                load_hadronic_inputs("dijet", ("2018",), root)
 
     def test_full_covariance_rebinning_uses_g_covariance_g_transpose(self):
         covariance = np.diag([1.0, 2.0, 3.0, 4.0]).reshape(2, 2, 2, 2)
@@ -281,11 +281,11 @@ class PairSplitRun2InputTests(unittest.TestCase):
         self.assertEqual(rebinned[0, 0, 0, 0], 10.0)
 
     def test_exact_candidate_edges_and_explicit_sink_behavior(self):
-        fine = PAIR_SPLIT_FINE_AXES["groomed"]
-        dijet_aligned = pair_split_binning("dijet", "aligned")
-        trijet_aligned = pair_split_binning("trijet", "aligned")
-        dijet_common = pair_split_binning("dijet", "aligned_common")
-        trijet_common = pair_split_binning("trijet", "aligned_common")
+        fine = HADRONIC_FINE_AXES["groomed"]
+        dijet_aligned = hadronic_binning("dijet", "aligned")
+        trijet_aligned = hadronic_binning("trijet", "aligned")
+        dijet_common = hadronic_binning("dijet", "aligned_common")
+        trijet_common = hadronic_binning("trijet", "aligned_common")
 
         self.assertEqual(
             fine.pt_edges,

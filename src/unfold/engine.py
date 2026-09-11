@@ -164,7 +164,7 @@ class Unfolder:
             if systematic != "nominal":
                 self._perform_unfold(systematic=systematic, closure=self.closure, herwig_closure=self.herwig_closure)
         if statistics is not None:
-            # Pair-split replicas install the selected absolute covariances
+            # Hadronic replicas install the selected absolute covariances
             # and their exact, per-replica normalized counterparts here.
             statistics(self)
         if self.has_jackknife:
@@ -338,9 +338,9 @@ class Unfolder:
 
         Legacy rho inputs commonly reserve pT slice zero as an unreported
         migration sink and therefore begin at ``first_reported_pt_bin == 1``.
-        Prepared pair-split inputs instead report their physical first slice at
+        Prepared hadronic inputs instead report their physical first slice at
         zero.  Deriving names from the explicit boundary keeps both layouts
-        unambiguous (and avoids a misleading ``ptall`` name for pair-split).
+        unambiguous (and avoids a misleading ``ptall`` name for hadronic).
         """
         return int(i_pt) - int(getattr(self, "first_reported_pt_bin", 0))
 
@@ -349,7 +349,7 @@ class Unfolder:
         """Reported pT slices for summary plots.
 
         Some legacy inputs keep a 0--200 GeV migration sink at index zero, but
-        pair-split inputs start their physical measurement at index zero.  The
+        hadronic inputs start their physical measurement at index zero.  The
         explicit ``first_reported_pt_bin`` is the only source of truth.
         """
         return self._reported_pt_indices()
@@ -707,7 +707,7 @@ class Unfolder:
                 # TUnfold returns both matrices as (gen, reco); K needs the
                 # transpose to act reco <- gen, J is already gen <- reco.  The
                 # shape tests below disambiguate only when n_reco != n_true —
-                # for a SQUARE response (pair-split ungroomed) they both fire
+                # for a SQUARE response (hadronic ungroomed) they both fire
                 # and wrongly flip J, so guard them with the inequality and
                 # apply the known raw orientation directly when square.
                 if n_reco == n_true:
@@ -1839,7 +1839,7 @@ class Unfolder:
 
 
     def _prediction_stat_covariance(self, i, kind="pythia"):
-        """Prediction statistics, with a pair-split normalization Jacobian."""
+        """Prediction statistics, with a hadronic normalization Jacobian."""
         method = getattr(getattr(self, "spec", None), "prediction_stat_method", "fixed_normalization")
         if method not in {"fixed_normalization", "jacobian"}:
             raise ValueError(f"Unknown prediction_stat_method: {method}")
@@ -1847,7 +1847,7 @@ class Unfolder:
         variances = getattr(self, f"{kind}_gen_var_flat", None)
         is_closure = getattr(self, "closure", False) or getattr(self, "herwig_closure", False)
         if method == "jacobian" and kind == "pythia" and values is None and not is_closure:
-            # Prepared pair-split data comparisons carry inclusive GEN sumw2.
+            # Prepared hadronic data comparisons carry inclusive GEN sumw2.
             # Do not add an independent truth-stat term to same-MC closure.
             values = (self.gen_mc_flat_dict or {}).get("nominal")
             variances = (self.gen_mc_var_dict or {}).get("nominal")
@@ -1878,7 +1878,7 @@ class Unfolder:
         PYTHIA: coherent symmetrized ISR/FSR/q2/PDF shift vectors of the
         normalized gen shape (rank-1 each; every variation is separately
         normalized, so the sum-constraint null space is preserved) plus the
-        MC-stat covariance. Pair-split propagates normalization; the legacy
+        MC-stat covariance. Hadronic propagates normalization; the legacy
         default uses a fixed denominator. HERWIG: MC-stat only -- no theory weights
         are available, an asymmetry the figure caption must state. Returns
         None when nothing is available (the chi2 then uses the measurement
@@ -2616,7 +2616,7 @@ class Unfolder:
         from unfold.model import MODEL_GROUPS, two_group_model_covariance
 
         if self.spec.model_envelope_source != "prepared_systematics":
-            raise ValueError("Enclosing model covariance currently requires prepared pair-split variations")
+            raise ValueError("Enclosing model covariance currently requires prepared hadronic variations")
         if self.spec.model_covariance_scope != "global_templates":
             raise ValueError("Enclosing model covariance requires scope='global_templates'")
         nominal = np.concatenate([result["unfolded"] for result in self.normalized_results])
@@ -2766,7 +2766,7 @@ class Unfolder:
         use_model_envelope = getattr(self.spec, "model_envelope", False)
         if use_model_envelope:
             # Vincia/CR/frag model-response variations.  Z+jet builds them
-            # offline from its fine 2018 response; prepared pair-split inputs
+            # offline from its fine 2018 response; prepared hadronic inputs
             # provide equivalent model_<source> response categories built
             # before the candidate GEN-bin merge.  FSR joins either path below
             # from the stored PSWeight unfolds.  This supersedes the legacy

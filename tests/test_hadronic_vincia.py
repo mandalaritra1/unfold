@@ -7,14 +7,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from unfold.pairsplit.vincia import (
-    PairSplitVinciaPrediction,
-    PairSplitVinciaSource,
-    PairSplitVinciaValidationError,
+from unfold.hadronic.vincia import (
+    HadronicVinciaPrediction,
+    HadronicVinciaSource,
+    HadronicVinciaValidationError,
     _rebin_histogram_to_target_edges,
-    attach_pairsplit_vincia_prediction,
-    derive_pairsplit_vincia_prediction,
-    load_pairsplit_vincia_source,
+    attach_hadronic_vincia_prediction,
+    derive_hadronic_vincia_prediction,
+    load_hadronic_vincia_source,
     validate_compiled_reference,
 )
 
@@ -55,7 +55,7 @@ def _write_final_all_fixture(root: Path) -> tuple[Path, Path, Path]:
                 "complete": True,
                 "campaign": "synthetic_mess",
                 "phase": "full",
-                "selection": "CMS_HADRONIC_PAIR_SPLIT",
+                "selection": "CMS_HADRONIC_HADRONIC",
                 "bin": ht_bin,
                 "seed": seed,
                 "lhe_events": lhe_events,
@@ -102,7 +102,7 @@ def _write_final_all_fixture(root: Path) -> tuple[Path, Path, Path]:
 
 def test_final_all_source_is_hash_checked_and_uses_per_ht_lhe_normalization(tmp_path):
     allowlist, audit, campaign = _write_final_all_fixture(tmp_path)
-    source = load_pairsplit_vincia_source(
+    source = load_hadronic_vincia_source(
         "dijet",
         allowlist_path=allowlist,
         audit_path=audit,
@@ -117,7 +117,7 @@ def test_final_all_source_is_hash_checked_and_uses_per_ht_lhe_normalization(tmp_
         "per row: rows[:,5] * manifest_input_xsec_pb / sum_ht_lhe_events"
     )
 
-    prediction = derive_pairsplit_vincia_prediction(
+    prediction = derive_hadronic_vincia_prediction(
         source,
         pt_edges=(200.0, 400.0, 13000.0),
         gen_edges_by_pt=((-4.0, -2.0, -1.0, 0.0),) * 2,
@@ -144,20 +144,20 @@ def test_final_all_source_is_hash_checked_and_uses_per_ht_lhe_normalization(tmp_
         gen_edges_by_pt = ((-4.0, -2.0, -1.0, 0.0),) * 2
 
     unfolder = FakeUnfolder()
-    attach_pairsplit_vincia_prediction(unfolder, prediction)
-    assert unfolder.pairsplit_vincia_required is True
-    assert unfolder.pairsplit_vincia_prediction.truth_by_pt()[0][0][1] == pytest.approx(6.0 / 7.0)
+    attach_hadronic_vincia_prediction(unfolder, prediction)
+    assert unfolder.hadronic_vincia_required is True
+    assert unfolder.hadronic_vincia_prediction.truth_by_pt()[0][0][1] == pytest.approx(6.0 / 7.0)
 
 
 def test_ungroomed_prediction_uses_m_u_and_skips_groomed_compiled_regression(tmp_path):
     allowlist, audit, campaign = _write_final_all_fixture(tmp_path)
-    source = load_pairsplit_vincia_source(
+    source = load_hadronic_vincia_source(
         "dijet",
         allowlist_path=allowlist,
         audit_path=audit,
         campaign_directory=campaign,
     )
-    prediction = derive_pairsplit_vincia_prediction(
+    prediction = derive_hadronic_vincia_prediction(
         source,
         pt_edges=(200.0, 13000.0),
         gen_edges_by_pt=((-4.0, -2.5, -2.0, -1.0, 0.0),),
@@ -180,8 +180,8 @@ def test_final_all_loader_fails_closed_when_an_ntuple_hash_changes(tmp_path):
     changed_ntuple = next(campaign.glob("*/*_dijet.txt"))
     changed_ntuple.write_text("210 10 8 0 0 2\n")
 
-    with pytest.raises(PairSplitVinciaValidationError, match="ntuple hash mismatch"):
-        load_pairsplit_vincia_source(
+    with pytest.raises(HadronicVinciaValidationError, match="ntuple hash mismatch"):
+        load_hadronic_vincia_source(
             "dijet",
             allowlist_path=allowlist,
             audit_path=audit,
@@ -196,7 +196,7 @@ def test_compiled_reference_rebinning_requires_nested_coordinate_edges():
         _rebin_histogram_to_target_edges(values, source_edges, np.array([-10.0, -4.0, 0.0])),
         [3.0, 7.0],
     )
-    with pytest.raises(PairSplitVinciaValidationError, match="not nested"):
+    with pytest.raises(HadronicVinciaValidationError, match="not nested"):
         _rebin_histogram_to_target_edges(values, source_edges, np.array([-10.0, -3.0, 0.0]))
 
 
@@ -212,7 +212,7 @@ def test_trijet_compiled_reference_rebins_each_pt_slice_to_active_truth_edges(tm
         arrays[f"{prefix}_sumw2"] = source_sumw2
     reference_path = tmp_path / "model_comparison_arrays.npz"
     np.savez(reference_path, **arrays)
-    source = PairSplitVinciaSource(
+    source = HadronicVinciaSource(
         channel="trijet",
         campaign="synthetic",
         campaign_directory=tmp_path,
@@ -228,7 +228,7 @@ def test_trijet_compiled_reference_rebins_each_pt_slice_to_active_truth_edges(tm
     target_edges = (-10.0, -4.0, -2.0, 0.0)
     target_sumw = np.array([3.0, 3.0, 4.0])
     target_sumw2 = np.array([30.0, 30.0, 40.0])
-    prediction = PairSplitVinciaPrediction(
+    prediction = HadronicVinciaPrediction(
         source=source,
         pt_edges=(200.0, 290.0, 400.0, 13000.0),
         gen_edges_by_pt=(target_edges,) * 3,
@@ -259,6 +259,6 @@ def test_audited_campaign_can_move_without_rewriting_provenance(tmp_path):
     allowed = json.loads(allowlist.read_text())
     allowed['audit_sha256'] = _sha256(audit)
     allowlist.write_text(json.dumps(allowed))
-    source = load_pairsplit_vincia_source('dijet', allowlist_path=allowlist,
+    source = load_hadronic_vincia_source('dijet', allowlist_path=allowlist,
         audit_path=audit, campaign_directory=campaign)
     assert source.campaign_directory == campaign.resolve()

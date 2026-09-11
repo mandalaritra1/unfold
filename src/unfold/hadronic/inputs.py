@@ -1,4 +1,4 @@
-"""Read and validate Run-2 pair-split inputs without coupling to an unfolder.
+"""Read and validate Run-2 hadronic inputs without coupling to an unfolder.
 
 The producer's histogram names are retained only at this boundary.  All arrays
 and metadata exposed by this module use the physical observable definition
@@ -16,12 +16,12 @@ import pickle
 import hist
 import numpy as np
 
-from unfold.paths import PAIRSPLIT_INPUTS
+from unfold.paths import HADRONIC_INPUTS
 
 
-PAIR_SPLIT_ERAS = ("2016APV", "2016", "2017", "2018")
-PAIR_SPLIT_CHANNELS = ("dijet", "trijet")
-PAIR_SPLIT_INPUT_ROOT = PAIRSPLIT_INPUTS
+HADRONIC_ERAS = ("2016APV", "2016", "2017", "2018")
+HADRONIC_CHANNELS = ("dijet", "trijet")
+HADRONIC_INPUT_ROOT = HADRONIC_INPUTS
 
 JET_RADIUS = 0.8
 PHYSICAL_RHO_DEFINITION = "rho = m / (pT * R), with R = 0.8"
@@ -82,7 +82,7 @@ FULL_SAFE_SYSTEMATIC_REQUEST = "nominal,all_safe_non_jes,JER,JES"
 # Luminosity is a coherent rate variation and is annihilated by this
 # workflow's per-pT normalization window, so it is intentionally not a shape
 # nuisance.  This is a narrow physics exclusion, not a generic filter.
-PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS = {
+HADRONIC_SYSTEMATIC_EXCLUSIONS = {
     "LuminosityUp": (
         "normalization-only luminosity rate variation; per-pT normalization "
         "cancels a coherent scale exactly"
@@ -93,7 +93,7 @@ PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS = {
     ),
 }
 
-# The pair-split producer intentionally keeps the GEN marginal nominal for
+# The hadronic producer intentionally keeps the GEN marginal nominal for
 # detector-side variations, while response/reco use the varied event weights
 # or detector kinematics.  Their central response, fakes, and misses remain
 # meaningful, but no cross-category MC-statistical covariance is stored for
@@ -101,7 +101,7 @@ PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS = {
 # *statistical errors* of these central-shift legs, matching the existing
 # virtual JES/JER treatment.  TUnfold stores analytic covariance only for the
 # nominal unfold; non-nominal legs contribute central shift vectors.
-PAIR_SPLIT_NOMINAL_VARIANCE_SYSTEMATICS = (
+HADRONIC_NOMINAL_VARIANCE_SYSTEMATICS = (
     "puUp",
     "puDown",
     "l1prefiringUp",
@@ -111,7 +111,7 @@ PAIR_SPLIT_NOMINAL_VARIANCE_SYSTEMATICS = (
     "JMRUp",
     "JMRDown",
 )
-PAIR_SPLIT_NOMINAL_VARIANCE_REASON = (
+HADRONIC_NOMINAL_VARIANCE_REASON = (
     "nominal Run-2 response/reco/gen sumw2 retained for detector-side central "
     "variation: the producer keeps the GEN marginal nominal and does not store "
     "cross-category MC-statistical covariance"
@@ -149,19 +149,19 @@ _ARRAY_AXES = {
 
 
 @dataclass(frozen=True)
-class PairSplitFineAxes:
-    """Fine axes stored in the pair-split producer inputs for one mode."""
+class HadronicFineAxes:
+    """Fine axes stored in the hadronic producer inputs for one mode."""
 
     pt_edges: tuple[float, ...]
     two_log10_rho_reco_edges: tuple[float, ...]
     two_log10_rho_gen_edges: tuple[float, ...]
 
 
-PAIR_SPLIT_FINE_AXES = {
+HADRONIC_FINE_AXES = {
     # The Z+jet-ALIGNED producer lattice (2026-08-27 re-production): every
     # gen edge above the -3.5 shown floor on the quarter-integer grid, reco
     # the exact 2:1 halving (0.125 steps).  smp hist_utils.py `_had_rho_gen_g`.
-    "groomed": PairSplitFineAxes(
+    "groomed": HadronicFineAxes(
         pt_edges=(185.0, 200.0, 290.0, 400.0, 480.0, 570.0, 680.0, 760.0, 820.0, 13000.0),
         two_log10_rho_reco_edges=(
             -10.0, -7.5, -5.0, -4.5, -4.0, -3.75, -3.5, -3.375,
@@ -176,7 +176,7 @@ PAIR_SPLIT_FINE_AXES = {
             -0.25, 0.0,
         ),
     ),
-    "ungroomed": PairSplitFineAxes(
+    "ungroomed": HadronicFineAxes(
         pt_edges=(185.0, 200.0, 290.0, 400.0, 480.0, 570.0, 680.0, 760.0, 820.0, 13000.0),
         two_log10_rho_reco_edges=(
             -10.0, -8.0, -7.0, -6.0, -5.5, -5.0, -4.75, -4.5,
@@ -193,8 +193,8 @@ PAIR_SPLIT_FINE_AXES = {
 
 
 @dataclass(frozen=True)
-class PairSplitBinning:
-    """One explicit candidate binning for the pair-split inputs.
+class HadronicBinning:
+    """One explicit candidate binning for the hadronic inputs.
 
     ``pt_groups`` are source fine-bin indices.  The source 185--200 GeV bin
     is deliberately a sink bin, excluded from every group.  The first output
@@ -266,12 +266,12 @@ def _candidate_binning(
     variant: str,
     pt_groups: tuple[tuple[int, ...], ...],
     two_log10_rho_groups: tuple[tuple[int, ...], ...],
-) -> PairSplitBinning:
-    fine_pt_edges = PAIR_SPLIT_FINE_AXES["groomed"].pt_edges
+) -> HadronicBinning:
+    fine_pt_edges = HADRONIC_FINE_AXES["groomed"].pt_edges
     output_pt_edges = tuple(
         fine_pt_edges[group[0]] for group in pt_groups
     ) + (fine_pt_edges[pt_groups[-1][-1] + 1],)
-    return PairSplitBinning(
+    return HadronicBinning(
         channel=channel,
         variant=variant,
         grooming_mode="groomed",
@@ -286,11 +286,11 @@ def _candidate_binning(
 
 
 def _ungroomed_candidate_binning(
-    groomed_candidate: PairSplitBinning,
-) -> PairSplitBinning:
+    groomed_candidate: HadronicBinning,
+) -> HadronicBinning:
     """Reuse only a candidate's pT aggregation for the ungroomed observable."""
 
-    return PairSplitBinning(
+    return HadronicBinning(
         channel=groomed_candidate.channel,
         variant=groomed_candidate.variant,
         grooming_mode="ungroomed",
@@ -308,7 +308,7 @@ def _ungroomed_candidate_binning(
 # claim is encoded in their names or metadata.  Pre-2026-08-27 variants
 # (coarse_tail / two_to_one / window_aligned*) lived on the old free-edge
 # producer lattice and are gone with it — git history has them.
-PAIR_SPLIT_BINNING_VARIANTS = {
+HADRONIC_BINNING_VARIANTS = {
     # The APPROVED aligned grids (2026-08-27): dijet = study "aligned_seven"
     # [-3.5,-2.5,-2,-1.5,-1.25,-1,-0.75,0], trijet = "wide_tail_deep"
     # [-3.5,-2.5,-2,-1.5,-1,0].  Every dijet edge merges onto the common
@@ -347,7 +347,7 @@ PAIR_SPLIT_BINNING_VARIANTS = {
 
 
 @dataclass(frozen=True)
-class PairSplitSourceFiles:
+class HadronicSourceFiles:
     channel: str
     era: str
     mc: Path
@@ -355,7 +355,7 @@ class PairSplitSourceFiles:
 
 
 @dataclass(frozen=True)
-class PairSplitModeArrays:
+class HadronicModeArrays:
     """Fine-bin, dataset- and era-summed arrays for one grooming mode.
 
     The response order is ``(ptreco, two_log10_rho_reco, ptgen,
@@ -364,7 +364,7 @@ class PairSplitModeArrays:
     """
 
     grooming_mode: str
-    fine_axes: PairSplitFineAxes
+    fine_axes: HadronicFineAxes
     systematics: tuple[str, ...]
     response_by_systematic: Mapping[str, np.ndarray]
     response_variance_by_systematic: Mapping[str, np.ndarray]
@@ -378,18 +378,18 @@ class PairSplitModeArrays:
 
 
 @dataclass(frozen=True)
-class PairSplitRun2Inputs:
+class HadronicRun2Inputs:
     """One channel's validated Run-2 inputs, loaded without runner coupling."""
 
     channel: str
     eras: tuple[str, ...]
-    modes: Mapping[str, PairSplitModeArrays]
-    source_files: tuple[PairSplitSourceFiles, ...]
+    modes: Mapping[str, HadronicModeArrays]
+    source_files: tuple[HadronicSourceFiles, ...]
     observable_metadata: Mapping[str, object]
 
 
 @dataclass(frozen=True)
-class PairSplitPreparedBinning:
+class HadronicPreparedBinning:
     """Binning attributes consumed by ``Unfolder.from_prepared_inputs``.
 
     The attribute names deliberately preserve the physical distinction between
@@ -405,12 +405,12 @@ class PairSplitPreparedBinning:
 
 
 @dataclass(frozen=True)
-class PairSplitPreparedInputs:
+class HadronicPreparedInputs:
     """Rebinned histograms and covariance for the maintained core API."""
 
     channel: str
-    candidate: PairSplitBinning
-    analysis_binning: PairSplitPreparedBinning
+    candidate: HadronicBinning
+    analysis_binning: HadronicPreparedBinning
     mc_inputs: Mapping[str, hist.Hist]
     data_inputs: Mapping[str, hist.Hist]
     systematics: tuple[str, ...]
@@ -574,7 +574,7 @@ def _histogram_from_systematic_arrays(
 
 
 def _prepared_histogram_axes(
-    binning: PairSplitPreparedBinning,
+    binning: HadronicPreparedBinning,
 ) -> dict[str, tuple[object, ...]]:
     return {
         "response": (
@@ -594,42 +594,42 @@ def _prepared_histogram_axes(
     }
 
 
-def prepare_pairsplit_inputs(
-    inputs: PairSplitRun2Inputs,
+def prepare_hadronic_inputs(
+    inputs: HadronicRun2Inputs,
     variant: str,
     systematics: Sequence[str] | None = None,
     *,
     grooming_mode: str = "groomed",
     model_variations: Mapping[str, np.ndarray] | None = None,
     model_metadata: Mapping[str, object] | None = None,
-) -> PairSplitPreparedInputs:
-    """Bridge one pair-split grooming mode into ``Unfolder.from_prepared_inputs``.
+) -> HadronicPreparedInputs:
+    """Bridge one hadronic grooming mode into ``Unfolder.from_prepared_inputs``.
 
     Reco quantities use the candidate's base coordinate bins.  Candidate
     ``coarse_tail``/``two_to_one`` groups are applied only to GEN bins.  The
     source 185--200 GeV pT bin is not mapped into the active pT space.
     """
 
-    candidate = pair_split_binning(inputs.channel, variant, grooming_mode=grooming_mode)
+    candidate = hadronic_binning(inputs.channel, variant, grooming_mode=grooming_mode)
     source = inputs.modes[grooming_mode]
     requested_systematics = tuple(source.systematics if systematics is None else systematics)
     if not requested_systematics or requested_systematics[0] != "nominal":
-        raise ValueError("Prepared pair-split systematics must start with 'nominal'")
+        raise ValueError("Prepared hadronic systematics must start with 'nominal'")
     if len(set(requested_systematics)) != len(requested_systematics):
-        raise ValueError("Prepared pair-split systematics contain duplicates")
+        raise ValueError("Prepared hadronic systematics contain duplicates")
     unavailable = [name for name in requested_systematics if name not in source.systematics]
     if unavailable:
-        raise ValueError(f"Requested pair-split systematics are unavailable: {unavailable}")
+        raise ValueError(f"Requested hadronic systematics are unavailable: {unavailable}")
     excluded = [
         name for name in requested_systematics
-        if name in PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS
+        if name in HADRONIC_SYSTEMATIC_EXCLUSIONS
     ]
     if excluded:
         details = "; ".join(
-            f"{name}: {PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS[name]}"
+            f"{name}: {HADRONIC_SYSTEMATIC_EXCLUSIONS[name]}"
             for name in excluded
         )
-        raise ValueError(f"Requested pair-split systematic is excluded: {details}")
+        raise ValueError(f"Requested hadronic systematic is excluded: {details}")
 
     model_variations = {
         str(name): np.asarray(weight, dtype=float)
@@ -660,7 +660,7 @@ def prepare_pairsplit_inputs(
     pt_map = _linear_group_map(
         len(fine_axes.pt_edges) - 1,
         candidate.pt_groups,
-        context="pair-split pT groups",
+        context="hadronic pT groups",
         require_full_coverage=False,
     )
     expected_sink = set(range(len(fine_axes.pt_edges) - 1)) - {
@@ -670,14 +670,14 @@ def prepare_pairsplit_inputs(
     }
     if expected_sink != set(candidate.sink_pt_source_bin_indices):
         raise ValueError(
-            "Pair-split pT groups do not match the declared source sink-bin behavior"
+            "Hadronic pT groups do not match the declared source sink-bin behavior"
         )
     if _grouped_edges(
         fine_axes.pt_edges,
         ((0,),) + candidate.pt_groups,
-        context="pair-split pT group edge contract",
+        context="hadronic pT group edge contract",
     )[1:] != candidate.pt_edges:
-        raise ValueError("Pair-split candidate pT edges do not match its pT groups")
+        raise ValueError("Hadronic candidate pT edges do not match its pT groups")
 
     reco_coordinate_groups = _groups_for_target_edges(
         fine_axes.two_log10_rho_reco_edges,
@@ -707,7 +707,7 @@ def prepare_pairsplit_inputs(
         context="gen two_log10_rho bins",
         require_full_coverage=True,
     )
-    analysis_binning = PairSplitPreparedBinning(
+    analysis_binning = HadronicPreparedBinning(
         pt_edges=candidate.pt_edges,
         two_log10_rho_reco_edges=candidate.base_reco_two_log10_rho_edges,
         two_log10_rho_gen_edges=final_gen_edges,
@@ -826,7 +826,7 @@ def prepare_pairsplit_inputs(
             pt_map,
             gen_coordinate_map,
         )
-        if systematic in PAIR_SPLIT_NOMINAL_VARIANCE_SYSTEMATICS:
+        if systematic in HADRONIC_NOMINAL_VARIANCE_SYSTEMATICS:
             # The non-nominal arrays still define this nuisance's central
             # response/fake/miss shift.  Only its unobservable cross-category
             # MC-stat covariance is fixed to the nominal Run-2 estimate.
@@ -875,7 +875,7 @@ def prepare_pairsplit_inputs(
             {"nominal": data_variances},
         )
     }
-    return PairSplitPreparedInputs(
+    return HadronicPreparedInputs(
         channel=inputs.channel,
         candidate=candidate,
         analysis_binning=analysis_binning,
@@ -901,13 +901,13 @@ def prepare_pairsplit_inputs(
                 "data_covariance_source_by_mode"
             ][grooming_mode],
             "systematic_exclusions": inputs.observable_metadata.get(
-                "systematic_exclusions", dict(PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS)
+                "systematic_exclusions", dict(HADRONIC_SYSTEMATIC_EXCLUSIONS)
             ),
             "systematic_variance_policy": {
                 "nominal_variance_systematics": list(
-                    PAIR_SPLIT_NOMINAL_VARIANCE_SYSTEMATICS
+                    HADRONIC_NOMINAL_VARIANCE_SYSTEMATICS
                 ),
-                "reason": PAIR_SPLIT_NOMINAL_VARIANCE_REASON,
+                "reason": HADRONIC_NOMINAL_VARIANCE_REASON,
             },
             "model_envelope": dict(model_metadata or {}),
             "run2_era_correlation": inputs.observable_metadata.get(
@@ -922,17 +922,17 @@ def prepare_pairsplit_inputs(
     )
 
 
-def prepare_pairsplit_groomed_inputs(
-    inputs: PairSplitRun2Inputs,
+def prepare_hadronic_groomed_inputs(
+    inputs: HadronicRun2Inputs,
     variant: str,
     systematics: Sequence[str] | None = None,
     *,
     model_variations: Mapping[str, np.ndarray] | None = None,
     model_metadata: Mapping[str, object] | None = None,
-) -> PairSplitPreparedInputs:
-    """Backward-compatible groomed wrapper around :func:`prepare_pairsplit_inputs`."""
+) -> HadronicPreparedInputs:
+    """Backward-compatible groomed wrapper around :func:`prepare_hadronic_inputs`."""
 
-    return prepare_pairsplit_inputs(
+    return prepare_hadronic_inputs(
         inputs,
         variant,
         systematics,
@@ -1090,7 +1090,7 @@ def _add_run2_era_correlation_virtuals(
     }
 
 
-def resolve_pairsplit_systematics(
+def resolve_hadronic_systematics(
     available_systematics: Sequence[str],
     requested: str | Sequence[str],
 ) -> tuple[str, ...]:
@@ -1121,7 +1121,7 @@ def resolve_pairsplit_systematics(
                 and not name.startswith("JES_")
                 and not name.startswith("JER_")
                 and not _is_raw_run2_jes_jer_category(name)
-                and name not in PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS
+                and name not in HADRONIC_SYSTEMATIC_EXCLUSIONS
             ]
         elif lower_request == "jes":
             matches = [
@@ -1152,17 +1152,17 @@ def resolve_pairsplit_systematics(
             ]
         if not matches:
             raise ValueError(
-                f"No available pair-split systematic matches {request!r}; available={available}"
+                f"No available hadronic systematic matches {request!r}; available={available}"
             )
         excluded_matches = [
-            name for name in matches if name in PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS
+            name for name in matches if name in HADRONIC_SYSTEMATIC_EXCLUSIONS
         ]
         if excluded_matches:
             details = "; ".join(
-                f"{name}: {PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS[name]}"
+                f"{name}: {HADRONIC_SYSTEMATIC_EXCLUSIONS[name]}"
                 for name in excluded_matches
             )
-            raise ValueError(f"Requested pair-split systematic is excluded: {details}")
+            raise ValueError(f"Requested hadronic systematic is excluded: {details}")
         for name in matches:
             if name not in resolved:
                 resolved.append(name)
@@ -1174,20 +1174,20 @@ def resolve_pairsplit_systematics(
     return tuple(resolved)
 
 
-def pair_split_binning(
+def hadronic_binning(
     channel: str,
     variant: str,
     *,
     grooming_mode: str = "groomed",
-) -> PairSplitBinning:
+) -> HadronicBinning:
     """Return an explicitly named candidate binning for one grooming mode."""
 
-    if channel not in PAIR_SPLIT_CHANNELS:
-        raise ValueError(f"Unsupported channel {channel!r}; choose from {PAIR_SPLIT_CHANNELS}")
+    if channel not in HADRONIC_CHANNELS:
+        raise ValueError(f"Unsupported channel {channel!r}; choose from {HADRONIC_CHANNELS}")
     try:
-        candidate = PAIR_SPLIT_BINNING_VARIANTS[variant][channel]
+        candidate = HADRONIC_BINNING_VARIANTS[variant][channel]
     except KeyError as error:
-        available = tuple(PAIR_SPLIT_BINNING_VARIANTS)
+        available = tuple(HADRONIC_BINNING_VARIANTS)
         raise ValueError(f"Unsupported binning variant {variant!r}; choose from {available}") from error
     if grooming_mode == "groomed":
         return candidate
@@ -1196,11 +1196,11 @@ def pair_split_binning(
     raise ValueError("grooming_mode must be 'groomed' or 'ungroomed'")
 
 
-def discover_pairsplit_run2_files(
+def discover_hadronic_files(
     channel: str,
     era: str | int,
-    input_root: str | Path = PAIR_SPLIT_INPUT_ROOT,
-) -> PairSplitSourceFiles:
+    input_root: str | Path = HADRONIC_INPUT_ROOT,
+) -> HadronicSourceFiles:
     """Discover exactly one nested data and MC all-systematics pickle.
 
     The producer layout has a channel directory below each era, but discovery
@@ -1208,12 +1208,12 @@ def discover_pairsplit_run2_files(
     ``2018_lhe_basis`` tree is explicitly excluded rather than searched.
     """
 
-    if channel not in PAIR_SPLIT_CHANNELS:
-        raise ValueError(f"Unsupported channel {channel!r}; choose from {PAIR_SPLIT_CHANNELS}")
+    if channel not in HADRONIC_CHANNELS:
+        raise ValueError(f"Unsupported channel {channel!r}; choose from {HADRONIC_CHANNELS}")
     era = str(era)
     era_dir = Path(input_root) / era
     if not era_dir.is_dir():
-        raise FileNotFoundError(f"Missing pair-split era directory: {era_dir}")
+        raise FileNotFoundError(f"Missing hadronic era directory: {era_dir}")
 
     def discover_one(kind: str, filename: str) -> Path:
         pattern = f"**/{channel}_{kind}/**/{filename}"
@@ -1224,12 +1224,12 @@ def discover_pairsplit_run2_files(
         if len(matches) != 1:
             listed = "\n".join(f"  {path}" for path in sorted(matches)) or "  (none)"
             raise ValueError(
-                f"Expected exactly one {kind} pair-split pickle for {channel} {era} "
+                f"Expected exactly one {kind} hadronic pickle for {channel} {era} "
                 f"using {pattern!r}; found {len(matches)}:\n{listed}"
             )
         return matches[0]
 
-    return PairSplitSourceFiles(
+    return HadronicSourceFiles(
         channel=channel,
         era=era,
         mc=discover_one("mc", f"minimal_rho_{channel}_mg_pythia8_{era}.pkl"),
@@ -1287,7 +1287,7 @@ def _validate_histogram_axes(
     role: str,
     context: str,
 ) -> None:
-    fine_axes = PAIR_SPLIT_FINE_AXES[mode]
+    fine_axes = HADRONIC_FINE_AXES[mode]
     expected = {
         "ptreco": fine_axes.pt_edges,
         "ptgen": fine_axes.pt_edges,
@@ -1344,7 +1344,7 @@ def _add_arrays(
 
 
 def _validate_source_payloads(
-    source: PairSplitSourceFiles,
+    source: HadronicSourceFiles,
     mc_payload: Mapping[str, object],
     data_payload: Mapping[str, object],
     mc_systematics_by_mode: dict[str, tuple[str, ...]],
@@ -1432,11 +1432,11 @@ def _validate_source_payloads(
             )
 
 
-def load_pairsplit_run2_inputs(
+def load_hadronic_inputs(
     channel: str,
-    eras: Sequence[str | int] = PAIR_SPLIT_ERAS,
-    input_root: str | Path = PAIR_SPLIT_INPUT_ROOT,
-) -> PairSplitRun2Inputs:
+    eras: Sequence[str | int] = HADRONIC_ERAS,
+    input_root: str | Path = HADRONIC_INPUT_ROOT,
+) -> HadronicRun2Inputs:
     """Load one channel, validating all eras before retaining summed arrays.
 
     Each pickle is opened and reduced one era at a time.  Dataset components
@@ -1444,8 +1444,8 @@ def load_pairsplit_run2_inputs(
     footprint bounded to one channel plus the returned fine arrays.
     """
 
-    if channel not in PAIR_SPLIT_CHANNELS:
-        raise ValueError(f"Unsupported channel {channel!r}; choose from {PAIR_SPLIT_CHANNELS}")
+    if channel not in HADRONIC_CHANNELS:
+        raise ValueError(f"Unsupported channel {channel!r}; choose from {HADRONIC_CHANNELS}")
     normalized_eras = tuple(str(era) for era in eras)
     if not normalized_eras:
         raise ValueError("At least one era is required")
@@ -1456,7 +1456,7 @@ def load_pairsplit_run2_inputs(
         )
 
     sources = tuple(
-        discover_pairsplit_run2_files(channel, era, input_root)
+        discover_hadronic_files(channel, era, input_root)
         for era in normalized_eras
     )
     source_eras = tuple(source.era for source in sources)
@@ -1569,9 +1569,9 @@ def load_pairsplit_run2_inputs(
         correlation_by_mode[mode] = correlation_metadata
 
     modes = {
-        mode: PairSplitModeArrays(
+        mode: HadronicModeArrays(
             grooming_mode=mode,
-            fine_axes=PAIR_SPLIT_FINE_AXES[mode],
+            fine_axes=HADRONIC_FINE_AXES[mode],
             systematics=systematics_by_mode[mode],
             response_by_systematic=accumulator["response"],
             response_variance_by_systematic=accumulator["response_variance"],
@@ -1585,7 +1585,7 @@ def load_pairsplit_run2_inputs(
         )
         for mode, accumulator in accumulators.items()
     }
-    return PairSplitRun2Inputs(
+    return HadronicRun2Inputs(
         channel=channel,
         eras=normalized_eras,
         modes=modes,
@@ -1596,7 +1596,7 @@ def load_pairsplit_run2_inputs(
             "transformed_coordinate_name": TRANSFORMED_COORDINATE_NAME,
             "transformed_coordinate_definition": TRANSFORMED_COORDINATE_DEFINITION,
             "data_covariance_source_by_mode": dict(data_covariance_source_by_mode),
-            "systematic_exclusions": dict(PAIR_SPLIT_SYSTEMATIC_EXCLUSIONS),
+            "systematic_exclusions": dict(HADRONIC_SYSTEMATIC_EXCLUSIONS),
             "run2_era_correlation": {
                 "applied": all(
                     details["applied"] for details in correlation_by_mode.values()
