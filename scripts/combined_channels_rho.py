@@ -37,7 +37,6 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 import numpy as np
 
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -309,125 +308,149 @@ def slice_label(index: int) -> str:
     return f"{low:g} < $p_T$ < {high:g} GeV" if high else f"$p_T$ > {low:g} GeV"
 
 
-def draw_combined(mode: str, slice_index: int, channels: dict, cms_label: str) -> Path:
-    edges = COMMON_EDGES[mode]
-    widths = np.diff(edges)
-    centers = 0.5 * (edges[:-1] + edges[1:])
-    fig, (axis, ratio_axis) = plt.subplots(
-        2,
-        1,
-        figsize=(10, 10),
-        sharex=True,
-        gridspec_kw={"height_ratios": [3, 1], "hspace": 0.06},
-    )
+# Within a bin the three channels' error bars sit at these fractions of the
+# bin width, so no bar ever overlaps another channel's.
+BAR_OFFSET = {"dijet": 0.25, "trijet": 0.5, "zjet": 0.75}
+RATIO_OFFSET = {"trijet": 0.35, "zjet": 0.65}
+RATIO_CAP = 2.0
+CHANNEL_ORDER = ("dijet", "trijet", "zjet")
 
-    peak = 0.0
-    for name in ("zjet", "trijet", "dijet"):
+
+def ratio_to_dijet(channels: dict, slice_index: int):
+    """(ratio, error) per channel for trijet and zjet; channels uncorrelated."""
+    dijet = channels["dijet"]["density"][slice_index]
+    out = {}
+    for name in ("trijet", "zjet"):
         payload = channels[name]
-        style = CHANNEL_STYLE[name]
         density = payload["density"][slice_index]
-        total = payload["total"][slice_index]
-        stat = payload["stat"][slice_index]
-        peak = max(peak, float(np.max(density + total)))
-        axis.stairs(
-            density + total,
-            edges,
-            baseline=density - total,
-            fill=True,
-            color=style["band"],
-            alpha=0.55,
-        )
-        axis.stairs(density, edges, color=style["color"], linewidth=2.2,
-                    label=style["label"])
-        axis.errorbar(centers, density, yerr=stat, fmt="none",
-                      ecolor=style["color"], elinewidth=1.4, capsize=3)
-
-    axis.set_ylim(0.0, peak * 1.55)
-    # Single-line form: the stacked \frac gets its numerator clipped at the
-    # figure edge on the shorter ungroomed panels.
-    axis.set_ylabel(
-        r"$(1/N)\; dN/d\log_{10}(\rho^2)$", fontsize=PUB_LABEL_FONTSIZE
-    )
-    axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
-    # Legend handles carry the ratio-panel marker of each channel so the
-    # shape-to-channel mapping is explicit, not colour-only.
-    from matplotlib.lines import Line2D
-
-    handles = [
-        Line2D([], [], color=CHANNEL_STYLE[name]["color"], linewidth=2.2,
-               marker=CHANNEL_STYLE[name]["marker"], markersize=7,
-               label=CHANNEL_STYLE[name]["label"])
-        for name in ("zjet", "trijet", "dijet")
-    ]
-    axis.legend(handles=handles, fontsize=PUB_LEGEND_FONTSIZE, loc="upper left",
-                frameon=False)
-    hep.cms.label(cms_label, data=True, rlabel="Run 2 (13 TeV)", ax=axis)
-    axis.text(
-        0.97,
-        0.96,
-        f"{slice_label(slice_index)}\n{mode}",
-        transform=axis.transAxes,
-        ha="right",
-        va="top",
-        fontsize=PUB_ANNOTATION_FONTSIZE,
-    )
-
-    dijet = channels["dijet"]
-    dijet_density = dijet["density"][slice_index]
-    dijet_rel = np.divide(
-        dijet["total"][slice_index],
-        dijet_density,
-        out=np.zeros_like(dijet_density),
-        where=dijet_density > 0,
-    )
-    ratio_axis.stairs(
-        1.0 + dijet_rel,
-        edges,
-        baseline=1.0 - dijet_rel,
-        fill=True,
-        hatch="///",
-        facecolor="none",
-        edgecolor=CHANNEL_STYLE["dijet"]["color"],
-        alpha=0.8,
-    )
-    ratio_axis.axhline(1.0, color=CHANNEL_STYLE["dijet"]["color"], linestyle="--",
-                       linewidth=1.2)
-    offsets = {"zjet": -0.06, "trijet": 0.06}
-    ratio_top_needed = 1.0 + float(np.max(dijet_rel))
-    for name in ("zjet", "trijet"):
-        payload = channels[name]
-        style = CHANNEL_STYLE[name]
-        density = payload["density"][slice_index]
-        ratio = np.divide(density, dijet_density,
-                          out=np.full_like(density, np.nan),
-                          where=dijet_density > 0)
+        ratio = np.divide(density, dijet, out=np.full_like(density, np.nan), where=dijet > 0)
         rel = np.divide(payload["total"][slice_index], density,
                         out=np.zeros_like(density), where=density > 0)
-        errors = np.abs(ratio) * rel
-        finite = np.isfinite(ratio)
-        if finite.any():
-            ratio_top_needed = max(
-                ratio_top_needed, float(np.max((ratio + errors)[finite]))
-            )
-        ratio_axis.errorbar(
-            centers + offsets[name] * widths,
-            ratio,
-            yerr=errors,
-            fmt=style["marker"],
-            color=style["color"],
-            markersize=7 if style["marker"] == "^" else 6,
-            capsize=3,
-            linewidth=1.6,
-        )
-    ratio_axis.set_ylim(0.0, max(2.6, 1.12 * ratio_top_needed))
-    ratio_axis.set_yticks([0.5, 1.0, 1.5, 2.0])
-    ratio_axis.set_ylabel("Ratio to dijet", fontsize=PUB_LABEL_FONTSIZE - 4)
-    ratio_axis.set_xlabel(
-        rf"$\log_{{10}}(\rho^2)$, {mode}", fontsize=PUB_LABEL_FONTSIZE
-    )
-    ratio_axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE)
-    ratio_axis.set_xlim(edges[0], edges[-1])
+        out[name] = (ratio, np.abs(ratio) * rel)
+    return out
 
+
+def ratio_limits(channels: dict) -> tuple[float, float]:
+    """One ratio range for every pT slice, capped at RATIO_CAP (arrows beyond)."""
+    low, high, marker_high = 0.7, 1.3, 1.0
+    for slice_index in range(len(COMMON_PT_SLICES)):
+        for ratio, error in ratio_to_dijet(channels, slice_index).values():
+            finite = np.isfinite(ratio)
+            if finite.any():
+                low = min(low, float(np.min((ratio - error)[finite])))
+                high = max(high, float(np.max((ratio + error)[finite])))
+                marker_high = max(marker_high, float(np.max(ratio[finite])))
+    # bars may run into the frame; markers must not, so the cap yields to them
+    top = min(RATIO_CAP, np.ceil(high * 10) / 10 + 0.05)
+    return (max(0.0, np.floor(low * 10) / 10 - 0.05), max(top, marker_high + 0.15))
+
+
+def draw_slice(axis, ratio_axis, mode: str, slice_index: int, channels: dict, *,
+               ymax: float, ratio_lim: tuple[float, float], first: bool, legend: bool):
+    """One pT slice: step outlines for the shape, offset error bars for the
+    uncertainty (thick = stat, thin with caps = total), ratio to dijet below."""
+    edges = COMMON_EDGES[mode]
+    widths = np.diff(edges)
+    for edge in edges[1:-1]:
+        axis.axvline(edge, color="0.85", linewidth=0.8, zorder=0)
+        ratio_axis.axvline(edge, color="0.85", linewidth=0.8, zorder=0)
+    for name in CHANNEL_ORDER:
+        payload, style = channels[name], CHANNEL_STYLE[name]
+        x = edges[:-1] + BAR_OFFSET[name] * widths
+        density = payload["density"][slice_index]
+        axis.stairs(density, edges, color=style["color"], linewidth=2.6, zorder=3)
+        axis.errorbar(x, density, yerr=payload["total"][slice_index], fmt="none",
+                      ecolor=style["color"], elinewidth=1.2, capsize=4, alpha=0.85, zorder=4)
+        axis.errorbar(x, density, yerr=payload["stat"][slice_index], fmt=style["marker"],
+                      color=style["color"], markersize=7, elinewidth=2.6, capsize=0, zorder=5)
+    axis.set_ylim(-0.04 * ymax, ymax)   # a bin compatible with zero keeps its marker visible
+    axis.set_xlim(edges[0], edges[-1])
+    axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE - 6)
+    axis.text(0.96, 0.95, f"{slice_label(slice_index)}\n{mode}", transform=axis.transAxes,
+              ha="right", va="top", fontsize=PUB_ANNOTATION_FONTSIZE - 2)
+    if first:
+        # Single-line form: the stacked \frac gets its numerator clipped at the
+        # figure edge on the shorter ungroomed panels.
+        axis.set_ylabel(r"$(1/N)\; dN/d\log_{10}(\rho^2)$", fontsize=PUB_LABEL_FONTSIZE - 6)
+        ratio_axis.set_ylabel("Ratio to dijet", fontsize=PUB_LABEL_FONTSIZE - 9)
+    else:
+        axis.tick_params(labelleft=False)
+        ratio_axis.tick_params(labelleft=False)
+    if legend:
+        from matplotlib.lines import Line2D
+
+        handles = [
+            Line2D([], [], color=CHANNEL_STYLE[name]["color"], linewidth=2.6,
+                   marker=CHANNEL_STYLE[name]["marker"], markersize=8,
+                   label=CHANNEL_STYLE[name]["label"])
+            for name in CHANNEL_ORDER
+        ]
+        axis.legend(handles=handles, fontsize=PUB_LEGEND_FONTSIZE - 1, loc="upper left",
+                    frameon=False, borderaxespad=1.2)
+
+    # ratio row: dijet total uncertainty as a grey band, the other two as
+    # step outlines (a binned ratio, so no lines between bins) plus offset bars
+    dijet = channels["dijet"]
+    dijet_density = dijet["density"][slice_index]
+    dijet_rel = np.divide(dijet["total"][slice_index], dijet_density,
+                          out=np.zeros_like(dijet_density), where=dijet_density > 0)
+    ratio_axis.stairs(1.0 + dijet_rel, edges, baseline=1.0 - dijet_rel, fill=True,
+                      color="0.82", alpha=0.9, zorder=0)
+    ratio_axis.axhline(1.0, color=CHANNEL_STYLE["dijet"]["color"], linewidth=1.2)
+    span = ratio_lim[1] - ratio_lim[0]
+    for name, (ratio, error) in ratio_to_dijet(channels, slice_index).items():
+        style = CHANNEL_STYLE[name]
+        x = edges[:-1] + RATIO_OFFSET[name] * widths
+        ratio_axis.stairs(np.where(np.isfinite(ratio), ratio, np.nan), edges,
+                          color=style["color"], linewidth=2.0, zorder=3)
+        ratio_axis.errorbar(x, ratio, yerr=error, fmt=style["marker"], color=style["color"],
+                            markersize=7, capsize=3, linewidth=1.6, zorder=4)
+        for xx, rr in zip(x, ratio):
+            if np.isfinite(rr) and rr > ratio_lim[1]:
+                ratio_axis.annotate("", xy=(xx, ratio_lim[1] - 0.02 * span),
+                                    xytext=(xx, ratio_lim[1] - 0.2 * span),
+                                    arrowprops=dict(arrowstyle="-|>", color=style["color"], lw=1.4))
+    ratio_axis.set_ylim(*ratio_lim)
+    ratio_axis.set_xticks(edges)
+    ratio_axis.set_xticklabels([("" if (not first and k == 0) else f"{e:g}")
+                                for k, e in enumerate(edges)])
+    ratio_axis.tick_params(axis="both", which="major", labelsize=PUB_TICK_FONTSIZE - 6)
+    ratio_axis.set_xlabel(r"$\log_{10}(\rho^2)$", fontsize=PUB_LABEL_FONTSIZE - 6)
+
+
+def slice_ymax(channels: dict) -> float:
+    return 1.45 * max(float(np.max(channels[name]["density"][i] + channels[name]["total"][i]))
+                      for name in CHANNEL_ORDER for i in range(len(COMMON_PT_SLICES)))
+
+
+def draw_combined_row(mode: str, channels: dict, cms_label: str) -> Path:
+    """The paper figure: the three pT slices side by side in one PDF."""
+    n = len(COMMON_PT_SLICES)
+    fig, axes = plt.subplots(2, n, figsize=(7.2 * n, 9.0), sharex="col", sharey="row",
+                             gridspec_kw={"height_ratios": [3, 1.15], "hspace": 0.05, "wspace": 0.04})
+    ymax, ratio_lim = slice_ymax(channels), ratio_limits(channels)
+    for i in range(n):
+        draw_slice(axes[0, i], axes[1, i], mode, i, channels, ymax=ymax, ratio_lim=ratio_lim,
+                   first=(i == 0), legend=(i == 0))
+    hep.cms.text(cms_label, ax=axes[0, 0], fontsize=PUB_ANNOTATION_FONTSIZE)
+    axes[0, -1].text(1.0, 1.01, r"138 fb$^{-1}$ (13 TeV)", transform=axes[0, -1].transAxes,
+                     ha="right", va="bottom", fontsize=PUB_ANNOTATION_FONTSIZE)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    output_path = OUTPUT_DIR / f"combined_{mode}.pdf"
+    save_cms_label_flavors(fig, output_path, cms_label, bbox_inches="tight")
+    plt.close(fig)
+    return output_path
+
+
+def draw_combined(mode: str, slice_index: int, channels: dict, cms_label: str) -> Path:
+    """One pT slice per PDF (talks); same drawing as the paper row."""
+    fig, (axis, ratio_axis) = plt.subplots(
+        2, 1, figsize=(10, 10), sharex=True,
+        gridspec_kw={"height_ratios": [3, 1.15], "hspace": 0.05},
+    )
+    draw_slice(axis, ratio_axis, mode, slice_index, channels, ymax=slice_ymax(channels),
+               ratio_lim=ratio_limits(channels), first=True, legend=True)
+    hep.cms.label(cms_label, data=True, lumi=138, ax=axis)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output_path = OUTPUT_DIR / f"combined_{mode}_pt{slice_index}.pdf"
     save_cms_label_flavors(fig, output_path, cms_label)
@@ -449,6 +472,9 @@ def main() -> None:
                 "path": str(source),
                 "sha256": sha256_path(source),
             }
+        output = draw_combined_row(mode, channels, "Internal")
+        provenance["outputs"].append(str(output))
+        print("wrote", output)
         for slice_index in range(len(COMMON_PT_SLICES)):
             output = draw_combined(mode, slice_index, channels, "Internal")
             provenance["outputs"].append(str(output))
