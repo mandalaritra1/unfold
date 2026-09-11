@@ -6,6 +6,7 @@ Set the variables to run elsewhere:
   UNFOLD_CERNBOX            CERNBox sync directory holding the pair-split skims
   UNFOLD_SMP_ROOT           checkout of smp_jetmass_run2 (generator campaign results)
   UNFOLD_PAIRSPLIT_INPUTS   <era>/<channel>_{mc,data}/ pair-split pickles
+  UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS  Run-2 jackknife campaign with data/ and mc/
   UNFOLD_ROOUNFOLD_LIB      libRooUnfold, only for --method roounfold_bayes
 """
 
@@ -16,10 +17,12 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 INPUTS = REPO_ROOT / "inputs"
 OUTPUTS = REPO_ROOT / "outputs"
 
-CERNBOX = Path(os.environ.get("UNFOLD_CERNBOX", "~/cernbox (2)")).expanduser()
+CERNBOX = Path(os.environ.get("UNFOLD_CERNBOX", "~/cernbox")).expanduser()
 SMP_ROOT = Path(os.environ.get("UNFOLD_SMP_ROOT", "~/Projects/smp_jetmass_run2")).expanduser()
 PAIRSPLIT_INPUTS = Path(os.environ.get(
     "UNFOLD_PAIRSPLIT_INPUTS", CERNBOX / "hadronic_minimal_rho_pairsplit_aligned")).expanduser()
+PAIRSPLIT_JACKKNIFE_INPUTS = Path(os.environ.get(
+    "UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS", CERNBOX / "hadronic_jackknife_run2_20260908")).expanduser()
 
 # standalone-generator campaigns used by the pair-split modelling uncertainty
 MESS_CAMPAIGN = "mess_pairsplit_dijet_20260813_v1"

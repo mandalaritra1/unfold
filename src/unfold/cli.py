@@ -53,6 +53,8 @@ def resolve_output_dir(tag, args):
     base_reg = getattr(tag, "regularization", "none")
     suffix = option_suffix(jacobian=args.jacobian, regularization=args.regularization,
                            method=args.method, base_regularization=base_reg)
+    if isinstance(tag, PairSplitTag) and args.stat_method is not None and args.stat_method != tag.stat_method:
+        suffix += "_stat_" + args.stat_method
     return (REPO_ROOT / (tag.output_dir.rstrip("/") + suffix)).resolve()
 
 
@@ -177,6 +179,9 @@ def run_pairsplit(args, tag, output_dir):
         no_plots=args.no_plots, model_envelope=tag.model_envelope, model_covariance=tag.model_covariance,
         cms_label=args.cms_label, lumi=tag.lumi if args.lumi is None else args.lumi, com=args.com,
         command=command_line(),
+        stat_method=args.stat_method or tag.stat_method,
+        **({"jackknife_input_root": args.jackknife_input_root}
+           if args.jackknife_input_root is not None else {}),
     )
     manifests = run_all(options)
     manifest = base_manifest(args, tag, output_dir)
@@ -195,6 +200,10 @@ def run(args):
 
     set_stamp(not args.no_stamp)
     tag = get_tag(args.channel, args.observable, args.tag)
+    if not isinstance(tag, PairSplitTag) and (
+        args.stat_method is not None or args.jackknife_input_root is not None
+    ):
+        sys.exit("--stat-method and --jackknife-input-root apply to Run-2 dijet/trijet tags only")
     output_dir = resolve_output_dir(tag, args)
     output_dir.mkdir(parents=True, exist_ok=True)
     if isinstance(tag, ObservableSpec):
@@ -229,6 +238,10 @@ def build_parser():
     r.add_argument("--regularization", choices=("none", "ratio_curvature", "curvature"), default=None)
     r.add_argument("--tau", type=float, default=None, help="fixed regularization strength (skips the L-curve scan)")
     r.add_argument("--method", choices=("tunfold", "roounfold_bayes"), default=None)
+    r.add_argument("--stat-method", choices=("analytic", "jackknife"), default=None,
+                   help="Run-2 dijet/trijet: jackknife by default, analytic if replica files are absent")
+    r.add_argument("--jackknife-input-root", type=Path, default=None,
+                   help="Run-2 replica campaign containing data/ and mc/; overrides UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS")
     r.add_argument("--n-iter", type=int, default=None, help="D'Agostini iterations for roounfold_bayes")
     r.add_argument("--era-split", choices=("sqrt", "linear"), default="sqrt",
                    help="Z+jet JES year-correlation split: 'sqrt' is the JetMET prescription (default); "

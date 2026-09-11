@@ -93,8 +93,6 @@ def _read_rows(path: Path) -> np.ndarray:
 def _resolve_manifest_path(record_path: Path, campaign_directory: Path) -> Path:
     """Resolve an allowlisted original path against the audited campaign mirror."""
 
-    if record_path.is_file():
-        return record_path
     candidate = campaign_directory / record_path.parent.name / record_path.name
     if candidate.is_file():
         return candidate
@@ -300,11 +298,14 @@ def load_pairsplit_vincia_source(
     audited_campaign_directory = audit.get("campaign_dir")
     if (
         audited_campaign_directory is not None
-        and Path(audited_campaign_directory).resolve() != campaign_directory
+        and Path(audited_campaign_directory).name != campaign_directory.name
     ):
         raise PairSplitVinciaValidationError(
-            "requested MESS campaign directory does not match the final-all audit"
+            "requested MESS campaign name does not match the final-all audit"
         )
+    # The campaign can move when a CERNBox mount is renamed. Its identity is
+    # established below by the audited manifest and ntuple hashes, not by the
+    # old absolute parent directory recorded at harvest time.
 
     manifests_by_ht: dict[str, list[tuple[dict, Path, str]]] = defaultdict(list)
     inventory: list[dict[str, object]] = []

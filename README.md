@@ -48,6 +48,10 @@ unfold run --channel zjet                        # all systematics, ~10 min per 
 unfold run --channel zjet --no-syst --grooming-mode groomed    # quick nominal-only run
 unfold run --channel dijet --tag 2018            # the older single-year inputs
 
+# Run-2 dijet/trijet: fixed-fake jackknife by default, analytic if files are absent
+unfold run --channel dijet --stat-method analytic  # outputs/dijet/rho/original_stat_analytic/
+unfold run --channel trijet --jackknife-input-root ~/cernbox/hadronic_jackknife_run2_20260908
+
 # option runs never overwrite the tag's outputs: the directory gets a suffix
 unfold run --channel zjet --jacobian --regularization ratio_curvature   # outputs/zjet/rho/original_jacobian_reg/
 
@@ -67,6 +71,29 @@ revision.  The numeric products are:
 * zjet: `data/normalized_covariance_<mode>.npz`, `data/unfolded_2d_<mode>.pkl`,
   `data/uncertainty_summary_2d_<mode>.pkl`
 * dijet, trijet: `<mode>/artifacts/<mode>_results.npz` (`artifacts/` for tag `2018`)
+
+Run-2 dijet/trijet statistics use ten data replicas and ten MC replicas, with
+the nominal fake fraction fixed. The MC response and GEN/misses vary together.
+Each replica is normalized before its covariance is calculated; the independent
+data and MC covariances are then added. The selected covariances feed the error
+bands, correlations, result chi-squared calculations, and saved arrays. The full
+nominal measured covariance remains the fit weight, including dijet event
+correlations. The bottom-line test retains its data-statistics-plus-model scope.
+
+The default replica directory is set in `paths.py`; override it with
+`UNFOLD_PAIRSPLIT_JACKKNIFE_INPUTS` or `--jackknife-input-root`. Missing any required
+era/data/MC file selects the analytical method for that run. Existing malformed
+files cause an error. The manifest records the requested and actual method,
+fallback reason, replica hashes, fixed-fake policy, and covariance ranks.
+`artifacts/jackknife_statistics.npz` retains the replicas and analytical
+covariances for comparison. Z+jet and single-year tags keep their existing method.
+
+Nominal data and reconstructed jackknife data must describe the same sample.
+The September 8 replica campaign has about 10.5% more weighted data than the
+older nominal inputs. The CLI currently rejects that pairing; use matching
+inputs or `--stat-method analytic`. It does not silently change the central
+spectrum or attach statistics from the different cohort. See
+[the jackknife study](docs/hadronic_jackknife_comparison.md).
 
 The provenance stamp on every figure is one switch: `--no-stamp` on the
 command line or `UNFOLD_NO_STAMP=1` in the environment (`cms_plot.set_stamp`),
@@ -122,7 +149,7 @@ After a change, rerun the same commands into another directory and compare:
 
 ```bash
 unfold run --channel zjet  --era-split linear --output-dir outputs/_golden_new/zjet/rho/original  --no-gallery --no-stamp
-unfold run --channel dijet --output-dir outputs/_golden_new/dijet/rho/original --no-gallery --no-stamp
+unfold run --channel dijet --stat-method analytic --output-dir outputs/_golden_new/dijet/rho/original --no-gallery --no-stamp
 python tests/compare_golden.py outputs/_golden_legacy/zjet/rho/original outputs/_golden_new/zjet/rho/original
 ```
 

@@ -76,7 +76,7 @@ For a future rerun, the manifest should record at least:
 Generated outputs are excluded from Git. The current archive is:
 
 ```text
-/Users/aritra/cernbox (2)/unfold_outputs/2026-08-02/outputs/
+/Users/aritra/cernbox/unfold_outputs/2026-08-02/outputs/
 ```
 
 It contains the moved historical rho, dijet, trijet, Combine, validation, and
@@ -110,7 +110,7 @@ results at this point.
 The archived session note with detailed commands and fit diagnostics is at:
 
 ```text
-/Users/aritra/cernbox (2)/unfold_outputs/2026-08-02/outputs/session_summary/unfold_combine_session_summary.md
+/Users/aritra/cernbox/unfold_outputs/2026-08-02/outputs/session_summary/unfold_combine_session_summary.md
 ```
 
 ## Nonportable paths requiring an explicit policy

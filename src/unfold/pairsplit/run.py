@@ -21,7 +21,7 @@ from unfold.binning import Binning
 from unfold.config import RHO_BASE
 from unfold.engine import Unfolder
 from unfold.inputs import prepared_inputs
-from unfold.paths import REPO_ROOT
+from unfold.paths import REPO_ROOT, PAIRSPLIT_JACKKNIFE_INPUTS
 from unfold.pairsplit.diagnostics import RunDiagnostics, collect_run_diagnostics
 from unfold.pairsplit.inputs import (
     PAIR_SPLIT_CHANNELS,
@@ -97,6 +97,8 @@ class PairSplitOptions:
     com: float = 13.0
     requested_binning: str | None = None
     command: str = ""
+    stat_method: str = "jackknife"
+    jackknife_input_root: Path = PAIRSPLIT_JACKKNIFE_INPUTS
 
 
 def file_sha256(path: Path) -> str:
@@ -142,6 +144,7 @@ def run_configuration_identity(
     *,
     grooming_mode: str = "groomed",
     analysis_binning=None,
+    statistics=None,
 ) -> dict[str, object]:
     """Identify the physics configuration used by one immutable output directory.
 
@@ -178,6 +181,7 @@ def run_configuration_identity(
         "regularization": args.regularization,
         "requested_tau": args.tau,
         "prediction_statistics": "normalization_jacobian_from_sumw2",
+        "statistics": json.loads(json.dumps(statistics)) if statistics is not None else {"requested": args.stat_method},
         "systematics": list(resolved_systematics),
         # This is deliberately part of the directory identity: a new audited
         # MESS campaign or source hash must never reuse a stale Vincia overlay.
@@ -458,6 +462,9 @@ def write_artifact(
             "pythia_prediction_stat_covariance": pythia_covariance,
         })
     np.savez_compressed(path, **artifact_arrays)
+    if hasattr(unfolder, "jackknife_artifact_arrays"):
+        np.savez_compressed(path.with_name("jackknife_statistics.npz"),
+                            **unfolder.jackknife_artifact_arrays)
     return path
 
 
@@ -643,9 +650,19 @@ def run_channel(
     """Load and unfold one channel, keeping only one channel's arrays resident."""
 
     import ROOT
+    from unfold.pairsplit.jackknife import load_jackknife_inputs, check_data_sample, full_sample, apply_jackknife
 
     args = channel_resolved_args(args, channel)
     inputs = load_pairsplit_run2_inputs(channel, input_root=args.input_root)
+    replicas, statistics = load_jackknife_inputs(
+        args.jackknife_input_root, channel, grooming_mode, requested=args.stat_method
+    )
+    print(f"Statistics: requested {args.stat_method}, using {statistics['resolved']}", flush=True)
+    if "fallback_reason" in statistics:
+        print(f"Analytic fallback: {statistics['fallback_reason']}: "
+              + ", ".join(statistics["missing_files"]), flush=True)
+    if replicas is not None:
+        check_data_sample(inputs.modes[grooming_mode].nominal_data, full_sample(replicas.data)["reco"])
     resolved_systematics = resolve_pairsplit_systematics(
         inputs.modes[grooming_mode].systematics,
         args.systematics,
@@ -699,6 +716,7 @@ def run_channel(
         model_envelope.identity_payload() if model_envelope is not None else None,
         grooming_mode=grooming_mode,
         analysis_binning=prepared.analysis_binning,
+        statistics=statistics,
     )
     # <tag dir>/<mode>/; the configuration fingerprint stays in the manifest
     output_dir = (Path(args.output_dir) / grooming_mode).resolve()
@@ -718,7 +736,9 @@ def run_channel(
         measured_covariance=prepared.measured_covariance,
         first_reported_pt_bin=prepared.first_reported_pt_bin,
     )
-    unfolder = Unfolder(engine_inputs, spec, groomed, cms_label=args.cms_label, lumi=args.lumi, com=args.com).run()
+    unfolder = Unfolder(engine_inputs, spec, groomed, cms_label=args.cms_label, lumi=args.lumi, com=args.com).run(
+        statistics=(lambda u: apply_jackknife(u, replicas, args.binning)) if replicas is not None else None
+    )
     attach_pairsplit_vincia_prediction(unfolder, vincia_prediction)
     closure_unfolder = run_nominal_mc_self_closure(
         unfolder,
@@ -787,6 +807,13 @@ def run_channel(
         ),
     )
     manifest["plots"] = {"enabled": not args.no_plots, "gallery": str(gallery) if gallery else None}
+    manifest["unfolding"]["statistics"] = statistics
+    if replicas is not None:
+        manifest["unfolding"].update(
+            stat_propagation="normalize each jackknife replica",
+            response_statistics="fixed-fake response and GEN/misses jackknife",
+            jackknife="data and MC covariances estimated separately and added",
+        )
     manifest_path = output_dir / "run_manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest_path

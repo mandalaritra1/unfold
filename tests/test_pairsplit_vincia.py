@@ -249,3 +249,16 @@ def test_trijet_compiled_reference_rebins_each_pt_slice_to_active_truth_edges(tm
     assert result["channel"] == "trijet"
     assert len(result["source_coordinate_rebin_by_pt"]) == 3
     assert result["source_coordinate_rebin_by_pt"][2]["max_abs_sumw2_difference"] == 0.0
+
+
+def test_audited_campaign_can_move_without_rewriting_provenance(tmp_path):
+    allowlist, audit, campaign = _write_final_all_fixture(tmp_path)
+    audit_record = json.loads(audit.read_text())
+    audit_record['campaign_dir'] = str(tmp_path / 'old-mount' / campaign.name)
+    audit.write_text(json.dumps(audit_record))
+    allowed = json.loads(allowlist.read_text())
+    allowed['audit_sha256'] = _sha256(audit)
+    allowlist.write_text(json.dumps(allowed))
+    source = load_pairsplit_vincia_source('dijet', allowlist_path=allowlist,
+        audit_path=audit, campaign_directory=campaign)
+    assert source.campaign_directory == campaign.resolve()

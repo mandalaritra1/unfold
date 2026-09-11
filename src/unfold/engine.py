@@ -14,10 +14,10 @@ Everything from ``UnfoldInputs`` is copied onto the instance under the same
 name, so ``self.mosaic_dict``, ``self.misses_2d`` etc. mean the same thing in
 the loaders, here and in the plots.  Results are added by ``run``:
 
-``y_unf, ye_unf``            unfolded spectrum and TUnfold error (flat gen)
+``y_unf, ye_unf``            unfolded spectrum and selected statistical error (flat gen)
 ``y_meas, y_true, x_folded`` fake-corrected data, MC truth prior, refolded result
 ``y_unf_dict``               unfolded spectrum per systematic
-``cov_np, cov_data_np, cov_uncorr_np``  TUnfold total / input-stat / matrix-stat covariances
+``cov_np, cov_data_np, cov_uncorr_np``  selected total / input-stat / matrix-stat covariances
 ``normalized_results``       per pT slice: normalized unfolded, truth, stat and total bands
 ``normalized_systematics``   per pT slice: normalized unfolded per systematic
 ``norm_cov_*``               stat covariances of the normalized result (jacobian propagation)
@@ -157,16 +157,20 @@ class Unfolder:
         self.y_unf_jk_matrix_list = []
         self._ensure_output_dirs()
 
-    def run(self):
+    def run(self, *, statistics=None):
         """Unfold nominal + systematics, then statistics, normalization, totals."""
         self._perform_unfold(systematic="nominal", closure=self.closure, herwig_closure=self.herwig_closure)
         for systematic in self.systematics:
             if systematic != "nominal":
                 self._perform_unfold(systematic=systematic, closure=self.closure, herwig_closure=self.herwig_closure)
+        if statistics is not None:
+            # Pair-split replicas install the selected absolute covariances
+            # and their exact, per-replica normalized counterparts here.
+            statistics(self)
         if self.has_jackknife:
             self._compute_stat_unc()
         else:
-            # TUnfold's propagated covariances stand in for the jackknife replicas
+            # Read the selected covariances (analytic unless installed above).
             self._compute_input_stat_unc_from_covariance()
         self._normalize_result()
         self._compute_total_systematic()
@@ -2047,6 +2051,9 @@ class Unfolder:
 
         self.unfolded_2dnorm_flat = unf / widths_flat / total_unf
         self.unfolded_2dnorm_err_flat = unf_err / widths_flat / total_unf
+        jackknife_covariance = getattr(self, "jackknife_global_normalized_covariance", None)
+        if jackknife_covariance is not None:
+            self.unfolded_2dnorm_err_flat = np.sqrt(np.clip(np.diag(jackknife_covariance), 0, None))
         self.true_2dnorm_flat = true / widths_flat / total_true
 
         unf_pt = unflatten_gen_by_pt(self.unfolded_2dnorm_flat, self.gen_edges_by_pt)
@@ -2460,12 +2467,8 @@ class Unfolder:
     def _absolute_stat_covariances(self):
         """Covariances of the absolute unfolded spectrum: (input, matrix).
 
-        Uses TUnfold's exactly propagated covariances (input data stat,
-        response MC stat) rather than the jackknife replicas: a covariance
-        estimated from 10 replicas has rank <= 9 over the full gen vector,
-        which fabricates near-unit correlations. The same matrices feed the
-        legacy correlation plot, so only the normalization treatment differs
-        between the legacy and jacobian tags' correlation figures.
+        The selected method supplies these arrays. Legacy Z+jet keeps its
+        original analytic covariance convention.
         """
         return (
             np.array(self.cov_data_np, copy=True),
@@ -2484,11 +2487,21 @@ class Unfolder:
         introduces negative correlations; both are expected for a normalized
         measurement.
         """
-        jacobian = self._normalization_jacobian()
-        cov_input_abs, cov_matrix_abs = self._absolute_stat_covariances()
-        self.norm_cov_input = jacobian @ cov_input_abs @ jacobian.T
-        self.norm_cov_matrix = jacobian @ cov_matrix_abs @ jacobian.T
+        replicas = getattr(self, "jackknife_normalized_covariances", None)
+        if replicas is not None:
+            self.norm_cov_input, self.norm_cov_matrix = (c.copy() for c in replicas)
+        else:
+            jacobian = self._normalization_jacobian()
+            cov_input_abs, cov_matrix_abs = self._absolute_stat_covariances()
+            self.norm_cov_input = jacobian @ cov_input_abs @ jacobian.T
+            self.norm_cov_matrix = jacobian @ cov_matrix_abs @ jacobian.T
         self.norm_cov_stat = self.norm_cov_input + self.norm_cov_matrix
+        if replicas is not None:
+            errors = unflatten_gen_by_pt(
+                np.sqrt(np.clip(np.diag(self.norm_cov_stat), 0.0, None)), self.gen_edges_by_pt
+            )
+            for result, error in zip(self.normalized_results, errors):
+                result["unfolded_err"] = error
 
 
     def get_systematic_covariance(self):
@@ -3228,13 +3241,7 @@ class Unfolder:
 
 
     def _compute_input_stat_unc_from_covariance(self):
-        """Use TUnfold's propagated covariances when JK inputs are absent.
-
-        Input-stat term from GetEmatrixInput (data statistics); matrix-stat
-        term from GetEmatrixSysUncorr (uncorrelated statistical uncertainties
-        of the response matrix). Both are the analytic TUnfold error
-        propagation, standing in for the jackknife replicas.
-        """
+        """Read absolute data/response errors from the selected covariances."""
 
         input_variance = np.clip(np.diag(self.cov_data_np), 0.0, None)
         input_std = np.sqrt(input_variance)
@@ -3275,4 +3282,3 @@ class Unfolder:
             self.stat_unc_frac,
             self.gen_edges_by_pt,
         )
-

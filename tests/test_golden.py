@@ -4,7 +4,7 @@ Skipped unless both trees exist locally:
 
     outputs/_golden_legacy/   produced by the snapshot-2026-09-09 tree
     outputs/_golden_new/      produced by `unfold run --channel <c> --output-dir outputs/_golden_new/<c>/rho/original --no-gallery --no-stamp`
-                              (Z+jet with --era-split linear: the reference predates the sqrt fix)
+                              (Z+jet with --era-split linear; dijet/trijet with --stat-method analytic)
 
 See README.md ("Checking that nothing changed") for the commands.
 """

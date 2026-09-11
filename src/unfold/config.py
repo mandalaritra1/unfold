@@ -115,6 +115,7 @@ class PairSplitTag:
     regularization: str = "none"                # "none" or "curvature"
     tau: float | None = None
     lumi: float = 138.0
+    stat_method: str = "jackknife"               # falls back to analytic if replica files are absent
 
 
 @dataclass(frozen=True)
